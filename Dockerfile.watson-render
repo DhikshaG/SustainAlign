@@ -1,0 +1,64 @@
+# IBM WatsonX Orchestrate Dockerfile for Render
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install IBM WatsonX Orchestrate
+RUN pip install --no-cache-dir ibm-watsonx-orchestrate
+
+# Copy WatsonX code
+COPY backend/ibm_watson/ .
+
+# Create data directory
+RUN mkdir -p data
+
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV WO_DEVELOPER_EDITION_SOURCE=orchestrate
+
+EXPOSE 3000 4321
+
+# Create startup script
+RUN echo '#!/bin/bash\n\
+set -e\n\
+\n\
+# Start server\n\
+echo "Starting WatsonX Orchestrate server..."\n\
+orchestrate server start -e ../.env &\n\
+\n\
+# Wait for server to start\n\
+sleep 30\n\
+\n\
+# Deploy tools\n\
+echo "Deploying AI tools..."\n\
+if [ -d "tools" ]; then\n\
+  for tool in tools/*.py; do\n\
+    if [ -f "$tool" ]; then\n\
+      echo "Deploying tool: $tool"\n\
+      orchestrate tools import -k python -f "$tool" || echo "Failed to deploy $tool"\n\
+    fi\n\
+  done\n\
+fi\n\
+\n\
+# Deploy agents\n\
+echo "Deploying AI agents..."\n\
+if [ -d "agents" ]; then\n\
+  for agent in agents/*.yaml; do\n\
+    if [ -f "$agent" ]; then\n\
+      echo "Deploying agent: $agent"\n\
+      orchestrate agents import -f "$agent" || echo "Failed to deploy $agent"\n\
+    fi\n\
+  done\n\
+fi\n\
+\n\
+# Wait for background processes\n\
+wait\n\
+' > start.sh && chmod +x start.sh
+
+CMD ["./start.sh"]

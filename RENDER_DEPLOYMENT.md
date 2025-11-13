@@ -2,6 +2,15 @@
 
 This guide explains how to deploy the SustainAlign platform on Render using Docker.
 
+## Deployment Files
+
+This repository includes several files to help with Render deployment:
+
+- [render.yaml](file:///d:/projects/website/sustainalign/render.yaml) - Render blueprint for deploying all services
+- [render-docker-compose.yml](file:///d:/projects/website/sustainalign/render-docker-compose.yml) - Docker Compose file optimized for Render
+- [Dockerfile.watson-render](file:///d:/projects/website/sustainalign/Dockerfile.watson-render) - Watson Dockerfile optimized for Render
+- [RENDER_DEPLOYMENT.md](file:///d:/projects/website/sustainalign/RENDER_DEPLOYMENT.md) - This guide
+
 ## Prerequisites
 
 1. A Render account ([https://render.com](https://render.com))

@@ -39,7 +39,7 @@ services:
   watson:
     build:
       context: .
-      dockerfile: Dockerfile.watson
+      dockerfile: Dockerfile.watson-render
     ports:
       - "3000:3000"
       - "4321:4321"

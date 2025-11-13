@@ -1,0 +1,45 @@
+services:
+  - type: web
+    name: sustainalign-frontend
+    env: docker
+    dockerfilePath: Dockerfile.frontend
+    numInstances: 1
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+  - type: web
+    name: sustainalign-backend
+    env: docker
+    dockerfilePath: Dockerfile.backend
+    numInstances: 1
+    healthCheckPath: /api/health
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: SECRET_KEY
+        sync: false
+      - key: DATABASE_URL
+        value: sqlite:///data/sustainalign.db
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: WO_API_KEY
+        sync: false
+      - key: WO_INSTANCE
+        sync: false
+      - key: WATSON_API_KEY
+        sync: false
+
+  - type: web
+    name: sustainalign-watson
+    env: docker
+    dockerfilePath: Dockerfile.watson-render
+    numInstances: 1
+    envVars:
+      - key: WO_API_KEY
+        sync: false
+      - key: WO_INSTANCE
+        sync: false
+      - key: WATSON_API_KEY
+        sync: false
