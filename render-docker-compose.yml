@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  # Frontend Service
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+
+  # Backend Service
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=production
+      - DATABASE_URL=sqlite:///data/sustainalign.db
+      - CORS_ORIGIN=${FRONTEND_URL:-http://localhost:3000}
+      - SECRET_KEY=${SECRET_KEY}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - WO_API_KEY=${WO_API_KEY}
+      - WO_INSTANCE=${WO_INSTANCE}
+      - WATSON_API_KEY=${WATSON_API_KEY}
+      - WATSON_SERVICE_URL=${WATSON_SERVICE_URL}
+    volumes:
+      - backend-data:/app/data
+    restart: unless-stopped
+
+  # IBM WatsonX Orchestrate Service
+  watson:
+    build:
+      context: .
+      dockerfile: Dockerfile.watson
+    ports:
+      - "3000:3000"
+      - "4321:4321"
+    environment:
+      - WO_DEVELOPER_EDITION_SOURCE=orchestrate
+      - WO_API_KEY=${WO_API_KEY}
+      - WO_INSTANCE=${WO_INSTANCE}
+      - WATSON_API_KEY=${WATSON_API_KEY}
+      - WATSON_SERVICE_URL=${WATSON_SERVICE_URL}
+      - CALLBACK_HOST_URL=${CALLBACK_HOST_URL:-http://localhost:4321}
+    volumes:
+      - watson-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  backend-data:
+  watson-data:
