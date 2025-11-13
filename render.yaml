@@ -3,6 +3,7 @@ services:
     name: sustainalign-frontend
     env: docker
     dockerfilePath: Dockerfile.frontend
+    plan: free
     numInstances: 1
     healthCheckPath: /
     envVars:
@@ -13,6 +14,7 @@ services:
     name: sustainalign-backend
     env: docker
     dockerfilePath: Dockerfile.backend
+    plan: free
     numInstances: 1
     healthCheckPath: /api/health
     envVars:
@@ -35,6 +37,7 @@ services:
     name: sustainalign-watson
     env: docker
     dockerfilePath: Dockerfile.watson-render
+    plan: free
     numInstances: 1
     envVars:
       - key: WO_API_KEY
