@@ -14,7 +14,7 @@ bcrypt==4.2.1
 cryptography==44.0.0
 
 # HTTP and API
-requests==2.32.3
+requests==2.32.4
 urllib3==2.3.0
 httpx==0.28.1
 httpx-sse==0.4.1
