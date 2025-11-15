@@ -1,8 +1,5 @@
-// Base URL for backend API
-// In production, set VITE_API_BASE_URL to something like
-//   https://sustainalign-backend.onrender.com/api
-// In development, you can use http://localhost:5000/api or rely on the Vite proxy.
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api') + '/ai-matching'
+// Hardcoded backend URL for Render deployment
+const API_BASE_URL = 'https://sustainalign-backend.onrender.com/api/ai-matching'
 
 /**
  * AI Matching API Client
