@@ -1,5 +1,6 @@
 # Frontend Dockerfile
-FROM node:18-alpine
+# Use Node 20+ so Vite 7 can use crypto.hash during build
+FROM node:20-alpine
 
 WORKDIR /app
 
