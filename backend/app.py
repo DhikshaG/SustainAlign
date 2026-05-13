@@ -19,6 +19,9 @@ from routes.watson_agents import watson_bp
 # instance limp along with insecure defaults.
 _PROD_REQUIRED_ENV = (
 	"SECRET_KEY",
+	# Refresh tokens are signed with a separate secret so a leak of one
+	# does not compromise the other.
+	"JWT_REFRESH_SECRET",
 	"DATABASE_URL",
 	"CORS_ORIGIN",
 	# Required so prod never silently falls back to the mock-rationale path

@@ -54,8 +54,8 @@ def needs_rehash(password_hash: str) -> bool:
     return not _is_bcrypt_hash(password_hash or '')
 
 
-def _get_secret() -> str:
-    """Return SECRET_KEY. In production it MUST be set; in dev we allow a fallback."""
+def _get_access_secret() -> str:
+    """SECRET_KEY signs short-lived access tokens. Required in prod."""
     secret = os.environ.get('SECRET_KEY')
     if secret:
         return secret
@@ -64,22 +64,92 @@ def _get_secret() -> str:
     return 'dev-secret-do-not-use-in-prod'
 
 
-def create_token(payload: dict, expires_minutes: int = 60 * 24) -> str:
-    """Create a signed JWT. Defaults to 24h expiry; pass 15 for short access tokens."""
-    secret = _get_secret()
-    exp = datetime.utcnow() + timedelta(minutes=expires_minutes)
-    to_encode = {**payload, 'exp': exp, 'iat': datetime.utcnow()}
-    return jwt.encode(to_encode, secret, algorithm='HS256')
+def _get_refresh_secret() -> str:
+    """JWT_REFRESH_SECRET signs long-lived refresh tokens. If unset in dev,
+    falls back to a derived secret distinct from the access secret.
+    Required in prod (validated in app.py)."""
+    secret = os.environ.get('JWT_REFRESH_SECRET')
+    if secret:
+        return secret
+    if os.environ.get('FLASK_ENV', '').lower() == 'production':
+        raise RuntimeError("JWT_REFRESH_SECRET is required in production")
+    return _get_access_secret() + ':refresh'
+
+
+# Token lifetimes. Override via env in production.
+ACCESS_TOKEN_TTL_MINUTES = int(os.environ.get('ACCESS_TOKEN_TTL_MINUTES', '15'))
+REFRESH_TOKEN_TTL_DAYS = int(os.environ.get('REFRESH_TOKEN_TTL_DAYS', '7'))
+
+
+def create_access_token(user_payload: dict) -> str:
+    """Issue a short-lived access JWT. user_payload must contain at least
+    'sub' (user id), 'email', and 'role'."""
+    now = datetime.utcnow()
+    to_encode = {
+        **user_payload,
+        'type': 'access',
+        'iat': now,
+        'exp': now + timedelta(minutes=ACCESS_TOKEN_TTL_MINUTES),
+    }
+    return jwt.encode(to_encode, _get_access_secret(), algorithm='HS256')
+
+
+def create_refresh_token(user_id: int, jti: str) -> tuple[str, datetime]:
+    """Issue a long-lived refresh JWT. Returns (token, expires_at)."""
+    now = datetime.utcnow()
+    expires_at = now + timedelta(days=REFRESH_TOKEN_TTL_DAYS)
+    to_encode = {
+        'sub': user_id,
+        'type': 'refresh',
+        'jti': jti,
+        'iat': now,
+        'exp': expires_at,
+    }
+    return jwt.encode(to_encode, _get_refresh_secret(), algorithm='HS256'), expires_at
+
+
+def decode_access_token(token: str) -> dict | None:
+    """Decode an access JWT. Returns None on any failure or if the token's
+    type claim is not 'access' (refresh tokens MUST NOT authenticate API
+    requests)."""
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, _get_access_secret(), algorithms=['HS256'])
+    except Exception:
+        return None
+    if payload.get('type') != 'access':
+        return None
+    return payload
+
+
+def decode_refresh_token(token: str) -> dict | None:
+    """Decode a refresh JWT. Returns None on any failure or if the token's
+    type claim is not 'refresh'."""
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, _get_refresh_secret(), algorithms=['HS256'])
+    except Exception:
+        return None
+    if payload.get('type') != 'refresh':
+        return None
+    return payload
+
+
+# Backwards-compatible aliases. Code paths that don't yet know the
+# access/refresh split (existing route helpers, tests) keep working.
+# `create_token` continues to mint an access token; `decode_token` accepts
+# only access tokens going forward. Refresh tokens have their own helpers.
+def create_token(payload: dict, expires_minutes: int | None = None) -> str:
+    """DEPRECATED shim. Calls create_access_token. expires_minutes ignored
+    for safety — access tokens are always short-lived."""
+    return create_access_token(payload)
 
 
 def decode_token(token: str) -> dict | None:
-    if not token:
-        return None
-    secret = _get_secret()
-    try:
-        return jwt.decode(token, secret, algorithms=['HS256'])
-    except Exception:
-        return None
+    """DEPRECATED shim. Same as decode_access_token."""
+    return decode_access_token(token)
 
 
 def api_response(data=None, message="", status_code=200, error=None):

@@ -28,6 +28,7 @@ from .rationale import DecisionRationale, RationaleNote
 from .audit import AuditEvent
 from .ngo_marketplace import NGOImpactEvent, NGODocument, NGOTransparencyReport, NGOCertificate, NGOTestimonial
 from .comparison import Comparison, ComparisonItem
+from .refresh_token import RefreshToken
 
 __all__ = [
     'db',
@@ -69,3 +70,4 @@ __all__.append('NGODocument')
 __all__.append('NGOTransparencyReport')
 __all__.append('NGOCertificate')
 __all__.append('NGOTestimonial')
+__all__.append('RefreshToken')
