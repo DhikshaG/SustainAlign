@@ -1,6 +1,7 @@
 import AuthLayout from './AuthLayout.jsx'
 import { useState, useEffect, useRef } from 'react'
 import { apiPost } from '../../lib/api'
+import { setTokens } from '../../lib/auth'
 
 
 export default function SignupPage() {
@@ -116,7 +117,7 @@ export default function SignupPage() {
     
     try {
       const data = await apiPost('/api/auth/signup', { email: form.email, password: form.password, role: form.role })
-      localStorage.setItem('token', data.token)
+      setTokens(data)
       stopLoadingAnimation()
       // If NGO role, send to onboarding first
       if ((form.role || '').toLowerCase() === 'ngo') {

@@ -1,6 +1,7 @@
 import AuthLayout from './AuthLayout.jsx'
 import { useState, useEffect, useRef } from 'react'
 import { apiPost } from '../../lib/api'
+import { setTokens } from '../../lib/auth'
 
 export default function LoginPage() {
   const [form, setForm] = useState({ role: 'corporate', email: '', password: '' })
@@ -79,8 +80,8 @@ export default function LoginPage() {
     
     try {
       const data = await apiPost('/api/auth/login', { email: form.email, password: form.password, role: form.role })
-      localStorage.setItem('token', data.token)
-      
+      setTokens(data)
+
       // Success animation before redirect
       if (formRef.current) {
         formRef.current.classList.add('success-exit')

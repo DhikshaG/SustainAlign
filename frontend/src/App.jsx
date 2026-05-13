@@ -50,7 +50,7 @@ import FeedbackPage from './pages/support/feedback/feedback.jsx'
 
 import { isAuthenticated } from './lib/auth'
 import LogoutPage from './pages/auth/Logout.jsx'
-import RouteGuard from './components/RouteGuard.jsx'
+import RouteGuard, { RequireRole } from './components/RouteGuard.jsx'
 
 function RequireAuth() {
   if (!isAuthenticated()) {
@@ -103,39 +103,49 @@ export default function App() {
         <Route path="/discovery/add" element={<ProjectAddPage />} />
         <Route path="/discovery/cards" element={<ProjectCardsPage />} />
 
-        {/* 🎯 Alignment & Evaluation Page (Agents 2 & 3) */}
-        <Route path="/alignment/matching" element={<AiMatchingPage />} />
-        <Route path="/alignment/comparison-matrix" element={<ComparisonMatrixPage />} />
-        <Route path="/alignment/risk" element={<RiskScoringPage />} />
+        {/* 🎯 Alignment & Evaluation Page (Agents 2 & 3) — corporate/admin only */}
+        <Route element={<RequireRole roles={['corporate', 'admin']} />}>
+          <Route path="/alignment/matching" element={<AiMatchingPage />} />
+          <Route path="/alignment/comparison-matrix" element={<ComparisonMatrixPage />} />
+          <Route path="/alignment/risk" element={<RiskScoringPage />} />
+        </Route>
 
-        {/* 🧑‍⚖️ Decision Support Page (Agent 4) */}
-        <Route path="/decision/rationale" element={<RecommendationRationalePage />} />
-        <Route path="/decision/approval" element={<ApprovalWorkflowPage />} />
+        {/* 🧑‍⚖️ Decision Support Page (Agent 4) — corporate/admin only */}
+        <Route element={<RequireRole roles={['corporate', 'admin']} />}>
+          <Route path="/decision/rationale" element={<RecommendationRationalePage />} />
+          <Route path="/decision/approval" element={<ApprovalWorkflowPage />} />
+        </Route>
 
         {/* 📊 Monitoring & Tracking Page (Agent 5) */}
         <Route path="/monitoring/tracker" element={<ProjectTrackerPage />} />
         <Route path="/monitoring/impact" element={<ImpactDashboardPage />} />
         <Route path="/monitoring/alerts" element={<MonitoringAlertsPage />} />
 
-        {/* 📑 Reporting & Compliance Page (Agent 6) */}
-        <Route path="/reporting/generator" element={<ReportGeneratorPage />} />
-        <Route path="/reporting/audit-trail" element={<AuditTrailPage />} />
+        {/* 📑 Reporting & Compliance Page (Agent 6) — corporate/admin only */}
+        <Route element={<RequireRole roles={['corporate', 'admin']} />}>
+          <Route path="/reporting/generator" element={<ReportGeneratorPage />} />
+          <Route path="/reporting/audit-trail" element={<AuditTrailPage />} />
+        </Route>
 
         {/* 📂 CSR/ESG Marketplace (Future) */}
         <Route path="/marketplace/ngo" element={<NgoDashboardPage />} />
-        <Route path="/marketplace/matching" element={<MatchingEnginePage />} />
-        <Route path="/marketplace/collaboration" element={<CollaborationToolsPage />} />
-        {/* Aliases for the requested marketplace breakdown */}
-        <Route path="/marketplace/projects" element={<CollaborationToolsPage />} />
+        <Route element={<RequireRole roles={['corporate', 'admin']} />}>
+          <Route path="/marketplace/matching" element={<MatchingEnginePage />} />
+          <Route path="/marketplace/collaboration" element={<CollaborationToolsPage />} />
+          {/* Aliases for the requested marketplace breakdown */}
+          <Route path="/marketplace/projects" element={<CollaborationToolsPage />} />
+        </Route>
 
-        {/* ⚙️ Settings & Admin Panel */}
-        <Route path="/settings/users" element={<UserManagementPage />} />
-        <Route path="/settings/agents" element={<AgentControlsPage />} />
-        <Route path="/settings/integrations" element={<IntegrationSetupPage />} />
-        <Route path="/settings/apis" element={<ApiManagementPage />} />
-        {/* Aliases to match requested naming */}
-        <Route path="/settings/system" element={<IntegrationSetupPage />} />
-        <Route path="/settings/data" element={<ApiManagementPage />} />
+        {/* ⚙️ Settings & Admin Panel — admin only */}
+        <Route element={<RequireRole roles={['admin']} />}>
+          <Route path="/settings/users" element={<UserManagementPage />} />
+          <Route path="/settings/agents" element={<AgentControlsPage />} />
+          <Route path="/settings/integrations" element={<IntegrationSetupPage />} />
+          <Route path="/settings/apis" element={<ApiManagementPage />} />
+          {/* Aliases to match requested naming */}
+          <Route path="/settings/system" element={<IntegrationSetupPage />} />
+          <Route path="/settings/data" element={<ApiManagementPage />} />
+        </Route>
 
         {/* ❓ Help & Support */}
         <Route path="/support/chat" element={<AiChatAssistantPage />} />
