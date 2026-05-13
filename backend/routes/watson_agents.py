@@ -3,8 +3,7 @@ IBM WatsonX Orchestrate Agents API Routes
 Integration with SustainAlign backend
 """
 
-from flask import Blueprint, request, jsonify, current_app
-from flask_login import login_required, current_user
+from flask import Blueprint, request, jsonify, current_app, g
 import logging
 from typing import Dict, Any
 
@@ -12,11 +11,50 @@ from ibm_watson.watson_service import watson_service
 from models.user import User
 from models.projects import Project
 from models.company_details import Company
+from auth_middleware import require_role
+from utils import current_user as _current_user
 
 logger = logging.getLogger(__name__)
 
 # Create Blueprint
 watson_bp = Blueprint('watson_agents', __name__, url_prefix='/api/watson')
+
+
+# Shim layer so the existing @login_required decorators and `current_user.id`
+# references continue to work without touching every handler. The real auth
+# is enforced by auth_middleware.enforce_auth (registered globally) plus the
+# per-route role decorator below.
+login_required = require_role('corporate', 'admin')
+
+
+class _CurrentUserProxy:
+    """Behaves like flask_login.current_user but is backed by g.user."""
+
+    @property
+    def _user(self):
+        return _current_user()
+
+    @property
+    def id(self):
+        u = self._user
+        return u.id if u else None
+
+    @property
+    def is_admin(self):
+        return getattr(g, 'role', None) == 'admin'
+
+    @property
+    def is_authenticated(self):
+        return self._user is not None
+
+    def __getattr__(self, item):
+        u = self._user
+        if u is None:
+            raise AttributeError(item)
+        return getattr(u, item)
+
+
+current_user = _CurrentUserProxy()
 
 @watson_bp.route('/initialize', methods=['POST'])
 @login_required

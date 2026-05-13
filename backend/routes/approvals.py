@@ -58,6 +58,7 @@ def get_approval(approval_id):
         return jsonify({'error': str(e)}), 500
 
 @approvals_bp.route('/approvals', methods=['POST'])
+@require_role('corporate', 'admin')
 @require_auth
 def create_approval():
     """Create a new approval request"""
@@ -105,6 +106,7 @@ def create_approval():
         return jsonify({'error': str(e)}), 500
 
 @approvals_bp.route('/approvals/<int:approval_id>', methods=['PUT'])
+@require_role('corporate', 'admin')
 @require_auth
 def update_approval(approval_id):
     """Update an approval request"""
@@ -139,6 +141,7 @@ def update_approval(approval_id):
         return jsonify({'error': str(e)}), 500
 
 @approvals_bp.route('/approvals/<int:approval_id>', methods=['DELETE'])
+@require_role('corporate', 'admin')
 @require_auth
 def delete_approval(approval_id):
     """Delete an approval request"""
@@ -173,6 +176,7 @@ def get_approval_steps(approval_id):
         return jsonify({'error': str(e)}), 500
 
 @approvals_bp.route('/approvals/<int:approval_id>/steps', methods=['POST'])
+@require_role('corporate', 'admin')
 @require_auth
 def create_approval_step(approval_id):
     """Create a new step for an approval request"""
@@ -217,6 +221,7 @@ def get_approval_step(approval_id, step_id):
         return jsonify({'error': str(e)}), 500
 
 @approvals_bp.route('/approvals/<int:approval_id>/steps/<int:step_id>', methods=['PUT'])
+@require_role('corporate', 'admin')
 @require_auth
 def update_approval_step(approval_id, step_id):
     """Update a specific step for an approval request"""
@@ -270,6 +275,7 @@ def update_approval_step(approval_id, step_id):
         return jsonify({'error': str(e)}), 500
 
 @approvals_bp.route('/approvals/<int:approval_id>/steps/<int:step_id>', methods=['DELETE'])
+@require_role('corporate', 'admin')
 @require_auth
 def delete_approval_step(approval_id, step_id):
     """Delete a specific step for an approval request"""
@@ -288,6 +294,7 @@ def delete_approval_step(approval_id, step_id):
         return jsonify({'error': str(e)}), 500
 
 @approvals_bp.route('/approvals/<int:approval_id>/steps/<int:step_id>/status', methods=['PUT'])
+@require_role('corporate', 'admin')
 @require_auth
 def update_step_status(approval_id, step_id):
     """Update just the status of a step (convenience endpoint)"""

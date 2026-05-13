@@ -2,19 +2,54 @@
 Enhanced AI Matching API Routes with IBM Watson Integration
 """
 
-from flask import Blueprint, request, jsonify, current_app
-from flask_login import login_required, current_user
+from flask import Blueprint, request, jsonify, current_app, g
 import logging
 from typing import Dict, Any
 
 from ai_models.watson_enhanced_matching import watson_enhanced_matching
 from models.company_details import Company
 from models.projects import Project
+from auth_middleware import require_role
+from utils import current_user as _current_user
 
 logger = logging.getLogger(__name__)
 
 # Create Blueprint
 enhanced_ai_bp = Blueprint('enhanced_ai_matching', __name__, url_prefix='/api/enhanced-ai')
+
+
+# Shim — see routes/watson_agents.py for rationale. Scheduled for deletion in
+# Day 3 of Phase 0; until then this keeps existing handlers functional with
+# real auth in place of the broken flask_login dependency.
+login_required = require_role('corporate', 'admin')
+
+
+class _CurrentUserProxy:
+    @property
+    def _user(self):
+        return _current_user()
+
+    @property
+    def id(self):
+        u = self._user
+        return u.id if u else None
+
+    @property
+    def is_admin(self):
+        return getattr(g, 'role', None) == 'admin'
+
+    @property
+    def is_authenticated(self):
+        return self._user is not None
+
+    def __getattr__(self, item):
+        u = self._user
+        if u is None:
+            raise AttributeError(item)
+        return getattr(u, item)
+
+
+current_user = _CurrentUserProxy()
 
 @enhanced_ai_bp.route('/matching', methods=['POST'])
 @login_required

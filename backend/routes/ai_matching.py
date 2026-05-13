@@ -1,21 +1,16 @@
 from flask import Blueprint, request, jsonify
 from ai_models.ai_matching_service import AIMatchingService
 from models.base import db
-from functools import wraps
+from auth_middleware import require_role
 import logging
 
 logger = logging.getLogger(__name__)
 
 ai_matching_bp = Blueprint('ai_matching', __name__, url_prefix='/api/ai-matching')
 
-def require_ai_auth(f):
-    """Simple authentication decorator - replace with proper auth in production"""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        # For development, assume user is authenticated
-        # In production, implement proper JWT token validation
-        return f(*args, **kwargs)
-    return decorated_function
+# AI matching is a corporate-facing feature. NGO own-results view will be added
+# in Phase 1 as a separate endpoint with explicit ownership filtering.
+require_ai_auth = require_role('corporate', 'admin')
 
 @ai_matching_bp.route('/generate-rationale', methods=['POST'])
 @require_ai_auth

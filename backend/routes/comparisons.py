@@ -1,27 +1,22 @@
 from flask import Blueprint, request, jsonify
 from models import db, Comparison, ComparisonItem, Project, User
-from utils import api_response
+from utils import api_response, current_user
+from auth_middleware import require_role
 from functools import wraps
 
 comparisons_bp = Blueprint('comparisons', __name__)
 
 
 def require_auth(f):
-    """Decorator to require authentication"""
+    """Backwards-compatible shim. Real auth runs in auth_middleware.enforce_auth.
+
+    Existing handlers in this file read request.user_id; we populate it from
+    the authenticated user attached to flask.g by the global before_request.
+    """
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # For development, we'll be more flexible with authentication
-        auth_header = request.headers.get('Authorization')
-        
-        if auth_header and auth_header.startswith('Bearer '):
-            token = auth_header.split(' ')[1]
-            # TODO: Implement proper JWT validation
-            # For now, we'll assume the token contains user info
-            request.user_id = 1  # Default to first user for development
-        else:
-            # For development, allow requests without tokens
-            # In production, this should require proper authentication
-            request.user_id = 1  # Default to first user for development
+        user = current_user()
+        request.user_id = user.id if user else None
         
         return f(*args, **kwargs)
     return decorated_function
@@ -44,6 +39,7 @@ def get_comparisons():
 
 
 @comparisons_bp.route('/', methods=['POST'])
+@require_role('corporate', 'admin')
 @require_auth
 def create_comparison():
     """Create a new comparison"""
@@ -110,6 +106,7 @@ def get_comparison(comparison_id):
 
 
 @comparisons_bp.route('/<int:comparison_id>', methods=['PUT'])
+@require_role('corporate', 'admin')
 @require_auth
 def update_comparison(comparison_id):
     """Update a comparison"""
@@ -139,6 +136,7 @@ def update_comparison(comparison_id):
 
 
 @comparisons_bp.route('/<int:comparison_id>', methods=['DELETE'])
+@require_role('corporate', 'admin')
 @require_auth
 def delete_comparison(comparison_id):
     """Delete a comparison"""
@@ -159,6 +157,7 @@ def delete_comparison(comparison_id):
 
 
 @comparisons_bp.route('/<int:comparison_id>/projects', methods=['POST'])
+@require_role('corporate', 'admin')
 @require_auth
 def add_project_to_comparison(comparison_id):
     """Add a project to a comparison"""
@@ -209,6 +208,7 @@ def add_project_to_comparison(comparison_id):
 
 
 @comparisons_bp.route('/<int:comparison_id>/projects/<int:project_id>', methods=['DELETE'])
+@require_role('corporate', 'admin')
 @require_auth
 def remove_project_from_comparison(comparison_id, project_id):
     """Remove a project from a comparison"""
@@ -237,6 +237,7 @@ def remove_project_from_comparison(comparison_id, project_id):
 
 
 @comparisons_bp.route('/<int:comparison_id>/projects/<int:project_id>', methods=['PUT'])
+@require_role('corporate', 'admin')
 @require_auth
 def update_project_in_comparison(comparison_id, project_id):
     """Update project notes or priority in comparison"""
