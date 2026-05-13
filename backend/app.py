@@ -12,7 +12,6 @@ from routes.comparisons import comparisons_bp
 from routes.approvals import approvals_bp
 from routes.ai_matching import ai_matching_bp
 from routes.watson_agents import watson_bp
-from routes.enhanced_ai_matching import enhanced_ai_bp
 
 
 # Env keys that must be set when FLASK_ENV=production. Anything missing
@@ -51,7 +50,7 @@ def create_app() -> Flask:
 	load_dotenv()
 	_validate_prod_env()
 
-	app = Flask(__name__, template_folder='templates')
+	app = Flask(__name__)
 
 	secret = os.environ.get("SECRET_KEY")
 	if not secret:
@@ -96,11 +95,6 @@ def create_app() -> Flask:
 	app.register_blueprint(approvals_bp, url_prefix="/api/approvals")
 	app.register_blueprint(ai_matching_bp)
 	app.register_blueprint(watson_bp)
-	app.register_blueprint(enhanced_ai_bp)
-
-	# View pages
-	from routes.views import views_bp
-	app.register_blueprint(views_bp)
 
 	@app.route("/api/health")
 	def health():

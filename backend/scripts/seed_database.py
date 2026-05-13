@@ -12,6 +12,7 @@ from datetime import datetime
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app import create_app, db
+from utils import hash_password
 from models import (
     User, Project, ProjectMilestone, ProjectApplication, ProjectImpactReport,
     Company, CompanyBranch, CSRContact, Budget, FocusArea, ComplianceDocument,
@@ -23,6 +24,10 @@ from models import (
     ProjectTrackingInfo, ProjectTimelineEntry
 )
 from sample_data import get_all_sample_data
+from sample_data.user_sample import (
+    get_sample_users as get_sample_users_with_hash,
+    print_credentials_table,
+)
 
 def clear_database():
     """Remove all existing data from the database"""
@@ -90,16 +95,17 @@ def seed_database():
     stats = {}
     
     try:
-        # 1. Seed Users first (required for foreign keys)
+        # 1. Seed Users first (required for foreign keys).
+        # Passwords are bcrypt-hashed at run time from sample_data.user_sample
+        # LOGIN_CREDENTIALS — no plaintext-derived hashes are committed to source.
         print("   👥 Seeding users...")
-        users_data = sample_data.get('users', {})
-        if 'users' in users_data:
-            for user_data in users_data['users']:
-                user = User(**user_data)
-                db.session.add(user)
-            db.session.commit()
-            stats['users'] = len(users_data['users'])
-            print(f"      ✅ Added {stats['users']} users")
+        seeded_users = get_sample_users_with_hash(hasher=hash_password)
+        for user_data in seeded_users:
+            user = User(**user_data)
+            db.session.add(user)
+        db.session.commit()
+        stats['users'] = len(seeded_users)
+        print(f"      ✅ Added {stats['users']} users")
         
         # 2. Seed Companies and related data
         print("   🏢 Seeding companies and related data...")
@@ -598,6 +604,10 @@ def main():
             print()
             print("🎉 Database seeding completed successfully!")
             print(f"⏰ Completed at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
+            # Print dev credentials once. They are NOT persisted anywhere
+            # else; capture from this output or re-run the seeder.
+            print_credentials_table()
             
         except Exception as e:
             print(f"❌ Database seeding failed: {e}")

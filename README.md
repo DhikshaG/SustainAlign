@@ -744,21 +744,9 @@ Notes on AI setup
 
 **For Development & Testing Only**
 
-The platform comes with pre-configured sample accounts for testing different user roles:
+The platform comes with pre-configured sample accounts for testing different user roles. Run `python scripts/seed_database.py` and the seeded credentials will be printed to stdout (corporate, NGO, admin).
 
-#### **Corporate User**
-- **Email**: `admin@techcorp.com`
-- **Password**: `admin123`
-- **Role**: Corporate Sustainability Officer
-- **Access**: Project discovery, AI matching, approval workflows
-
-#### **NGO User**
-- **Email**: `director@womenempowerment.org`
-- **Password**: `women123`
-- **Role**: NGO Director
-- **Access**: Project management, impact reporting, NGO profile
-
-> ⚠️ **Security Note**: These are sample accounts for development only. Change passwords in production environments.
+> ⚠️ **Security Note**: Sample credentials are NEVER committed to version control. They are generated/printed by the seed script. Change passwords (and rotate the seed script's defaults) before any deployment.
 ---
 
 ## 🖼️ Key Screens and Routes
