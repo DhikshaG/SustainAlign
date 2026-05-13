@@ -1,29 +1,32 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from datetime import datetime
 from models import ApprovalRequest, ApprovalStep, db, Project
-from functools import wraps
+from auth_middleware import require_role
+from utils import current_user
+
 
 approvals_bp = Blueprint('approvals', __name__)
 
 
 def require_auth(f):
-    """Decorator to require authentication"""
+    """Backwards-compatible shim used by existing route decorators in this file.
+
+    The real auth check now happens in auth_middleware.enforce_auth (registered
+    globally in app.py), which populates flask.g.user. This shim just exposes
+    request.user_id for legacy callers that read it. It does NOT add or remove
+    auth — that's enforced upstream.
+    """
+    from functools import wraps
+
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # For development, we'll be more flexible with authentication
-        auth_header = request.headers.get('Authorization')
-        
-        if auth_header and auth_header.startswith('Bearer '):
-            token = auth_header.split(' ')[1]
-            # TODO: Implement proper JWT validation
-            # For now, we'll assume the token contains user info
-            request.user_id = 1  # Default to first user for development
-        else:
-            # For development, allow requests without tokens
-            # In production, this should require proper authentication
-            request.user_id = 1  # Default to first user for development
-        
+        user = current_user()
+        # request.user_id is referenced by some legacy handlers below; populate
+        # it from the authenticated user. Will be None for any path that
+        # somehow got here unauthenticated (shouldn't happen post-enforce_auth).
+        request.user_id = user.id if user else None
         return f(*args, **kwargs)
+
     return decorated_function
 
 

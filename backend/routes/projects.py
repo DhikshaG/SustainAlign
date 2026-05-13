@@ -2,7 +2,8 @@ from flask import Blueprint, jsonify, request, current_app
 from models import db, User, Project, ProjectMilestone, ProjectApplication, ProjectImpactReport, NGOProfile, AIMatch, Company, NGORiskAssessment, ApprovalRequest, ApprovalStep, ImpactMetricSnapshot, ImpactTimeSeries, ImpactRegionStat, ImpactGoal, ProjectTrackingInfo, ProjectTimelineEntry, ReportJob, ReportArtifact, DecisionRationale, RationaleNote, AuditEvent, NGOImpactEvent, NGODocument, NGOTransparencyReport, NGOCertificate, NGOTestimonial
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
-from utils import decode_token
+from utils import current_user
+from auth_middleware import require_role
 import json
 from datetime import datetime
 
@@ -22,17 +23,9 @@ def ensure_column_exists(table_name: str, column_name: str, column_sql_type: str
 
 
 def get_current_user():
-    """Get current user from JWT token"""
-    auth_header = request.headers.get('Authorization')
-    if not auth_header or not auth_header.startswith('Bearer '):
-        return None
-    
-    token = auth_header.split(' ')[1]
-    payload = decode_token(token)
-    if not payload or 'user_id' not in payload:
-        return None
-    
-    return User.query.get(payload['user_id'])
+    """Backwards-compatible shim. Real auth happens in auth_middleware.enforce_auth
+    which populates flask.g.user; this just returns it (or None for OPTIONS / public)."""
+    return current_user()
 
 
 @projects_bp.get('/projects')
@@ -710,11 +703,10 @@ def create_project():
 
 
 @projects_bp.put('/projects/<int:project_id>')
+@require_role('ngo', 'corporate', 'admin')
 def update_project(project_id):
-    """Update an existing project"""
+    """Update an existing project. Ownership enforced below; only the creator or admin succeeds."""
     user = get_current_user()
-    if not user:
-        return jsonify({'error': 'Unauthorized'}), 401
     
     project = Project.query.get(project_id)
     if not project:
@@ -803,11 +795,10 @@ def update_project(project_id):
 
 
 @projects_bp.delete('/projects/<int:project_id>')
+@require_role('ngo', 'corporate', 'admin')
 def delete_project(project_id):
-    """Delete a project"""
+    """Delete a project. Ownership enforced below; only the creator or admin succeeds."""
     user = get_current_user()
-    if not user:
-        return jsonify({'error': 'Unauthorized'}), 401
     
     project = Project.query.get(project_id)
     if not project:
@@ -1009,6 +1000,7 @@ def get_audit_event(event_id: int):
 
 
 @projects_bp.post('/audit/events')
+@require_role('admin')
 def create_audit_event():
     """Create a new audit event"""
     try:

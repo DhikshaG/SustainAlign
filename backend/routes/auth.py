@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from models import db, User
-from utils import hash_password, verify_password, create_token
+from utils import hash_password, verify_password, create_token, needs_rehash
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -35,6 +35,12 @@ def login():
     user = User.query.filter_by(email=email).first()
     if not user or not verify_password(password, user.password_hash):
         return jsonify({'error': 'Invalid credentials'}), 401
+
+    # Lazy upgrade: legacy pbkdf2 hashes get re-hashed to bcrypt on successful
+    # login. Zero user friction; existing seeded accounts migrate transparently.
+    if needs_rehash(user.password_hash):
+        user.password_hash = hash_password(password)
+        db.session.commit()
 
     token = create_token({'sub': user.id, 'email': user.email, 'role': user.role})
     return jsonify({'token': token, 'user': user.to_dict()}), 200

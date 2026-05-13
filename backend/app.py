@@ -3,6 +3,7 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
 from models import db
+from auth_middleware import enforce_auth
 from routes.auth import auth_bp
 from routes.projects import projects_bp
 from routes.reports import reports_bp
@@ -21,6 +22,9 @@ _PROD_REQUIRED_ENV = (
 	"SECRET_KEY",
 	"DATABASE_URL",
 	"CORS_ORIGIN",
+	# Required so prod never silently falls back to the mock-rationale path
+	# in ai_models/ai_model.py. The marquee feature must work in prod.
+	"OPENROUTER_API_KEY",
 )
 
 
@@ -77,6 +81,11 @@ def create_app() -> Flask:
 	db.init_app(app)
 	with app.app_context():
 		db.create_all()
+
+	# Global auth gate. Allows /api/auth/* and /api/health through; every
+	# other /api/* request must present a valid JWT. Per-route role checks
+	# are layered on top via @require_role decorators.
+	app.before_request(enforce_auth())
 
 	# Blueprints (API)
 	app.register_blueprint(auth_bp, url_prefix="/api/auth")

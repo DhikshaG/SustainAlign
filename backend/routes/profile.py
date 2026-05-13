@@ -2,24 +2,15 @@ from flask import Blueprint, jsonify, request, current_app
 from sqlalchemy import text
 import os
 from models import db, User, Company, CompanyBranch, CSRContact, Budget, FocusArea, ComplianceDocument, NGOPreference, AIConfig, UserRole, Project, NGOProfile
-from utils import decode_token, hash_password
+from utils import hash_password, current_user
 import json
 
 profile_bp = Blueprint('profile', __name__)
 
 
 def get_current_user():
-    """Get current user from JWT token"""
-    auth_header = request.headers.get('Authorization')
-    if not auth_header or not auth_header.startswith('Bearer '):
-        return None
-    
-    token = auth_header.split(' ')[1]
-    payload = decode_token(token)
-    if not payload or 'user_id' not in payload:
-        return None
-    
-    return User.query.get(payload['user_id'])
+    """Backwards-compatible shim; real auth runs in auth_middleware.enforce_auth."""
+    return current_user()
 
 
 def ensure_column_exists(table_name: str, column_name: str, column_sql_type: str):

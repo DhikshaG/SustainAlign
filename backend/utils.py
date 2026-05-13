@@ -4,7 +4,17 @@ import hmac
 from datetime import datetime, timedelta
 import bcrypt
 import jwt
-from flask import jsonify
+from flask import g, jsonify
+
+
+def current_user():
+    """Return the User attached to flask.g by auth_middleware.enforce_auth.
+
+    Routes guarded by enforce_auth (i.e. anything under /api/* except the
+    public allowlist) can rely on this returning a User. Endpoints that may
+    legitimately run unauthenticated should still tolerate None.
+    """
+    return getattr(g, 'user', None)
 
 
 # Bcrypt cost factor. 12 ~ 250ms on modern hardware. Tune up over time.
