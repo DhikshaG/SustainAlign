@@ -14,19 +14,64 @@ from routes.watson_agents import watson_bp
 from routes.enhanced_ai_matching import enhanced_ai_bp
 
 
+# Env keys that must be set when FLASK_ENV=production. Anything missing
+# triggers a hard fail at boot rather than letting a misconfigured prod
+# instance limp along with insecure defaults.
+_PROD_REQUIRED_ENV = (
+	"SECRET_KEY",
+	"DATABASE_URL",
+	"CORS_ORIGIN",
+)
+
+
+def _is_production() -> bool:
+	return os.environ.get("FLASK_ENV", "").lower() == "production"
+
+
+def _validate_prod_env() -> None:
+	if not _is_production():
+		return
+	missing = [k for k in _PROD_REQUIRED_ENV if not os.environ.get(k)]
+	if missing:
+		raise RuntimeError(
+			f"Missing required environment variables in production: {missing}. "
+			"Refusing to boot to avoid running with insecure defaults."
+		)
+	if os.environ.get("CORS_ORIGIN") in (None, "", "*"):
+		raise RuntimeError(
+			"CORS_ORIGIN must be an explicit origin in production (not '*' or empty)."
+		)
+
+
 def create_app() -> Flask:
 	load_dotenv()
+	_validate_prod_env()
+
 	app = Flask(__name__, template_folder='templates')
-	app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret")
-	# Ensure SQLite default path is absolute to avoid multiple DB files when running from different CWDs
+
+	secret = os.environ.get("SECRET_KEY")
+	if not secret:
+		if _is_production():
+			raise RuntimeError("SECRET_KEY is required in production")
+		secret = "dev-secret-do-not-use-in-prod"
+	app.config["SECRET_KEY"] = secret
+
 	if os.environ.get("DATABASE_URL"):
 		app.config["SQLALCHEMY_DATABASE_URI"] = os.environ["DATABASE_URL"]
 	else:
+		if _is_production():
+			raise RuntimeError("DATABASE_URL is required in production")
 		base_dir = os.path.abspath(os.path.dirname(__file__))
 		sqlite_path = os.path.join(base_dir, "sustainalign.db")
 		app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{sqlite_path}"
 	app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-	CORS(app, resources={r"/api/*": {"origins": os.environ.get("CORS_ORIGIN", "*")}})
+
+	cors_origin = os.environ.get("CORS_ORIGIN")
+	if not cors_origin:
+		if _is_production():
+			raise RuntimeError("CORS_ORIGIN must be set in production")
+		cors_origin = "http://localhost:5173"
+	CORS(app, resources={r"/api/*": {"origins": cors_origin}})
 
 	# Init DB
 	db.init_app(app)
@@ -57,6 +102,7 @@ def create_app() -> Flask:
 
 if __name__ == "__main__":
 	app = create_app()
-	app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "5000")), debug=True)
+	debug = os.environ.get("FLASK_ENV", "").lower() == "development"
+	app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "5000")), debug=debug)
 
 

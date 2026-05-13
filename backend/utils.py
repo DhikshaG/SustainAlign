@@ -2,28 +2,70 @@ import os
 import hashlib
 import hmac
 from datetime import datetime, timedelta
+import bcrypt
 import jwt
 from flask import jsonify
 
 
+# Bcrypt cost factor. 12 ~ 250ms on modern hardware. Tune up over time.
+_BCRYPT_ROUNDS = 12
+
+# Legacy pbkdf2 hashes (pre-Phase-0) used a fixed salt. We keep the verifier
+# for a lazy-upgrade flow: on successful login with a legacy hash, callers
+# should re-hash with bcrypt and persist. Detection is by prefix: bcrypt
+# hashes always start with "$2".
+_LEGACY_FIXED_SALT = b'static-salt'
+
+
+def _is_bcrypt_hash(stored: str) -> bool:
+    return stored.startswith('$2')
+
+
 def hash_password(password: str) -> str:
-    salt = os.environ.get('PASSWORD_SALT', 'static-salt').encode()
-    return hashlib.pbkdf2_hmac('sha256', password.encode(), salt, 100_000).hex()
+    """Hash a password with bcrypt. Always produces a bcrypt-format hash."""
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt(rounds=_BCRYPT_ROUNDS)).decode('utf-8')
 
 
 def verify_password(password: str, password_hash: str) -> bool:
-    return hmac.compare_digest(hash_password(password), password_hash)
+    """Verify a password against either a bcrypt or legacy pbkdf2 hash."""
+    if not password_hash:
+        return False
+    if _is_bcrypt_hash(password_hash):
+        try:
+            return bcrypt.checkpw(password.encode('utf-8'), password_hash.encode('utf-8'))
+        except (ValueError, TypeError):
+            return False
+    legacy = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), _LEGACY_FIXED_SALT, 100_000).hex()
+    return hmac.compare_digest(legacy, password_hash)
+
+
+def needs_rehash(password_hash: str) -> bool:
+    """Return True if the stored hash should be upgraded to bcrypt on next login."""
+    return not _is_bcrypt_hash(password_hash or '')
+
+
+def _get_secret() -> str:
+    """Return SECRET_KEY. In production it MUST be set; in dev we allow a fallback."""
+    secret = os.environ.get('SECRET_KEY')
+    if secret:
+        return secret
+    if os.environ.get('FLASK_ENV', '').lower() == 'production':
+        raise RuntimeError("SECRET_KEY is required in production")
+    return 'dev-secret-do-not-use-in-prod'
 
 
 def create_token(payload: dict, expires_minutes: int = 60 * 24) -> str:
-    secret = os.environ.get('SECRET_KEY', 'dev-secret')
+    """Create a signed JWT. Defaults to 24h expiry; pass 15 for short access tokens."""
+    secret = _get_secret()
     exp = datetime.utcnow() + timedelta(minutes=expires_minutes)
-    to_encode = {**payload, 'exp': exp}
+    to_encode = {**payload, 'exp': exp, 'iat': datetime.utcnow()}
     return jwt.encode(to_encode, secret, algorithm='HS256')
 
 
 def decode_token(token: str) -> dict | None:
-    secret = os.environ.get('SECRET_KEY', 'dev-secret')
+    if not token:
+        return None
+    secret = _get_secret()
     try:
         return jwt.decode(token, secret, algorithms=['HS256'])
     except Exception:

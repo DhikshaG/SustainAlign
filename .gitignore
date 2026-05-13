@@ -1,1 +1,4 @@
 *.o
+.graphify_detect.json
+.graphify_python
+graphify-out
