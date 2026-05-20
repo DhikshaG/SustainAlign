@@ -9,10 +9,13 @@ import { FormField } from '../../../components/ui/FormField'
 import { Alert } from '../../../components/ui/Alert'
 import { ngoLoginSchema } from '../../../lib/validation/schemas'
 import { api } from '../../../lib/api'
+import { setTokens, setMfaSessionId } from '../../../lib/auth'
+import { useAuth } from '../../../context/AuthContext'
 import { ROUTES } from '../../../lib/routes'
 
 export default function NgoLogin() {
   const navigate = useNavigate()
+  const { login } = useAuth()
   const [error, setError] = useState(null)
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(ngoLoginSchema),
@@ -21,8 +24,15 @@ export default function NgoLogin() {
   async function onSubmit(data) {
     setError(null)
     try {
-      await api.post('/api/auth/ngo/login', data)
-      navigate(ROUTES.home)
+      const res = await api.post('/api/auth/ngo/login', data)
+      if (res.data?.requiresMfa) {
+        setMfaSessionId(res.data.mfaSessionId)
+        navigate(ROUTES.mfa)
+      } else {
+        setTokens(res.data)
+        login(res.data)
+        navigate(ROUTES.dashboard)
+      }
     } catch (err) {
       setError(err.message)
     }

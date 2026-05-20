@@ -4,10 +4,13 @@ import { Card } from '../../../components/ui/Card'
 import { Button } from '../../../components/ui/Button'
 import { Alert } from '../../../components/ui/Alert'
 import { api } from '../../../lib/api'
+import { setTokens, getMfaSessionId, clearMfaSessionId } from '../../../lib/auth'
+import { useAuth } from '../../../context/AuthContext'
 import { ROUTES } from '../../../lib/routes'
 
 export default function MfaVerify() {
   const navigate = useNavigate()
+  const { login } = useAuth()
   const [digits, setDigits] = useState(['', '', '', '', '', ''])
   const [error, setError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
@@ -38,11 +41,19 @@ export default function MfaVerify() {
       setError('Enter the full 6-digit code')
       return
     }
+    const mfaSessionId = getMfaSessionId()
+    if (!mfaSessionId) {
+      setError('Session expired — please log in again')
+      return
+    }
     setError(null)
     setSubmitting(true)
     try {
-      await api.post('/api/auth/corporate/mfa/verify', { code })
-      navigate(ROUTES.inviteTeam)
+      const res = await api.post('/api/auth/corporate/mfa/verify', { mfaSessionId, code })
+      setTokens(res.data)
+      login(res.data)
+      clearMfaSessionId()
+      navigate(ROUTES.dashboard)
     } catch (err) {
       setError(err.message)
     } finally {

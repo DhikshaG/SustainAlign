@@ -4,5 +4,6 @@ export function errorHandler(err, req, res, _next) {
   res.status(status).json({
     ok: false,
     message: err.message || 'Internal server error',
+    errors: err.errors || undefined,
   })
 }

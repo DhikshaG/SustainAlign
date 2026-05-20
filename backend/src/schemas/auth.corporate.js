@@ -28,6 +28,7 @@ export const resetPasswordSchema = z.object({
 })
 
 export const mfaVerifySchema = z.object({
+  mfaSessionId: z.string().min(1),
   code: z.string().length(6),
 })
 

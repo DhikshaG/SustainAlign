@@ -30,6 +30,8 @@ import InviteTeam from './routes/auth/corporate/InviteTeam'
 import NgoRegister from './routes/auth/ngo/Register'
 import VerificationUpload from './routes/auth/ngo/VerificationUpload'
 import NgoLogin from './routes/auth/ngo/Login'
+import Dashboard from './routes/app/Dashboard'
+import { RequireAuth } from './components/RequireAuth'
 
 export default function App() {
   return (
@@ -65,6 +67,8 @@ export default function App() {
             <Route path={ROUTES.ngoVerification} element={<VerificationUpload />} />
             <Route path={ROUTES.ngoLogin} element={<NgoLogin />} />
           </Route>
+
+          <Route path={ROUTES.dashboard} element={<RequireAuth><Dashboard /></RequireAuth>} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -4,6 +4,7 @@ import { Upload, FileText, CheckCircle, X } from 'lucide-react'
 import { Card } from '../../../components/ui/Card'
 import { Button } from '../../../components/ui/Button'
 import { Alert } from '../../../components/ui/Alert'
+import { apiFetch } from '../../../lib/api'
 import { ROUTES } from '../../../lib/routes'
 
 const DOC_TYPES = [
@@ -52,7 +53,7 @@ export default function VerificationUpload() {
       Object.entries(files).forEach(([key, { file }]) => {
         formData.append(key, file)
       })
-      await apiFetch('/api/auth/ngo/verification', formData)
+      await apiFetch('/api/auth/ngo/verification', { method: 'POST', body: formData })
       setSuccess(true)
     } catch (err) {
       setError(err.message)
@@ -61,22 +62,14 @@ export default function VerificationUpload() {
     }
   }
 
-  async function apiFetch(path, body) {
-    const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
-    const res = await fetch(`${BASE_URL}${path}`, { method: 'POST', body })
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.message || 'Upload failed')
-    return data
-  }
-
   if (success) {
     return (
       <Card>
         <Alert variant="success" title="Documents submitted!">
           Our verification team will review your documents within 5 business days. You&apos;ll receive an email once verified.
         </Alert>
-        <Button onClick={() => navigate(ROUTES.ngoLogin)} className="w-full mt-6">
-          Go to Login
+        <Button onClick={() => navigate(ROUTES.dashboard)} className="w-full mt-6">
+          Go to Dashboard
         </Button>
       </Card>
     )

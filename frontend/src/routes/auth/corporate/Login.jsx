@@ -10,10 +10,13 @@ import { FormField } from '../../../components/ui/FormField'
 import { Alert } from '../../../components/ui/Alert'
 import { corporateLoginSchema } from '../../../lib/validation/schemas'
 import { api } from '../../../lib/api'
+import { setTokens, setMfaSessionId } from '../../../lib/auth'
+import { useAuth } from '../../../context/AuthContext'
 import { ROUTES } from '../../../lib/routes'
 
 export default function CorporateLogin() {
   const navigate = useNavigate()
+  const { login } = useAuth()
   const [error, setError] = useState(null)
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(corporateLoginSchema),
@@ -24,9 +27,12 @@ export default function CorporateLogin() {
     try {
       const res = await api.post('/api/auth/corporate/login', data)
       if (res.data?.requiresMfa) {
+        setMfaSessionId(res.data.mfaSessionId)
         navigate(ROUTES.mfa)
       } else {
-        navigate(ROUTES.home)
+        setTokens(res.data)
+        login(res.data)
+        navigate(ROUTES.dashboard)
       }
     } catch (err) {
       setError(err.message)

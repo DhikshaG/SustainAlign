@@ -23,4 +23,5 @@ export const ROUTES = {
   resetPassword: '/auth/reset-password',
   mfa: '/auth/mfa',
   inviteTeam: '/onboarding/invite-team',
+  dashboard: '/dashboard',
 }

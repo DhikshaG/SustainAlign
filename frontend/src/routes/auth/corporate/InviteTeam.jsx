@@ -39,7 +39,7 @@ export default function InviteTeam() {
         <Alert variant="success" title="Invitations sent!">
           Team members will receive email invitations to join your SustainAlign workspace.
         </Alert>
-        <Button onClick={() => navigate(ROUTES.home)} className="w-full mt-6">
+        <Button onClick={() => navigate(ROUTES.dashboard)} className="w-full mt-6">
           Go to Dashboard
         </Button>
       </Card>
@@ -77,7 +77,7 @@ export default function InviteTeam() {
         <Button type="submit" disabled={isSubmitting} className="w-full">
           {isSubmitting ? 'Sending invites...' : 'Send Invitations'}
         </Button>
-        <Button type="button" variant="ghost" className="w-full" onClick={() => navigate(ROUTES.home)}>
+        <Button type="button" variant="ghost" className="w-full" onClick={() => navigate(ROUTES.dashboard)}>
           Skip for now
         </Button>
       </form>

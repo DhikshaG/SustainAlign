@@ -1,8 +1,11 @@
 import { Router } from 'express'
 import multer from 'multer'
 import { validate } from '../middleware/validate.js'
+import { authenticate, reqMeta } from '../middleware/authenticate.js'
+import { authRateLimit } from '../middleware/rate-limit-auth.js'
 import { ok, created } from '../lib/response.js'
 import { ngoRegisterSchema, ngoLoginSchema } from '../schemas/auth.corporate.js'
+import { ngoRegister, loginUser, saveNgoDocuments } from '../services/auth/index.js'
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -15,29 +18,35 @@ const upload = multer({
 
 const router = Router()
 
-router.post('/register', validate(ngoRegisterSchema), (req, res) => {
-  console.log('[stub] ngo register:', req.validated.ngoName)
-  return created(res, { ngoId: 'stub-ngo-id' }, 'NGO registered (stub)')
+router.use(authRateLimit)
+
+router.post('/register', validate(ngoRegisterSchema), async (req, res, next) => {
+  try {
+    const data = await ngoRegister(req.validated, reqMeta(req))
+    return created(res, data, 'NGO registered')
+  } catch (err) { next(err) }
 })
 
-router.post('/login', validate(ngoLoginSchema), (req, res) => {
-  console.log('[stub] ngo login:', req.validated.email)
-  return ok(res, { accessToken: 'stub-access-token' }, 'Login successful (stub)')
+router.post('/login', validate(ngoLoginSchema), async (req, res, next) => {
+  try {
+    const data = await loginUser(req.validated.email, req.validated.password, reqMeta(req))
+    return ok(res, data, 'Login successful')
+  } catch (err) { next(err) }
 })
 
-router.post('/verification', upload.fields([
+router.post('/verification', authenticate, upload.fields([
   { name: 'registration', maxCount: 1 },
   { name: '12a', maxCount: 1 },
   { name: '80g', maxCount: 1 },
   { name: 'fcra', maxCount: 1 },
-]), (req, res) => {
-  const files = Object.entries(req.files || {}).map(([key, arr]) => ({
-    field: key,
-    name: arr[0]?.originalname,
-    size: arr[0]?.size,
-  }))
-  console.log('[stub] ngo verification upload:', files)
-  return ok(res, { files, status: 'pending_review' }, 'Documents received (stub)')
+]), async (req, res, next) => {
+  try {
+    if (req.user.tenantType !== 'ngo') {
+      return res.status(403).json({ ok: false, message: 'NGO account required' })
+    }
+    const data = await saveNgoDocuments(req.user, req.files || {})
+    return ok(res, data, 'Documents received')
+  } catch (err) { next(err) }
 })
 
 export default router

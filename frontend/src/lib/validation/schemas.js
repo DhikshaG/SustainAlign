@@ -27,6 +27,7 @@ export const resetPasswordSchema = z.object({
 })
 
 export const mfaVerifySchema = z.object({
+  mfaSessionId: z.string().min(1, 'Session expired — please log in again'),
   code: z.string().length(6, 'Enter the 6-digit code'),
 })
 

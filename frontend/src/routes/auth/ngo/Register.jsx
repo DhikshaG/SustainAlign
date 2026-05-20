@@ -9,10 +9,13 @@ import { FormField } from '../../../components/ui/FormField'
 import { Alert } from '../../../components/ui/Alert'
 import { ngoRegisterSchema, NGO_SECTORS } from '../../../lib/validation/schemas'
 import { api } from '../../../lib/api'
+import { setTokens } from '../../../lib/auth'
+import { useAuth } from '../../../context/AuthContext'
 import { ROUTES } from '../../../lib/routes'
 
 export default function NgoRegister() {
   const navigate = useNavigate()
+  const { login } = useAuth()
   const [error, setError] = useState(null)
   const [selectedSectors, setSelectedSectors] = useState([])
   const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm({
@@ -31,7 +34,9 @@ export default function NgoRegister() {
   async function onSubmit(data) {
     setError(null)
     try {
-      await api.post('/api/auth/ngo/register', data)
+      const res = await api.post('/api/auth/ngo/register', data)
+      setTokens(res.data)
+      login(res.data)
       navigate(ROUTES.ngoVerification)
     } catch (err) {
       setError(err.message)

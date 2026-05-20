@@ -1,3 +1,4 @@
+import './db/index.js'
 import { createApp } from './server.js'
 import { env } from './config/env.js'
 

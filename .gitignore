@@ -2,3 +2,5 @@
 .graphify_detect.json
 .graphify_python
 graphify-out
+.graphify_ast_step.py
+.graphify_ast.json

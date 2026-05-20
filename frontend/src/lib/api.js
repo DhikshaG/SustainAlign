@@ -1,3 +1,5 @@
+import { getAccessToken, refreshAccessToken, clearTokens } from './auth'
+
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
 
 export class ApiError extends Error {
@@ -27,14 +29,32 @@ async function parseResponse(res) {
   return data
 }
 
-export async function apiFetch(path, options = {}) {
+export async function apiFetch(path, options = {}, retried = false) {
   const url = path.startsWith('http') ? path : `${BASE_URL}${path}`
   const headers = { ...options.headers }
+  const token = getAccessToken()
+  if (token) headers.Authorization = `Bearer ${token}`
+
   if (options.body && !(options.body instanceof FormData)) {
     headers['Content-Type'] = headers['Content-Type'] || 'application/json'
     options.body = JSON.stringify(options.body)
   }
+
   const res = await fetch(url, { ...options, headers })
+
+  if (res.status === 401 && !retried && getAccessToken()) {
+    try {
+      await refreshAccessToken()
+      return apiFetch(path, options, true)
+    } catch {
+      clearTokens()
+      if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+        window.location.href = '/login/corporate'
+      }
+      throw new ApiError('Session expired', 401, null)
+    }
+  }
+
   return parseResponse(res)
 }
 
