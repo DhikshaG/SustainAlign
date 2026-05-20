@@ -5,7 +5,7 @@ import { Card } from '../../../components/ui/Card'
 import { Button } from '../../../components/ui/Button'
 import { Alert } from '../../../components/ui/Alert'
 import { apiFetch } from '../../../lib/api'
-import { ROUTES } from '../../../lib/routes'
+import { ROUTES, NGO_ROUTES } from '../../../lib/routes'
 
 const DOC_TYPES = [
   { key: 'registration', label: 'Registration Certificate', required: true },
@@ -68,7 +68,7 @@ export default function VerificationUpload() {
         <Alert variant="success" title="Documents submitted!">
           Our verification team will review your documents within 5 business days. You&apos;ll receive an email once verified.
         </Alert>
-        <Button onClick={() => navigate(ROUTES.dashboard)} className="w-full mt-6">
+        <Button onClick={() => navigate(NGO_ROUTES.home)} className="w-full mt-6">
           Go to Dashboard
         </Button>
       </Card>

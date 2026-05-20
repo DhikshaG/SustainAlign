@@ -2,11 +2,15 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { PublicLayout } from './components/layout/PublicLayout'
 import { AuthLayout } from './components/layout/AuthLayout'
 import { CorporateLayout } from './components/layout/CorporateLayout'
+import { NgoLayout } from './components/layout/NgoLayout'
+import { AdminLayout } from './components/layout/AdminLayout'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { ROUTES } from './lib/routes'
 import { RequireAuth } from './components/RequireAuth'
 import { RequireRole } from './components/RequireRole'
 import { CORPORATE_ROLES } from './lib/corporate/roles'
+import { NGO_ROLES } from './lib/ngo/roles'
+import { ADMIN_ROLES } from './lib/admin/roles'
 
 import Home from './routes/public/Home'
 import About from './routes/public/About'
@@ -48,6 +52,23 @@ import VolunteerManagement from './routes/corporate/VolunteerManagement'
 import DocumentVault from './routes/corporate/DocumentVault'
 import CommunicationCenter from './routes/corporate/CommunicationCenter'
 import SettingsPage from './routes/corporate/SettingsPage'
+
+import NgoDashboardHome from './routes/ngo/NgoDashboardHome'
+import ProfileManagement from './routes/ngo/ProfileManagement'
+import NgoProjectsIndex from './routes/ngo/NgoProjectsIndex'
+import NgoProjectDetail from './routes/ngo/NgoProjectDetail'
+import FinancialReporting from './routes/ngo/FinancialReporting'
+import BeneficiaryTracking from './routes/ngo/BeneficiaryTracking'
+
+import AdminOverview from './routes/admin/AdminOverview'
+import UserManagement from './routes/admin/UserManagement'
+import NgoVerification from './routes/admin/NgoVerification'
+import FraudMonitoring from './routes/admin/FraudMonitoring'
+import PlatformAnalytics from './routes/admin/PlatformAnalytics'
+import SupportTickets from './routes/admin/SupportTickets'
+import ComplianceMonitoring from './routes/admin/ComplianceMonitoring'
+import AiMonitoringPage from './routes/admin/AiMonitoringPage'
+import ContentModeration from './routes/admin/ContentModeration'
 
 export default function App() {
   return (
@@ -107,6 +128,45 @@ export default function App() {
             <Route path="documents" element={<DocumentVault />} />
             <Route path="communications" element={<CommunicationCenter />} />
             <Route path="settings" element={<SettingsPage />} />
+          </Route>
+
+          <Route
+            path="/ngo"
+            element={
+              <RequireAuth>
+                <RequireRole roles={NGO_ROLES}>
+                  <NgoLayout />
+                </RequireRole>
+              </RequireAuth>
+            }
+          >
+            <Route index element={<NgoDashboardHome />} />
+            <Route path="profile" element={<ProfileManagement />} />
+            <Route path="projects" element={<NgoProjectsIndex />} />
+            <Route path="projects/:id" element={<NgoProjectDetail />} />
+            <Route path="finance" element={<FinancialReporting />} />
+            <Route path="beneficiaries" element={<BeneficiaryTracking />} />
+          </Route>
+
+          <Route
+            path="/admin"
+            element={
+              <RequireAuth>
+                <RequireRole roles={ADMIN_ROLES}>
+                  <AdminLayout />
+                </RequireRole>
+              </RequireAuth>
+            }
+          >
+            <Route index element={<AdminOverview />} />
+            <Route path="users" element={<UserManagement />} />
+            <Route path="ngo-verification" element={<NgoVerification />} />
+            <Route path="fraud" element={<FraudMonitoring />} />
+            <Route path="analytics" element={<PlatformAnalytics />} />
+            <Route path="support" element={<SupportTickets />} />
+            <Route path="compliance" element={<ComplianceMonitoring />} />
+            <Route path="ai-monitoring" element={<AiMonitoringPage />} />
+            <Route path="content" element={<ContentModeration />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />

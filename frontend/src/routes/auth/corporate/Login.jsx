@@ -13,6 +13,7 @@ import { api } from '../../../lib/api'
 import { setTokens, setMfaSessionId } from '../../../lib/auth'
 import { useAuth } from '../../../context/AuthContext'
 import { ROUTES } from '../../../lib/routes'
+import { getDashboardPathForUser } from '../../../lib/routing'
 
 export default function CorporateLogin() {
   const navigate = useNavigate()
@@ -32,7 +33,7 @@ export default function CorporateLogin() {
       } else {
         setTokens(res.data)
         login(res.data)
-        navigate(ROUTES.dashboard)
+        navigate(getDashboardPathForUser(res.data.user))
       }
     } catch (err) {
       setError(err.message)

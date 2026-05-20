@@ -41,3 +41,24 @@ export const CORPORATE_ROUTES = {
   communications: '/dashboard/communications',
   settings: '/dashboard/settings',
 }
+
+export const NGO_ROUTES = {
+  home: '/ngo',
+  profile: '/ngo/profile',
+  projects: '/ngo/projects',
+  projectDetail: (id) => `/ngo/projects/${id}`,
+  finance: '/ngo/finance',
+  beneficiaries: '/ngo/beneficiaries',
+}
+
+export const ADMIN_ROUTES = {
+  home: '/admin',
+  users: '/admin/users',
+  ngoVerification: '/admin/ngo-verification',
+  fraud: '/admin/fraud',
+  analytics: '/admin/analytics',
+  support: '/admin/support',
+  compliance: '/admin/compliance',
+  aiMonitoring: '/admin/ai-monitoring',
+  content: '/admin/content',
+}

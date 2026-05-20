@@ -7,6 +7,7 @@ import { api } from '../../../lib/api'
 import { setTokens, getMfaSessionId, clearMfaSessionId } from '../../../lib/auth'
 import { useAuth } from '../../../context/AuthContext'
 import { ROUTES } from '../../../lib/routes'
+import { getDashboardPathForUser } from '../../../lib/routing'
 
 export default function MfaVerify() {
   const navigate = useNavigate()
@@ -53,7 +54,7 @@ export default function MfaVerify() {
       setTokens(res.data)
       login(res.data)
       clearMfaSessionId()
-      navigate(ROUTES.dashboard)
+      navigate(getDashboardPathForUser(res.data.user))
     } catch (err) {
       setError(err.message)
     } finally {
