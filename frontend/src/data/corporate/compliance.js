@@ -1,0 +1,63 @@
+export const complianceSummary = {
+  section135: {
+    eligible: true,
+    netWorth: 8500000000,
+    turnover: 12000000000,
+    netProfit: 450000000,
+    csrObligation: 9000000,
+    obligationRate: 2,
+    fy: 'FY 2025-26',
+  },
+  spend: {
+    totalObligation: 9000000,
+    spent: 14200000,
+    administrative: 450000,
+    unspent: 10800000,
+    carryForward: 5200000,
+    breakdown: [
+      { category: 'Education', amount: 3200000, scheduleVII: 'Promoting education', valid: true },
+      { category: 'Healthcare', amount: 4100000, scheduleVII: 'Promoting health care', valid: true },
+      { category: 'Environment', amount: 2800000, scheduleVII: 'Ensuring environmental sustainability', valid: true },
+      { category: 'Livelihood', amount: 2100000, scheduleVII: 'Employment enhancing vocation skills', valid: true },
+      { category: 'Rural Development', amount: 1200000, scheduleVII: 'Rural development projects', valid: true },
+      { category: 'Admin Overhead', amount: 450000, scheduleVII: 'Administrative overheads', valid: true },
+    ],
+  },
+  dueDates: [
+    { id: 1, title: 'CSR-2 Form filing with MCA', date: '2026-03-31', status: 'upcoming' },
+    { id: 2, title: 'Annual CSR Committee meeting', date: '2026-02-15', status: 'upcoming' },
+    { id: 3, title: 'Transfer unspent CSR (if applicable)', date: '2026-04-30', status: 'upcoming' },
+    { id: 4, title: 'Q3 Utilization certificates', date: '2026-01-15', status: 'overdue' },
+  ],
+  scheduleVIIValidation: [
+    { item: 'All projects mapped to Schedule VII', status: 'pass' },
+    { item: 'Admin expenses within 5% cap', status: 'pass' },
+    { item: 'Geographic preference (local area) met', status: 'warn', note: '62% local vs 70% target' },
+    { item: 'Implementing agency due diligence', status: 'pass' },
+    { item: 'Impact assessment for large projects', status: 'warn', note: '2 projects pending IA' },
+    { item: 'Unspent CSR fund transfer plan', status: 'fail', note: '₹1.08 Cr unallocated' },
+  ],
+  auditReadiness: {
+    score: 78,
+    checklist: [
+      { item: 'CSR policy updated', done: true },
+      { item: 'Board resolution on CSR', done: true },
+      { item: 'Utilization certificates collected', done: false },
+      { item: 'Impact assessments filed', done: false },
+      { item: 'MCA CSR-2 draft ready', done: true },
+    ],
+  },
+  alerts: [
+    { id: 1, level: 'critical', message: 'Q3 utilization certificate overdue for SkillBuild project', date: '2026-01-15' },
+    { id: 2, level: 'warning', message: 'Unspent CSR ₹1.08 Cr requires transfer plan by Mar 31', date: '2026-01-10' },
+    { id: 3, level: 'info', message: 'CSR-2 filing window opens Feb 1', date: '2026-01-08' },
+  ],
+  mcaReportPreview: {
+    companyName: 'Acme Industries Ltd',
+    cin: 'L12345MH2010PLC123456',
+    fy: '2024-25',
+    totalCSR: 14200000,
+    unspent: 10800000,
+    projects: 14,
+  },
+}

@@ -1,8 +1,12 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { PublicLayout } from './components/layout/PublicLayout'
 import { AuthLayout } from './components/layout/AuthLayout'
+import { CorporateLayout } from './components/layout/CorporateLayout'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { ROUTES } from './lib/routes'
+import { RequireAuth } from './components/RequireAuth'
+import { RequireRole } from './components/RequireRole'
+import { CORPORATE_ROLES } from './lib/corporate/roles'
 
 import Home from './routes/public/Home'
 import About from './routes/public/About'
@@ -30,8 +34,20 @@ import InviteTeam from './routes/auth/corporate/InviteTeam'
 import NgoRegister from './routes/auth/ngo/Register'
 import VerificationUpload from './routes/auth/ngo/VerificationUpload'
 import NgoLogin from './routes/auth/ngo/Login'
-import Dashboard from './routes/app/Dashboard'
-import { RequireAuth } from './components/RequireAuth'
+
+import DashboardHome from './routes/corporate/DashboardHome'
+import NgoDiscovery from './routes/corporate/NgoDiscovery'
+import CorporateNgoProfile from './routes/corporate/CorporateNgoProfile'
+import ProjectsIndex from './routes/corporate/ProjectsIndex'
+import ProjectDetail from './routes/corporate/ProjectDetail'
+import ComplianceDashboard from './routes/corporate/ComplianceDashboard'
+import ReportingAnalytics from './routes/corporate/ReportingAnalytics'
+import AiCopilot from './routes/corporate/AiCopilot'
+import FundAllocation from './routes/corporate/FundAllocation'
+import VolunteerManagement from './routes/corporate/VolunteerManagement'
+import DocumentVault from './routes/corporate/DocumentVault'
+import CommunicationCenter from './routes/corporate/CommunicationCenter'
+import SettingsPage from './routes/corporate/SettingsPage'
 
 export default function App() {
   return (
@@ -68,7 +84,30 @@ export default function App() {
             <Route path={ROUTES.ngoLogin} element={<NgoLogin />} />
           </Route>
 
-          <Route path={ROUTES.dashboard} element={<RequireAuth><Dashboard /></RequireAuth>} />
+          <Route
+            path={ROUTES.dashboard}
+            element={
+              <RequireAuth>
+                <RequireRole roles={CORPORATE_ROLES}>
+                  <CorporateLayout />
+                </RequireRole>
+              </RequireAuth>
+            }
+          >
+            <Route index element={<DashboardHome />} />
+            <Route path="discovery" element={<NgoDiscovery />} />
+            <Route path="ngos/:slug" element={<CorporateNgoProfile />} />
+            <Route path="projects" element={<ProjectsIndex />} />
+            <Route path="projects/:id" element={<ProjectDetail />} />
+            <Route path="compliance" element={<ComplianceDashboard />} />
+            <Route path="reporting" element={<ReportingAnalytics />} />
+            <Route path="copilot" element={<AiCopilot />} />
+            <Route path="funds" element={<FundAllocation />} />
+            <Route path="volunteers" element={<VolunteerManagement />} />
+            <Route path="documents" element={<DocumentVault />} />
+            <Route path="communications" element={<CommunicationCenter />} />
+            <Route path="settings" element={<SettingsPage />} />
+          </Route>
 
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -25,3 +25,19 @@ export const ROUTES = {
   inviteTeam: '/onboarding/invite-team',
   dashboard: '/dashboard',
 }
+
+export const CORPORATE_ROUTES = {
+  home: '/dashboard',
+  discovery: '/dashboard/discovery',
+  ngoProfile: (slug) => `/dashboard/ngos/${slug}`,
+  projects: '/dashboard/projects',
+  projectDetail: (id) => `/dashboard/projects/${id}`,
+  compliance: '/dashboard/compliance',
+  reporting: '/dashboard/reporting',
+  copilot: '/dashboard/copilot',
+  funds: '/dashboard/funds',
+  volunteers: '/dashboard/volunteers',
+  documents: '/dashboard/documents',
+  communications: '/dashboard/communications',
+  settings: '/dashboard/settings',
+}
