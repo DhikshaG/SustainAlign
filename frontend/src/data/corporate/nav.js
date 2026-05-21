@@ -10,6 +10,7 @@ import {
   FileText,
   MessageSquare,
   Settings,
+  ClipboardCheck,
 } from 'lucide-react'
 import { CORPORATE_ROUTES } from '../../lib/routes'
 import { PERMISSIONS } from '../../lib/permissions'
@@ -64,6 +65,13 @@ export const corporateNavSections = [
         href: CORPORATE_ROUTES.funds,
         icon: Wallet,
         roles: ['super_admin', 'csr_head', 'finance'],
+      },
+      {
+        label: 'Approvals',
+        href: CORPORATE_ROUTES.approvals,
+        icon: ClipboardCheck,
+        roles: ['super_admin', 'csr_head', 'finance', 'compliance'],
+        permissions: [PERMISSIONS.WORKFLOW_REVIEW],
       },
     ],
   },

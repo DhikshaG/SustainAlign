@@ -40,6 +40,7 @@ export const CORPORATE_ROUTES = {
   documents: '/dashboard/documents',
   communications: '/dashboard/communications',
   settings: '/dashboard/settings',
+  approvals: '/dashboard/approvals',
 }
 
 export const NGO_ROUTES = {
