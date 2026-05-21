@@ -12,6 +12,7 @@ import {
   Settings,
 } from 'lucide-react'
 import { CORPORATE_ROUTES } from '../../lib/routes'
+import { PERMISSIONS } from '../../lib/permissions'
 
 export const corporateNavSections = [
   {
@@ -49,7 +50,8 @@ export const corporateNavSections = [
         label: 'Compliance',
         href: CORPORATE_ROUTES.compliance,
         icon: ShieldCheck,
-        roles: ['super_admin', 'csr_head', 'finance', 'compliance'],
+        roles: ['super_admin', 'csr_head', 'finance', 'compliance', 'board'],
+        permissions: [PERMISSIONS.COMPLIANCE_READ],
       },
       {
         label: 'Reporting',

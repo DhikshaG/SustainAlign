@@ -1,6 +1,13 @@
 import { Router } from 'express'
 import { authenticate, requireRole } from '../../middleware/authenticate.js'
+import { requirePermission } from '../../middleware/permissions.js'
+import { PERMISSIONS } from '../../lib/permissions.js'
 import { ok, fail } from '../../lib/response.js'
+import { logActivity } from '../../services/activity-log/index.js'
+import { createNotification } from '../../services/notifications/index.js'
+import { db } from '../../db/index.js'
+import { ngoProfiles, memberships } from '../../db/schema.js'
+import { eq, and } from 'drizzle-orm'
 import {
   overview,
   users,
@@ -33,5 +40,58 @@ router.get('/support/tickets', (_req, res) => ok(res, { tickets: supportTickets 
 router.get('/compliance', (_req, res) => ok(res, { records: compliance }))
 router.get('/ai-monitoring', (_req, res) => ok(res, aiMonitoring))
 router.get('/content/moderation', (_req, res) => ok(res, { items: contentModeration }))
+
+router.post('/ngo-verification/:tenantId/approve', requirePermission(PERMISSIONS.ADMIN_VERIFY_NGO), async (req, res, next) => {
+  try {
+    const { tenantId } = req.params
+    const profile = db.select().from(ngoProfiles).where(eq(ngoProfiles.tenantId, tenantId)).get()
+    if (!profile) return fail(res, 404, 'NGO not found')
+
+    db.update(ngoProfiles).set({ verificationStatus: 'verified' }).where(eq(ngoProfiles.tenantId, tenantId)).run()
+
+    const admins = db.select().from(memberships)
+      .where(and(eq(memberships.tenantId, tenantId), eq(memberships.role, 'ngo_admin')))
+      .all()
+
+    for (const m of admins) {
+      await createNotification({
+        userId: m.userId,
+        tenantId,
+        type: 'ngo.approved',
+        title: 'NGO verification approved',
+        body: 'Your organization has been verified on SustainAlign.',
+        link: '/ngo',
+      })
+    }
+
+    await logActivity({
+      req,
+      action: 'ngo.verify.approve',
+      entityType: 'ngo',
+      entityId: tenantId,
+    })
+
+    return ok(res, { tenantId, status: 'verified' })
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/ngo-verification/:tenantId/reject', requirePermission(PERMISSIONS.ADMIN_VERIFY_NGO), async (req, res, next) => {
+  try {
+    const { tenantId } = req.params
+    db.update(ngoProfiles).set({ verificationStatus: 'rejected' }).where(eq(ngoProfiles.tenantId, tenantId)).run()
+    await logActivity({
+      req,
+      action: 'ngo.verify.reject',
+      entityType: 'ngo',
+      entityId: tenantId,
+      metadata: { reason: req.body?.reason },
+    })
+    return ok(res, { tenantId, status: 'rejected' })
+  } catch (err) {
+    next(err)
+  }
+})
 
 export default router

@@ -17,6 +17,7 @@ Server: `http://localhost:3001`
 
 ```bash
 npm run db:generate   # after schema changes
+npm run db:migrate    # apply migrations (Step 0: files, notifications, activity_logs)
 npm run db:seed       # dev accounts (password printed to stdout)
 ```
 
@@ -28,6 +29,7 @@ SQLite file: `./data/sustainalign.db` (configurable via `DATABASE_PATH`).
 |-------|------|----------|
 | admin@acme.com | super_admin (corporate) | Demo@12345 |
 | admin@greenearth.org | ngo_admin | Demo@12345 |
+| field_officer@greenearth.org | field_officer | Demo@12345 |
 | platform@sustainalign.com | platform_super_admin | Demo@12345 |
 
 ## Environment
@@ -44,6 +46,23 @@ SQLite file: `./data/sustainalign.db` (configurable via `DATABASE_PATH`).
 | `REFRESH_TOKEN_TTL_DAYS` | | Default 7 |
 | `APP_URL` | | Frontend URL for email links |
 | `SMTP_*` | | Email (optional in dev — logs to console) |
+| `STORAGE_PROVIDER` | | `local` (default) — file upload backend |
+| `UPLOAD_ROOT` | | Directory for uploaded files (default `./uploads`) |
+| `MAX_FILE_SIZE_MB` | | Max upload size per file (default 10) |
+
+## Step 0 — Foundation APIs
+
+- `GET /api/auth/me` — includes `permissions[]` for the signed-in role
+- `POST /api/files/upload` — multipart `file` + `category` (requires `files:upload`)
+- `GET /api/files`, `GET /api/files/:id`, `GET /api/files/:id/download`
+- `GET /api/notifications`, `PATCH /api/notifications/:id/read`, `PATCH /api/notifications/read-all`
+- `GET /api/activity` — tenant activity log (`activity:read`)
+- `GET /api/admin/activity` — cross-tenant audit (`admin:audit:read`)
+- `POST /api/admin/ngo-verification/:tenantId/approve|reject` — demo verify flow
+
+Seeded accounts include `field_officer@greenearth.org` (NGO field officer, projects + beneficiaries only).
+
+Virus scanning is **not** enabled in Step 0.
 
 ## Auth endpoints
 

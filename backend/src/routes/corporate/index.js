@@ -1,5 +1,7 @@
 import { Router } from 'express'
 import { authenticate, requireRole } from '../../middleware/authenticate.js'
+import { requirePermission } from '../../middleware/permissions.js'
+import { PERMISSIONS, getPermissionMatrix } from '../../lib/permissions.js'
 import { ok } from '../../lib/response.js'
 import {
   dashboardSummary,
@@ -43,7 +45,7 @@ router.get('/projects/:id', (req, res) => {
   ok(res, project)
 })
 
-router.get('/compliance/summary', (_req, res) => ok(res, complianceSummary))
+router.get('/compliance/summary', requirePermission(PERMISSIONS.COMPLIANCE_READ), (_req, res) => ok(res, complianceSummary))
 
 router.get('/reporting/overview', (_req, res) => ok(res, reportingOverview))
 
@@ -51,7 +53,11 @@ router.get('/funds/allocation', (_req, res) => ok(res, fundAllocation))
 
 router.get('/volunteers/campaigns', (_req, res) => ok(res, volunteerCampaigns))
 
-router.get('/documents', (_req, res) => ok(res, documents))
+router.get('/documents', requirePermission(PERMISSIONS.DOCUMENTS_READ), (_req, res) => ok(res, documents))
+
+router.get('/settings/permission-matrix', requirePermission(PERMISSIONS.SETTINGS_MANAGE), (_req, res) => {
+  ok(res, { matrix: getPermissionMatrix() })
+})
 
 router.get('/communications/threads', (_req, res) => ok(res, communications))
 

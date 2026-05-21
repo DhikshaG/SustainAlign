@@ -7,6 +7,7 @@ import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Checkbox } from '../../components/ui/Checkbox'
 import { settingsData } from '../../data/corporate/settings'
+import { getPermissionMatrix } from '../../lib/permissions'
 import { useAuth } from '../../context/AuthContext'
 import { ROUTES } from '../../lib/routes'
 import { CORPORATE_ROLES as CORPORATE_ROLE_OPTIONS } from '../../lib/validation/schemas'
@@ -90,7 +91,7 @@ export default function SettingsPage() {
                 </tr>
               </thead>
               <tbody>
-                {settingsData.permissions.map((row) => (
+                {getPermissionMatrix().map((row) => (
                   <tr key={row.module} className="border-b border-slate-100">
                     <td className="py-2 font-medium">{row.module}</td>
                     {permissionRoles.map((r) => (

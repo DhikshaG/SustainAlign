@@ -13,6 +13,10 @@ import {
 import { newId, uniqueSlug } from '../../lib/ids.js'
 import { sendMfaCode, sendPasswordReset, sendInvitation } from '../../lib/email.js'
 import { authLog } from '../../lib/auth-log.js'
+import { getPermissionsForRole } from '../../lib/permissions.js'
+import { logActivity } from '../activity-log/index.js'
+import { storeFile } from '../files/index.js'
+import { notifyPlatformAdmins } from '../notifications/index.js'
 
 const MFA_TTL_MS = 10 * 60 * 1000
 const RESET_TTL_MS = 60 * 60 * 1000
@@ -32,14 +36,16 @@ async function loadUserContext(userId) {
 }
 
 function buildUserDto({ user, membership, tenant }) {
+  const role = membership.role
   return {
     id: user.id,
     email: user.email,
     fullName: user.fullName,
     tenantType: user.tenantType,
-    role: membership.role,
+    role,
     tenantId: tenant.id,
     tenantName: tenant.name,
+    permissions: getPermissionsForRole(role),
   }
 }
 
@@ -163,6 +169,12 @@ export async function loginUser(email, password, reqMeta) {
 
   const valid = await verifyPassword(password, user.passwordHash)
   if (!valid) {
+    await logActivity({
+      action: 'auth.login.failed',
+      metadata: { email },
+      ipAddress: reqMeta.ipAddress,
+      userAgent: reqMeta.userAgent,
+    }).catch(() => {})
     authLog('login.failed', { email })
     const err = new Error('Invalid email or password')
     err.status = 401
@@ -175,6 +187,13 @@ export async function loginUser(email, password, reqMeta) {
 
   const ctx = await loadUserContext(user.id)
   authLog('login.success', { userId: user.id })
+  await logActivity({
+    tenantId: ctx.tenant.id,
+    userId: user.id,
+    action: 'auth.login.success',
+    ipAddress: reqMeta.ipAddress,
+    userAgent: reqMeta.userAgent,
+  }).catch(() => {})
   return issueTokenPair(ctx, reqMeta)
 }
 
@@ -336,12 +355,22 @@ export async function refreshSession(refreshToken, reqMeta) {
   }
 }
 
-export async function logout(refreshToken) {
+export async function logout(refreshToken, reqMeta = {}) {
   if (!refreshToken) return { ok: true }
   try {
     const payload = await decodeRefreshToken(refreshToken)
     db.update(refreshTokens).set({ revokedAt: new Date() }).where(eq(refreshTokens.jti, payload.jti)).run()
     authLog('logout', { userId: payload.sub })
+    const ctx = await loadUserContext(payload.sub)
+    if (ctx) {
+      await logActivity({
+        tenantId: ctx.tenant.id,
+        userId: payload.sub,
+        action: 'auth.logout',
+        ipAddress: reqMeta.ipAddress,
+        userAgent: reqMeta.userAgent,
+      }).catch(() => {})
+    }
   } catch {
     // idempotent
   }
@@ -418,35 +447,50 @@ export async function ngoRegister(data, reqMeta) {
   return issueTokenPair(ctx, reqMeta)
 }
 
-export async function saveNgoDocuments(user, files) {
+export async function saveNgoDocuments(user, files, req = null) {
   const now = new Date()
-  const uploadDir = `uploads/ngo/${user.tenantId}`
+  const uploaded = []
 
   for (const [docType, fileList] of Object.entries(files)) {
     for (const file of fileList) {
-      const fs = await import('node:fs/promises')
-      const path = await import('node:path')
-      await fs.mkdir(uploadDir, { recursive: true })
-      const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')
-      const filePath = path.join(uploadDir, `${docType}-${Date.now()}-${safeName}`)
-      await fs.writeFile(filePath, file.buffer)
+      const record = await storeFile({
+        req,
+        buffer: file.buffer,
+        tenantId: user.tenantId,
+        tenantType: user.tenantType,
+        uploadedBy: user.sub,
+        category: 'ngo_verification',
+        originalName: file.originalname,
+        mime: file.mimetype,
+        entityType: 'ngo_document',
+        entityId: docType,
+      })
 
       db.insert(ngoDocuments).values({
         id: newId(),
         tenantId: user.tenantId,
         docType,
-        filePath,
+        filePath: record.id,
         originalName: file.originalname,
         mime: file.mimetype,
         sizeBytes: file.size,
         uploadedAt: now,
       }).run()
+      uploaded.push(record)
     }
   }
 
   db.update(ngoProfiles).set({ verificationStatus: 'pending' }).where(eq(ngoProfiles.tenantId, user.tenantId)).run()
   authLog('ngo.verification_uploaded', { tenantId: user.tenantId })
-  return { status: 'pending_review' }
+
+  await notifyPlatformAdmins({
+    type: 'verification.submitted',
+    title: 'NGO verification documents submitted',
+    body: `New verification documents were uploaded for tenant ${user.tenantId}.`,
+    link: '/admin/ngo-verification',
+  }).catch(() => {})
+
+  return { status: 'pending_review', files: uploaded }
 }
 
 export { loadUserContext, buildUserDto }

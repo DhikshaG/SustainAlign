@@ -12,7 +12,8 @@ export function isReadOnlyRole(role) {
   return role === 'board'
 }
 
-export function canAccessNavItem(role, itemRoles) {
-  if (!itemRoles?.length) return true
-  return itemRoles.includes(role)
+import { canAccessNavItem as canAccess } from '../permissions'
+
+export function canAccessNavItem(role, itemRoles, userPermissions = [], itemPermissions = []) {
+  return canAccess(role, itemRoles, userPermissions, itemPermissions)
 }

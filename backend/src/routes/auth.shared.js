@@ -21,7 +21,7 @@ router.post('/refresh', authRateLimit, validate(refreshSchema), async (req, res,
 
 router.post('/logout', async (req, res, next) => {
   try {
-    await logout(req.body?.refresh_token)
+    await logout(req.body?.refresh_token, reqMeta(req))
     return ok(res, null, 'Logged out')
   } catch (err) { next(err) }
 })

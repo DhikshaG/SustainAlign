@@ -91,3 +91,43 @@ export const ngoDocuments = sqliteTable('ngo_documents', {
   sizeBytes: integer('size_bytes').notNull(),
   uploadedAt: integer('uploaded_at', { mode: 'timestamp' }).notNull(),
 })
+
+export const files = sqliteTable('files', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  uploadedBy: text('uploaded_by').notNull().references(() => users.id),
+  category: text('category').notNull(),
+  entityType: text('entity_type'),
+  entityId: text('entity_id'),
+  storageKey: text('storage_key').notNull(),
+  originalName: text('original_name').notNull(),
+  mime: text('mime').notNull(),
+  sizeBytes: integer('size_bytes').notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+})
+
+export const notifications = sqliteTable('notifications', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  type: text('type').notNull(),
+  title: text('title').notNull(),
+  body: text('body').notNull(),
+  link: text('link'),
+  readAt: integer('read_at', { mode: 'timestamp' }),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+})
+
+export const activityLogs = sqliteTable('activity_logs', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').references(() => tenants.id),
+  userId: text('user_id').references(() => users.id),
+  action: text('action').notNull(),
+  entityType: text('entity_type'),
+  entityId: text('entity_id'),
+  metadata: text('metadata'),
+  previousValue: text('previous_value'),
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+})

@@ -1,5 +1,5 @@
 import { Link, useParams } from 'react-router-dom'
-import { Upload } from 'lucide-react'
+import { FileUploadZone } from '../../components/uploads/FileUploadZone'
 import { PageHeader } from '../../components/corporate/PageHeader'
 import { ProgressBar } from '../../components/corporate/ProgressBar'
 import { Card } from '../../components/ui/Card'
@@ -61,11 +61,13 @@ export default function NgoProjectDetail() {
       </Card>
       <div className="grid lg:grid-cols-2 gap-6">
         <Card>
-          <h3 className="font-semibold mb-3 flex items-center gap-2"><Upload className="h-4 w-4" /> Upload Evidence</h3>
-          <div className="border-2 border-dashed border-slate-200 rounded-lg p-6 text-center">
-            <p className="text-sm text-slate-500 mb-2">Photos, reports, receipts</p>
-            <Button variant="secondary" size="sm">Choose Files</Button>
-          </div>
+          <h3 className="font-semibold mb-3">Upload Evidence</h3>
+          <FileUploadZone
+            category="ngo_evidence"
+            entityType="project"
+            entityId={project.id}
+            label="Photos, reports, receipts"
+          />
           {project.evidence.length > 0 && (
             <ul className="mt-4 space-y-2 text-sm">{project.evidence.map((e) => <li key={e.id}>{e.name} · {e.date}</li>)}</ul>
           )}

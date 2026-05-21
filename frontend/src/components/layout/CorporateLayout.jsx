@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { Menu, Leaf, Bell, Search, ChevronDown, LogOut } from 'lucide-react'
+import { Menu, Leaf, Search, ChevronDown, LogOut } from 'lucide-react'
 import clsx from 'clsx'
 import { corporateNavSections } from '../../data/corporate/nav'
 import { CORPORATE_ROUTES, ROUTES } from '../../lib/routes'
 import { getRole } from '../../lib/auth'
 import { canAccessNavItem } from '../../lib/corporate/roles'
 import { useAuth } from '../../context/AuthContext'
-import { dashboardSummary } from '../../data/corporate/dashboard'
+import { usePermissions } from '../../hooks/usePermissions'
+import { NotificationBell } from '../notifications/NotificationBell'
 
 export function CorporateLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -16,6 +17,7 @@ export function CorporateLayout() {
   const navigate = useNavigate()
   const { user, logout } = useAuth()
   const role = getRole()
+  const { permissions } = usePermissions()
 
   async function handleLogout() {
     await logout()
@@ -32,7 +34,9 @@ export function CorporateLayout() {
   const visibleSections = corporateNavSections
     .map((section) => ({
       ...section,
-      items: section.items.filter((item) => canAccessNavItem(role, item.roles)),
+      items: section.items.filter((item) =>
+        canAccessNavItem(role, item.roles, permissions, item.permissions),
+      ),
     }))
     .filter((section) => section.items.length > 0)
 
@@ -131,14 +135,7 @@ export function CorporateLayout() {
             {user?.tenantName || 'Corporate'}
           </span>
 
-          <button type="button" className="relative p-2 text-slate-600 hover:text-slate-900" aria-label="Notifications">
-            <Bell className="h-5 w-5" />
-            {dashboardSummary.notificationCount > 0 && (
-              <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
-                {dashboardSummary.notificationCount}
-              </span>
-            )}
-          </button>
+          <NotificationBell />
 
           <div className="relative">
             <button

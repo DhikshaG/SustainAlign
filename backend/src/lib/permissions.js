@@ -1,0 +1,184 @@
+/** Canonical permission strings for SustainAlign RBAC */
+
+export const PERMISSIONS = {
+  PROJECTS_READ: 'projects:read',
+  PROJECTS_WRITE: 'projects:write',
+  PROJECTS_APPROVE: 'projects:approve',
+  FUNDS_READ: 'funds:read',
+  FUNDS_RELEASE: 'funds:release',
+  COMPLIANCE_READ: 'compliance:read',
+  COMPLIANCE_EXPORT: 'compliance:export',
+  DISCOVERY_READ: 'discovery:read',
+  REPORTING_READ: 'reporting:read',
+  COPILOT_USE: 'copilot:use',
+  VOLUNTEERS_MANAGE: 'volunteers:manage',
+  DOCUMENTS_READ: 'documents:read',
+  COMMUNICATIONS_READ: 'communications:read',
+  SETTINGS_MANAGE: 'settings:manage',
+  NGO_PROFILE_WRITE: 'ngo:profile:write',
+  NGO_EVIDENCE_UPLOAD: 'ngo:evidence:upload',
+  NGO_DOCUMENTS_UPLOAD: 'ngo:documents:upload',
+  BENEFICIARIES_MANAGE: 'beneficiaries:manage',
+  FINANCE_READ: 'finance:read',
+  FILES_UPLOAD: 'files:upload',
+  FILES_DOWNLOAD: 'files:download',
+  NOTIFICATIONS_READ: 'notifications:read',
+  ACTIVITY_READ: 'activity:read',
+  ADMIN_USERS: 'admin:users',
+  ADMIN_VERIFY_NGO: 'admin:verify_ngo',
+  ADMIN_AUDIT_READ: 'admin:audit:read',
+  ADMIN_FRAUD_READ: 'admin:fraud:read',
+  ADMIN_ANALYTICS_READ: 'admin:analytics:read',
+  ADMIN_SUPPORT: 'admin:support',
+  ADMIN_CONTENT: 'admin:content',
+}
+
+const ALL_CORPORATE = [
+  PERMISSIONS.PROJECTS_READ,
+  PERMISSIONS.PROJECTS_WRITE,
+  PERMISSIONS.PROJECTS_APPROVE,
+  PERMISSIONS.FUNDS_READ,
+  PERMISSIONS.FUNDS_RELEASE,
+  PERMISSIONS.COMPLIANCE_READ,
+  PERMISSIONS.COMPLIANCE_EXPORT,
+  PERMISSIONS.DISCOVERY_READ,
+  PERMISSIONS.REPORTING_READ,
+  PERMISSIONS.COPILOT_USE,
+  PERMISSIONS.VOLUNTEERS_MANAGE,
+  PERMISSIONS.DOCUMENTS_READ,
+  PERMISSIONS.COMMUNICATIONS_READ,
+  PERMISSIONS.SETTINGS_MANAGE,
+  PERMISSIONS.FILES_UPLOAD,
+  PERMISSIONS.FILES_DOWNLOAD,
+  PERMISSIONS.NOTIFICATIONS_READ,
+  PERMISSIONS.ACTIVITY_READ,
+]
+
+const ROLE_PERMISSIONS = {
+  super_admin: ALL_CORPORATE,
+  csr_head: ALL_CORPORATE.filter((p) => p !== PERMISSIONS.FUNDS_RELEASE),
+  finance: [
+    PERMISSIONS.PROJECTS_READ,
+    PERMISSIONS.FUNDS_READ,
+    PERMISSIONS.FUNDS_RELEASE,
+    PERMISSIONS.COMPLIANCE_READ,
+    PERMISSIONS.COMPLIANCE_EXPORT,
+    PERMISSIONS.REPORTING_READ,
+    PERMISSIONS.DOCUMENTS_READ,
+    PERMISSIONS.COMMUNICATIONS_READ,
+    PERMISSIONS.FILES_UPLOAD,
+    PERMISSIONS.FILES_DOWNLOAD,
+    PERMISSIONS.NOTIFICATIONS_READ,
+    PERMISSIONS.ACTIVITY_READ,
+  ],
+  compliance: [
+    PERMISSIONS.PROJECTS_READ,
+    PERMISSIONS.COMPLIANCE_READ,
+    PERMISSIONS.COMPLIANCE_EXPORT,
+    PERMISSIONS.REPORTING_READ,
+    PERMISSIONS.DOCUMENTS_READ,
+    PERMISSIONS.COMMUNICATIONS_READ,
+    PERMISSIONS.FILES_UPLOAD,
+    PERMISSIONS.FILES_DOWNLOAD,
+    PERMISSIONS.NOTIFICATIONS_READ,
+    PERMISSIONS.ACTIVITY_READ,
+  ],
+  esg_head: [
+    PERMISSIONS.PROJECTS_READ,
+    PERMISSIONS.PROJECTS_WRITE,
+    PERMISSIONS.DISCOVERY_READ,
+    PERMISSIONS.REPORTING_READ,
+    PERMISSIONS.COPILOT_USE,
+    PERMISSIONS.COMMUNICATIONS_READ,
+    PERMISSIONS.FILES_UPLOAD,
+    PERMISSIONS.FILES_DOWNLOAD,
+    PERMISSIONS.NOTIFICATIONS_READ,
+    PERMISSIONS.ACTIVITY_READ,
+  ],
+  volunteer: [
+    PERMISSIONS.PROJECTS_READ,
+    PERMISSIONS.VOLUNTEERS_MANAGE,
+    PERMISSIONS.NOTIFICATIONS_READ,
+  ],
+  board: [
+    PERMISSIONS.PROJECTS_READ,
+    PERMISSIONS.COMPLIANCE_READ,
+    PERMISSIONS.REPORTING_READ,
+    PERMISSIONS.NOTIFICATIONS_READ,
+  ],
+  ngo_admin: [
+    PERMISSIONS.PROJECTS_READ,
+    PERMISSIONS.PROJECTS_WRITE,
+    PERMISSIONS.NGO_PROFILE_WRITE,
+    PERMISSIONS.NGO_EVIDENCE_UPLOAD,
+    PERMISSIONS.NGO_DOCUMENTS_UPLOAD,
+    PERMISSIONS.BENEFICIARIES_MANAGE,
+    PERMISSIONS.FINANCE_READ,
+    PERMISSIONS.FILES_UPLOAD,
+    PERMISSIONS.FILES_DOWNLOAD,
+    PERMISSIONS.NOTIFICATIONS_READ,
+    PERMISSIONS.ACTIVITY_READ,
+  ],
+  field_officer: [
+    PERMISSIONS.PROJECTS_READ,
+    PERMISSIONS.PROJECTS_WRITE,
+    PERMISSIONS.NGO_EVIDENCE_UPLOAD,
+    PERMISSIONS.BENEFICIARIES_MANAGE,
+    PERMISSIONS.FILES_UPLOAD,
+    PERMISSIONS.FILES_DOWNLOAD,
+    PERMISSIONS.NOTIFICATIONS_READ,
+  ],
+  platform_super_admin: [
+    PERMISSIONS.ADMIN_USERS,
+    PERMISSIONS.ADMIN_VERIFY_NGO,
+    PERMISSIONS.ADMIN_AUDIT_READ,
+    PERMISSIONS.ADMIN_FRAUD_READ,
+    PERMISSIONS.ADMIN_ANALYTICS_READ,
+    PERMISSIONS.ADMIN_SUPPORT,
+    PERMISSIONS.ADMIN_CONTENT,
+    PERMISSIONS.FILES_UPLOAD,
+    PERMISSIONS.FILES_DOWNLOAD,
+    PERMISSIONS.NOTIFICATIONS_READ,
+    PERMISSIONS.ACTIVITY_READ,
+    PERMISSIONS.PROJECTS_READ,
+    PERMISSIONS.COMPLIANCE_READ,
+    PERMISSIONS.REPORTING_READ,
+  ],
+}
+
+export const CORPORATE_ROLES = ['super_admin', 'csr_head', 'esg_head', 'finance', 'compliance', 'volunteer', 'board']
+export const NGO_ROLES = ['ngo_admin', 'field_officer']
+export const PLATFORM_ROLES = ['platform_super_admin']
+
+export function getPermissionsForRole(role) {
+  return ROLE_PERMISSIONS[role] || []
+}
+
+export function hasPermission(role, permission) {
+  return getPermissionsForRole(role).includes(permission)
+}
+
+export function hasAnyPermission(role, permissions) {
+  const set = new Set(getPermissionsForRole(role))
+  return permissions.some((p) => set.has(p))
+}
+
+/** Matrix for Settings UI: module x role */
+export function getPermissionMatrix() {
+  const modules = [
+    { module: 'Dashboard', key: PERMISSIONS.PROJECTS_READ },
+    { module: 'NGO Discovery', key: PERMISSIONS.DISCOVERY_READ },
+    { module: 'Projects', key: PERMISSIONS.PROJECTS_WRITE },
+    { module: 'Compliance', key: PERMISSIONS.COMPLIANCE_READ },
+    { module: 'Reporting', key: PERMISSIONS.REPORTING_READ },
+    { module: 'Settings', key: PERMISSIONS.SETTINGS_MANAGE },
+  ]
+  const roles = ['super_admin', 'csr_head', 'esg_head', 'finance', 'compliance', 'volunteer', 'board']
+  return modules.map(({ module, key }) => {
+    const row = { module }
+    for (const r of roles) {
+      row[r] = hasPermission(r, key)
+    }
+    return row
+  })
+}

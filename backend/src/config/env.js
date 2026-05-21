@@ -16,6 +16,9 @@ const envSchema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   SMTP_FROM: z.string().optional(),
+  STORAGE_PROVIDER: z.enum(['local']).default('local'),
+  UPLOAD_ROOT: z.string().default('./uploads'),
+  MAX_FILE_SIZE_MB: z.coerce.number().default(10),
 })
 
 const parsed = envSchema.parse(process.env)

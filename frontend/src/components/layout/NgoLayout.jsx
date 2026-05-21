@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { Menu, Leaf, Bell, ChevronDown, LogOut } from 'lucide-react'
+import { Menu, Leaf, ChevronDown, LogOut } from 'lucide-react'
 import clsx from 'clsx'
 import { ngoNavSections } from '../../data/ngo/nav'
 import { NGO_ROUTES, ROUTES } from '../../lib/routes'
 import { getRole } from '../../lib/auth'
 import { canAccessNgoNavItem } from '../../lib/ngo/roles'
 import { useAuth } from '../../context/AuthContext'
-import { ngoDashboardSummary } from '../../data/ngo/dashboard'
+import { usePermissions } from '../../hooks/usePermissions'
+import { NotificationBell } from '../notifications/NotificationBell'
 
 export function NgoLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -16,6 +17,7 @@ export function NgoLayout() {
   const navigate = useNavigate()
   const { user, logout } = useAuth()
   const role = getRole()
+  const { permissions } = usePermissions()
 
   async function handleLogout() {
     await logout()
@@ -28,7 +30,7 @@ export function NgoLayout() {
   }
 
   const visibleSections = ngoNavSections
-    .map((s) => ({ ...s, items: s.items.filter((i) => canAccessNgoNavItem(role, i.roles)) }))
+    .map((s) => ({ ...s, items: s.items.filter((i) => canAccessNgoNavItem(role, i.roles, permissions, i.permissions)) }))
     .filter((s) => s.items.length > 0)
 
   const sidebar = (
@@ -77,12 +79,7 @@ export function NgoLayout() {
         <header className="sticky top-0 z-20 flex h-16 items-center gap-4 border-b border-slate-200 bg-white px-4 lg:px-6">
           <button type="button" className="lg:hidden p-2 text-slate-600" onClick={() => setSidebarOpen(true)} aria-label="Open menu"><Menu className="h-5 w-5" /></button>
           <span className="flex-1 text-sm text-slate-500 truncate">{user?.tenantName || 'NGO'}</span>
-          <button type="button" className="relative p-2 text-slate-600" aria-label="Notifications">
-            <Bell className="h-5 w-5" />
-            {ngoDashboardSummary.notificationCount > 0 && (
-              <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">{ngoDashboardSummary.notificationCount}</span>
-            )}
-          </button>
+          <NotificationBell />
           <div className="relative">
             <button type="button" className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-100" onClick={() => setUserMenuOpen(!userMenuOpen)}>
               <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center text-sm font-semibold text-emerald-700">{(user?.fullName || user?.email || '?')[0].toUpperCase()}</div>
