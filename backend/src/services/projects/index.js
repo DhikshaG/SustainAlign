@@ -13,6 +13,7 @@ import { newId } from '../../lib/ids.js'
 import { logMutation } from '../activity-log/index.js'
 import { indexDocument } from '../search/index.js'
 import { createInstance } from '../workflow/index.js'
+import { onCorporateProjectApproved } from '../partnership/index.js'
 import {
   getLatestBeneficiaries,
   listKpis,
@@ -113,6 +114,7 @@ function shapeMilestone(m) {
     progress: m.status === 'completed' ? 100 : m.progress,
     sortOrder: m.sortOrder,
     completedAt: m.completedAt,
+    reviewStatus: m.reviewStatus || 'none',
   }
 }
 
@@ -170,6 +172,7 @@ function toListDto(row, audience) {
     location: row.location,
     startDate: row.startDate,
     endDate: row.endDate,
+    ngoPartnershipStatus: row.ngoPartnershipStatus,
     ngoSlug: ngo?.slug,
     ngoName: ngo?.name,
     partner: corporate?.name,
@@ -398,9 +401,15 @@ export function setProjectStatusFromWorkflow(projectId, workflowStatus) {
   const row = db.select().from(csrProjects).where(eq(csrProjects.id, projectId)).get()
   if (!row) return
 
+  if (workflowStatus === 'approved') {
+    onCorporateProjectApproved(projectId)
+    reindexProject(projectId)
+    return
+  }
+
   let status = row.status
-  if (workflowStatus === 'approved') status = 'active'
-  else if (workflowStatus === 'rejected') status = 'rejected'
+  if (workflowStatus === 'rejected') status = 'rejected'
+  else if (workflowStatus === 'needs_revision') status = 'pending_approval'
 
   if (status !== row.status) {
     db.update(csrProjects)
@@ -409,6 +418,59 @@ export function setProjectStatusFromWorkflow(projectId, workflowStatus) {
       .run()
     reindexProject(projectId)
   }
+}
+
+export function setMilestoneReviewFromWorkflow(milestoneId, workflowStatus) {
+  const milestone = db.select().from(projectMilestones).where(eq(projectMilestones.id, milestoneId)).get()
+  if (!milestone) return
+
+  let reviewStatus = milestone.reviewStatus
+  if (workflowStatus === 'approved') reviewStatus = 'approved'
+  else if (workflowStatus === 'rejected') reviewStatus = 'rejected'
+  else if (workflowStatus === 'needs_revision') reviewStatus = 'none'
+
+  db.update(projectMilestones).set({ reviewStatus }).where(eq(projectMilestones.id, milestoneId)).run()
+}
+
+export function submitMilestoneForReview(projectId, milestoneId, { userId, ngoTenantId, note }, req) {
+  const row = db.select().from(csrProjects).where(eq(csrProjects.id, projectId)).get()
+  if (!row) throw httpError('Project not found', 404)
+  assertProjectAccess(row, { ngoTenantId })
+
+  const milestone = db.select().from(projectMilestones)
+    .where(and(eq(projectMilestones.id, milestoneId), eq(projectMilestones.projectId, projectId)))
+    .get()
+  if (!milestone) throw httpError('Milestone not found', 404)
+  if (milestone.reviewStatus === 'submitted') {
+    throw httpError('Milestone already submitted for review', 400)
+  }
+  if (!['completed', 'in_progress'].includes(milestone.status)) {
+    throw httpError('Complete or progress the milestone before submitting for review', 400)
+  }
+
+  db.update(projectMilestones).set({ reviewStatus: 'submitted' }).where(eq(projectMilestones.id, milestoneId)).run()
+
+  createInstance({
+    req,
+    definitionSlug: 'milestone_approval',
+    tenantId: row.corporateTenantId,
+    entityType: 'milestone',
+    entityId: milestoneId,
+    submittedBy: userId,
+    title: `${row.name}: ${milestone.title}`,
+  })
+
+  if (req) {
+    logMutation({
+      req,
+      action: 'project.milestone.submit',
+      entityType: 'project',
+      entityId: projectId,
+      after: { milestoneId, note },
+    }).catch(() => {})
+  }
+
+  return shapeMilestone(db.select().from(projectMilestones).where(eq(projectMilestones.id, milestoneId)).get())
 }
 
 export function addMilestone(projectId, data, { corporateTenantId, ngoTenantId, req } = {}) {
@@ -456,6 +518,9 @@ export function updateMilestone(projectId, milestoneId, patch, { corporateTenant
     .where(and(eq(projectMilestones.id, milestoneId), eq(projectMilestones.projectId, projectId)))
     .get()
   if (!milestone) throw httpError('Milestone not found', 404)
+  if (milestone.reviewStatus === 'submitted' && corporateTenantId) {
+    throw httpError('Milestone is pending review — use approvals workflow', 400)
+  }
 
   const now = new Date()
   const updates = {}

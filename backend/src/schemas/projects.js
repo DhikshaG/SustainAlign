@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 export const PROJECT_STATUSES = [
   'pending_approval',
+  'pending_ngo',
   'active',
   'on_hold',
   'completed',

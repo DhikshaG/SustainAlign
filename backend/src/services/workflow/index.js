@@ -10,7 +10,8 @@ import { newId } from '../../lib/ids.js'
 import { logMutation } from '../activity-log/index.js'
 import { createNotification, notifyRole } from '../notifications/index.js'
 import { indexDocument } from '../search/index.js'
-import { setProjectStatusFromWorkflow } from '../projects/index.js'
+import { setProjectStatusFromWorkflow, setMilestoneReviewFromWorkflow } from '../projects/index.js'
+import { csrProjects, projectMilestones } from '../../db/schema.js'
 
 const TERMINAL = new Set(['approved', 'rejected'])
 
@@ -31,6 +32,13 @@ export function seedWorkflowDefinitions() {
       steps: [
         { role: 'csr_head', permission: 'workflow:review', label: 'CSR Head review' },
         { role: 'finance', permission: 'workflow:review', label: 'Finance approval' },
+      ],
+    },
+    {
+      slug: 'milestone_approval',
+      name: 'Milestone Approval',
+      steps: [
+        { role: 'csr_head', permission: 'workflow:review', label: 'Milestone review' },
       ],
     },
   ]
@@ -104,16 +112,37 @@ export function createInstance({ req, definitionSlug, tenantId, entityType, enti
   })
 
   const firstStep = def.steps[0]
-  const notifyType = entityType === 'project' ? 'report.pending' : 'report.pending'
-  const notifyTitle = entityType === 'project' ? 'Project pending your review' : 'Report pending your review'
+  const notifyTitle = entityType === 'project'
+    ? 'Project pending your review'
+    : entityType === 'milestone'
+      ? 'Milestone pending your review'
+      : 'Report pending your review'
   notifyRole(tenantId, firstStep.role, {
-    type: notifyType,
+    type: 'report.pending',
     title: notifyTitle,
     body: `A new ${entityType} requires ${firstStep.label}.`,
     link: '/dashboard/approvals',
   }).catch(() => {})
 
   return getInstance(id)
+}
+
+function enrichInstance(inst) {
+  if (!inst) return inst
+  let entityTitle = inst.entityId
+  let projectId = null
+  if (inst.entityType === 'project') {
+    const p = db.select().from(csrProjects).where(eq(csrProjects.id, inst.entityId)).get()
+    entityTitle = p?.name || entityTitle
+    projectId = inst.entityId
+  } else if (inst.entityType === 'milestone') {
+    const m = db.select().from(projectMilestones).where(eq(projectMilestones.id, inst.entityId)).get()
+    if (m) {
+      entityTitle = m.title
+      projectId = m.projectId
+    }
+  }
+  return { ...inst, entityTitle, projectId }
 }
 
 export function getInstance(id) {
@@ -124,11 +153,11 @@ export function getInstance(id) {
     .where(eq(workflowEvents.instanceId, id))
     .orderBy(desc(workflowEvents.createdAt))
     .all()
-  return {
+  return enrichInstance({
     ...row,
     definition: def ? { ...def, steps: JSON.parse(def.steps) } : null,
     events,
-  }
+  })
 }
 
 export function listPendingForUser(userId, role, tenantId) {
@@ -235,14 +264,28 @@ export async function transition({ req, instanceId, action, comment }) {
   if (TERMINAL.has(newStatus) || newStatus === 'needs_revision') {
     if (inst.entityType === 'project') {
       setProjectStatusFromWorkflow(inst.entityId, newStatus)
+    } else if (inst.entityType === 'milestone') {
+      setMilestoneReviewFromWorkflow(inst.entityId, newStatus)
     }
+
+    let link = '/ngo/submissions'
+    if (inst.entityType === 'project') {
+      link = `/dashboard/projects/${inst.entityId}`
+    } else if (inst.entityType === 'milestone') {
+      const m = db.select().from(projectMilestones).where(eq(projectMilestones.id, inst.entityId)).get()
+      link = m ? `/ngo/projects/${m.projectId}` : '/ngo/submissions'
+    } else if (inst.entityType === 'report') {
+      link = '/ngo/finance'
+    }
+
+    const label = inst.entityType === 'milestone' ? 'Milestone' : inst.entityType === 'project' ? 'Project' : 'Report'
     await createNotification({
       userId: inst.submittedBy,
       tenantId: inst.tenantId,
       type: newStatus === 'approved' ? 'ngo.approved' : 'report.pending',
-      title: `${inst.entityType === 'project' ? 'Project' : 'Report'} ${newStatus.replace('_', ' ')}`,
+      title: `${label} ${newStatus.replace('_', ' ')}`,
       body: comment || `Your submission was ${newStatus.replace('_', ' ')}.`,
-      link: inst.entityType === 'project' ? `/dashboard/projects/${inst.entityId}` : '/ngo/finance',
+      link,
     })
   }
 

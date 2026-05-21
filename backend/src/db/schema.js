@@ -310,6 +310,9 @@ export const csrProjects = sqliteTable('csr_projects', {
   startDate: text('start_date').notNull(),
   endDate: text('end_date').notNull(),
   progress: integer('progress').notNull().default(0),
+  ngoPartnershipStatus: text('ngo_partnership_status'),
+  ngoRespondedAt: integer('ngo_responded_at', { mode: 'timestamp' }),
+  ngoResponseNote: text('ngo_response_note'),
   createdBy: text('created_by').notNull().references(() => users.id),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
@@ -328,7 +331,49 @@ export const projectMilestones = sqliteTable('project_milestones', {
   progress: integer('progress').notNull().default(0),
   sortOrder: integer('sort_order').notNull().default(0),
   completedAt: integer('completed_at', { mode: 'timestamp' }),
+  reviewStatus: text('review_status').notNull().default('none'),
 })
+
+export const messageThreads = sqliteTable('message_threads', {
+  id: text('id').primaryKey(),
+  corporateTenantId: text('corporate_tenant_id').notNull().references(() => tenants.id),
+  ngoTenantId: text('ngo_tenant_id').notNull().references(() => tenants.id),
+  projectId: text('project_id').references(() => csrProjects.id),
+  subject: text('subject').notNull(),
+  lastMessageAt: integer('last_message_at', { mode: 'timestamp' }).notNull(),
+  createdBy: text('created_by').notNull().references(() => users.id),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+}, (table) => [
+  index('message_threads_corporate_idx').on(table.corporateTenantId),
+  index('message_threads_ngo_idx').on(table.ngoTenantId),
+  index('message_threads_project_idx').on(table.projectId),
+])
+
+export const messages = sqliteTable('messages', {
+  id: text('id').primaryKey(),
+  threadId: text('thread_id').notNull().references(() => messageThreads.id, { onDelete: 'cascade' }),
+  senderUserId: text('sender_user_id').notNull().references(() => users.id),
+  body: text('body').notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+}, (table) => [
+  index('messages_thread_idx').on(table.threadId),
+])
+
+export const projectTasks = sqliteTable('project_tasks', {
+  id: text('id').primaryKey(),
+  projectId: text('project_id').notNull().references(() => csrProjects.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  description: text('description'),
+  assigneeSide: text('assignee_side').notNull(),
+  assigneeUserId: text('assignee_user_id').references(() => users.id),
+  status: text('status').notNull().default('open'),
+  dueDate: text('due_date'),
+  createdBy: text('created_by').notNull().references(() => users.id),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+}, (table) => [
+  index('project_tasks_project_idx').on(table.projectId),
+])
 
 export const projectUpdates = sqliteTable('project_updates', {
   id: text('id').primaryKey(),
