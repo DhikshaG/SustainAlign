@@ -278,6 +278,27 @@ Frontend: `/dashboard/esg`
 
 Governance subset (audit score, Schedule VII validation) is included inline for `esg_head` without requiring full compliance module access.
 
+## Step 11 — NGO CRM + Workflow
+
+Partnership requests, threaded messaging, project tasks, milestone approval workflows, and unified CRM timeline.
+
+```bash
+npm run db:verify-crm
+npm run db:verify-projects
+```
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/ngo/partnership-requests` | NGO incoming partnership requests |
+| POST | `/api/ngo/projects/:id/partnership/respond` | Accept or decline partnership |
+| GET/POST | `/api/corporate/communications/threads` | Message threads (live) |
+| GET/POST | `/api/*/projects/:id/tasks` | Project task list and assignment |
+| POST | `/api/ngo/projects/:id/milestones/:mid/submit` | Submit milestone for corporate review |
+| GET | `/api/*/projects/:id/timeline` | Unified CRM activity feed |
+| GET | `/api/ngo/submissions` | NGO workflow submission tracker |
+
+Corporate project approval → `pending_ngo` → NGO accept → `active`. Milestone submissions use `milestone_approval` workflow.
+
 ## Step 6 — Compliance Automation Engine
 
 Section 135 eligibility (net worth / turnover / net profit OR logic), 2% obligation formula, Schedule VII validation, unspent tracking, alerts, background sync, MCA JSON export.

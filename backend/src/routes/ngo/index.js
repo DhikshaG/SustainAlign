@@ -16,6 +16,7 @@ import {
   getProject,
   updateMilestone,
   addProjectUpdate,
+  submitMilestoneForReview,
 } from '../../services/projects/index.js'
 import {
   addKpi,
@@ -28,6 +29,24 @@ import {
   updateMilestoneSchema,
   createUpdateSchema,
 } from '../../schemas/projects.js'
+import {
+  postMessageSchema,
+  createTaskSchema,
+  updateTaskSchema,
+  partnershipResponseSchema,
+  submitMilestoneSchema,
+} from '../../schemas/crm.js'
+import { listPartnershipRequests, respondToPartnership } from '../../services/partnership/index.js'
+import {
+  listThreadsForNgo,
+  getThread,
+  createThread,
+  postMessage,
+  getOrCreateProjectThread,
+} from '../../services/messaging/index.js'
+import { createTask, listTasksForProject, updateTaskStatus } from '../../services/tasks/index.js'
+import { getProjectTimeline } from '../../services/crm/timeline.js'
+import { listInboxForUser } from '../../services/workflow/index.js'
 import {
   kpiInputSchema,
   beneficiaryLogSchema,
@@ -297,6 +316,86 @@ router.delete('/profile/media/:id', requirePermission(PERMISSIONS.FILES_UPLOAD),
   } catch (err) {
     next(err)
   }
+})
+
+router.get('/partnership-requests', requirePermission(PERMISSIONS.PROJECTS_READ), (req, res) => {
+  ok(res, { requests: listPartnershipRequests(req.user.tenantId) })
+})
+
+router.post('/projects/:id/partnership/respond', requirePermission(PERMISSIONS.PROJECTS_READ), validate(partnershipResponseSchema), (req, res, next) => {
+  try {
+    ok(res, respondToPartnership(req.params.id, req.user.tenantId, req.validated, req))
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.get('/communications/threads', requirePermission(PERMISSIONS.COMMUNICATIONS_READ), (req, res) => {
+  ok(res, { threads: listThreadsForNgo(req.user.tenantId) })
+})
+
+router.get('/communications/threads/:id', requirePermission(PERMISSIONS.COMMUNICATIONS_READ), (req, res, next) => {
+  try {
+    ok(res, getThread(req.params.id, req.user))
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/communications/threads/:id/messages', requirePermission(PERMISSIONS.COMMUNICATIONS_READ), validate(postMessageSchema), (req, res, next) => {
+  try {
+    ok(res, postMessage(req.params.id, req.user.sub, req.validated.body, req.user, req))
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.get('/projects/:id/crm/thread', requirePermission(PERMISSIONS.PROJECTS_READ), (req, res, next) => {
+  try {
+    ok(res, getOrCreateProjectThread(req.params.id, req.user, req))
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.get('/projects/:id/tasks', requirePermission(PERMISSIONS.PROJECTS_READ), (req, res) => {
+  ok(res, { tasks: listTasksForProject(req.params.id) })
+})
+
+router.post('/projects/:id/tasks', requirePermission(PERMISSIONS.PROJECTS_WRITE), validate(createTaskSchema), (req, res, next) => {
+  try {
+    ok(res, createTask(req.params.id, req.validated, req.user.sub, req))
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.patch('/projects/:id/tasks/:taskId', requirePermission(PERMISSIONS.PROJECTS_READ), validate(updateTaskSchema), (req, res, next) => {
+  try {
+    ok(res, updateTaskStatus(req.params.taskId, req.validated, req.user, req))
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/projects/:id/milestones/:mid/submit', requirePermission(PERMISSIONS.WORKFLOW_SUBMIT), validate(submitMilestoneSchema), (req, res, next) => {
+  try {
+    ok(res, submitMilestoneForReview(req.params.id, req.params.mid, {
+      userId: req.user.sub,
+      ngoTenantId: req.user.tenantId,
+      note: req.validated.note,
+    }, req))
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.get('/projects/:id/timeline', requirePermission(PERMISSIONS.PROJECTS_READ), (req, res) => {
+  ok(res, { timeline: getProjectTimeline(req.params.id) })
+})
+
+router.get('/submissions', requirePermission(PERMISSIONS.WORKFLOW_READ), (req, res) => {
+  ok(res, { items: listInboxForUser(req.user.sub, req.user.role, req.user.tenantId) })
 })
 
 export default router

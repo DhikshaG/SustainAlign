@@ -17,7 +17,6 @@ import {
 import {
   volunteerCampaigns,
   documents,
-  communications,
 } from '../../data/corporate-sample.js'
 import { getDashboardSummary, getReportingOverview } from '../../services/dashboard/index.js'
 import { getComplianceSummary, getFundAllocation, updateProfile, acknowledgeAlert, exportMcaCsr2, syncComplianceForTenant } from '../../services/compliance/index.js'
@@ -70,6 +69,21 @@ import { generateReportSchema, previewReportSchema } from '../../schemas/reports
 import { allocationIntelligenceSchema } from '../../schemas/allocation.js'
 import { esgUnifiedQuerySchema, esgSummarySchema } from '../../schemas/esg.js'
 import { getUnifiedEsgDashboard } from '../../services/esg/index.js'
+import {
+  listThreadsForCorporate,
+  getThread,
+  createThread,
+  postMessage,
+  getOrCreateProjectThread,
+} from '../../services/messaging/index.js'
+import { createTask, listTasksForProject, updateTaskStatus } from '../../services/tasks/index.js'
+import { getProjectTimeline } from '../../services/crm/timeline.js'
+import {
+  createThreadSchema,
+  postMessageSchema,
+  createTaskSchema,
+  updateTaskSchema,
+} from '../../schemas/crm.js'
 import { updateCsrProfileSchema } from '../../schemas/compliance.js'
 import {
   copilotChatSchema,
@@ -413,7 +427,73 @@ router.get('/settings/permission-matrix', requirePermission(PERMISSIONS.SETTINGS
   ok(res, { matrix: getPermissionMatrix() })
 })
 
-router.get('/communications/threads', (_req, res) => ok(res, communications))
+router.get('/communications/threads', requirePermission(PERMISSIONS.COMMUNICATIONS_READ), (req, res) => {
+  ok(res, { threads: listThreadsForCorporate(req.user.tenantId) })
+})
+
+router.post('/communications/threads', requirePermission(PERMISSIONS.COMMUNICATIONS_READ), validate(createThreadSchema), (req, res, next) => {
+  try {
+    ok(res, createThread({
+      corporateTenantId: req.user.tenantId,
+      ngoTenantId: req.validated.ngoTenantId,
+      ngoSlug: req.validated.ngoSlug,
+      projectId: req.validated.projectId,
+      subject: req.validated.subject,
+      createdBy: req.user.sub,
+      message: req.validated.message,
+    }, req))
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.get('/communications/threads/:id', requirePermission(PERMISSIONS.COMMUNICATIONS_READ), (req, res, next) => {
+  try {
+    ok(res, getThread(req.params.id, req.user))
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/communications/threads/:id/messages', requirePermission(PERMISSIONS.COMMUNICATIONS_READ), validate(postMessageSchema), (req, res, next) => {
+  try {
+    ok(res, postMessage(req.params.id, req.user.sub, req.validated.body, req.user, req))
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.get('/projects/:id/crm/thread', requirePermission(PERMISSIONS.PROJECTS_READ), (req, res, next) => {
+  try {
+    ok(res, getOrCreateProjectThread(req.params.id, req.user, req))
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.get('/projects/:id/tasks', requirePermission(PERMISSIONS.PROJECTS_READ), (req, res) => {
+  ok(res, { tasks: listTasksForProject(req.params.id) })
+})
+
+router.post('/projects/:id/tasks', requirePermission(PERMISSIONS.PROJECTS_WRITE), validate(createTaskSchema), (req, res, next) => {
+  try {
+    ok(res, createTask(req.params.id, req.validated, req.user.sub, req))
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.patch('/projects/:id/tasks/:taskId', requirePermission(PERMISSIONS.PROJECTS_WRITE), validate(updateTaskSchema), (req, res, next) => {
+  try {
+    ok(res, updateTaskStatus(req.params.taskId, req.validated, req.user, req))
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.get('/projects/:id/timeline', requirePermission(PERMISSIONS.PROJECTS_READ), (req, res) => {
+  ok(res, { timeline: getProjectTimeline(req.params.id) })
+})
 
 router.get('/copilot/suggestions', requirePermission(PERMISSIONS.COPILOT_USE), (req, res) => {
   ok(res, { suggestions: getCopilotSuggestions(req.user.tenantId) })
