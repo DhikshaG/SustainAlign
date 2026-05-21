@@ -107,7 +107,9 @@ export default function CorporateNgoProfile() {
             <Button variant="secondary" size="sm" onClick={() => setShowContact(true)}>
               <Mail className="h-4 w-4" /> Contact
             </Button>
-            <Button size="sm">Add to Project</Button>
+            <Button size="sm" onClick={() => navigate(`${CORPORATE_ROUTES.projects}?create=1&ngoSlug=${encodeURIComponent(slug)}`)}>
+              Add to Project
+            </Button>
           </>
         }
       />
