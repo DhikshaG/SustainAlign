@@ -21,6 +21,7 @@ function normalizeCriteria(raw = {}) {
     goals: csrFocus,
     keywords: raw.keywords || '',
     state: raw.state,
+    district: raw.district,
     sdg: raw.sdg,
     theme: raw.theme,
     impact: raw.impact,

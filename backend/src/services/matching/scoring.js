@@ -43,7 +43,27 @@ export function scoreBudgetFit(requestedRange, ngoRange) {
   return 30
 }
 
-export function scoreGeography(requestedState, ngo) {
+export function scoreDistrictFit(requestedDistrict, ngo) {
+  if (!requestedDistrict) return 80
+
+  const target = requestedDistrict.toLowerCase().replace(/,/g, ' ').trim()
+  const districtsServed = (ngo.districtsServed || ngo.districts || []).map((d) =>
+    String(d).toLowerCase().replace(/,/g, ' ').trim(),
+  )
+
+  if (districtsServed.some((d) => d === target || d.includes(target) || target.includes(d))) return 100
+  if (districtsServed.some((d) => target.split(' ').some((w) => w.length > 3 && d.includes(w)))) return 75
+  return 20
+}
+
+export function scoreGeography(requestedState, ngo, requestedDistrict) {
+  const stateScore = scoreGeographyState(requestedState, ngo)
+  if (!requestedDistrict) return stateScore
+  const districtScore = scoreDistrictFit(requestedDistrict, ngo)
+  return Math.round(districtScore * 0.7 + stateScore * 0.3)
+}
+
+function scoreGeographyState(requestedState, ngo) {
   if (!requestedState || requestedState === 'All') return 80
 
   const stateLower = requestedState.toLowerCase()
@@ -163,7 +183,7 @@ export function buildGenericReason(breakdown) {
 
 export function scoreNgo(ngo, criteria, performanceBySlug) {
   const similarity = scoreSimilarity(criteria, ngo)
-  const geography = scoreGeography(criteria.state, ngo)
+  const geography = scoreGeography(criteria.state, ngo, criteria.district)
   const budget = scoreBudgetFit(criteria.budgetRange, ngo.budgetRange)
   const pastImpact = scorePastImpact(ngo, performanceBySlug)
   const credibility = computeCredibilityScore(ngo)

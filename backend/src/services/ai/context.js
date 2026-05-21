@@ -79,6 +79,7 @@ export function getCopilotSuggestions(tenantId) {
 
   suggestions.push(
     { id: suggestions.length + 1, prompt: 'Summarize our CSR impact this quarter', category: 'impact' },
+    { id: suggestions.length + 1, prompt: 'How should I allocate unspent CSR funds by district?', category: 'funds' },
     { id: suggestions.length + 1, prompt: 'Generate a board-ready CSR report', category: 'reporting' },
     { id: suggestions.length + 1, prompt: 'Which NGOs are performing best?', category: 'projects' },
   )
@@ -295,4 +296,22 @@ Include 2-4 impactStories when type is impact_stories or quarterly or board. Use
       offline: false,
     }
   }
+}
+
+export async function generateAllocationRationale(tenantId, intelligenceSummary) {
+  if (!isAiEnabled()) {
+    return { rationale: null, offline: true }
+  }
+
+  const online = await checkOllamaHealth()
+  const modelReady = online && (await isOllamaModelAvailable())
+  if (!modelReady) {
+    return { rationale: null, offline: true }
+  }
+
+  const rationale = await chatWithSystem(
+    'Write a 2-3 sentence CSR fund allocation rationale for a corporate CSR head. Use only provided data. Mention top districts and themes.',
+    `Context:\n${JSON.stringify(intelligenceSummary)}`,
+  )
+  return { rationale, offline: false }
 }
