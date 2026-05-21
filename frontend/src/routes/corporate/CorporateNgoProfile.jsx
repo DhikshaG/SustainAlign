@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { Heart, MapPin, FileText, Users, Star, Shield, Globe } from 'lucide-react'
+import { Heart, MapPin, FileText, Users, Star, Shield, Globe, Mail } from 'lucide-react'
 import { PageHeader } from '../../components/corporate/PageHeader'
 import { TabbedSections } from '../../components/corporate/TabbedSections'
+import { ContactNgoModal } from '../../components/corporate/ContactNgoModal'
 import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { ProgressBar } from '../../components/corporate/ProgressBar'
 import { fetchCorporateNgo } from '../../lib/ngo'
+import { fetchSavedNgos, saveNgo, unsaveNgo } from '../../lib/discovery'
 import { CORPORATE_ROUTES } from '../../lib/routes'
 import NotFound from '../public/NotFound'
 
@@ -30,6 +32,9 @@ export default function CorporateNgoProfile() {
   const [ngo, setNgo] = useState(null)
   const [status, setStatus] = useState({ slug: null, kind: 'loading' })
   const [activeTab, setActiveTab] = useState('overview')
+  const [saved, setSaved] = useState(false)
+  const [showContact, setShowContact] = useState(false)
+  const [toast, setToast] = useState(null)
 
   useEffect(() => {
     let active = true
@@ -49,6 +54,11 @@ export default function CorporateNgoProfile() {
     return () => { active = false }
   }, [slug])
 
+  useEffect(() => {
+    if (!slug) return
+    fetchSavedNgos().then(({ slugs }) => setSaved(slugs.includes(slug))).catch(() => {})
+  }, [slug])
+
   const loading = status.slug !== slug
   const notFound = status.slug === slug && status.kind === 'notfound'
 
@@ -62,8 +72,26 @@ export default function CorporateNgoProfile() {
   const rating = ngo.rating ?? 0
   const reviewCount = ngo.reviewCount ?? 0
 
+  async function toggleSave() {
+    try {
+      if (saved) {
+        await unsaveNgo(slug)
+        setSaved(false)
+      } else {
+        await saveNgo(slug)
+        setSaved(true)
+      }
+    } catch (err) {
+      setToast(err.message || 'Save failed')
+      setTimeout(() => setToast(null), 3000)
+    }
+  }
+
   return (
     <>
+      {toast && (
+        <div className="fixed bottom-4 right-4 z-50 rounded-lg bg-slate-900 text-white px-4 py-3 text-sm shadow-lg">{toast}</div>
+      )}
       <PageHeader
         title={ngo.name}
         breadcrumbs={[
@@ -72,7 +100,12 @@ export default function CorporateNgoProfile() {
         ]}
         actions={
           <>
-            <Button variant="secondary" size="sm"><Heart className="h-4 w-4" /> Save NGO</Button>
+            <Button variant={saved ? 'primary' : 'secondary'} size="sm" onClick={toggleSave}>
+              <Heart className={`h-4 w-4 ${saved ? 'fill-current' : ''}`} /> {saved ? 'Saved' : 'Save NGO'}
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => setShowContact(true)}>
+              <Mail className="h-4 w-4" /> Contact
+            </Button>
             <Button size="sm">Add to Project</Button>
           </>
         }
@@ -109,6 +142,12 @@ export default function CorporateNgoProfile() {
               <div className="flex justify-between"><dt className="text-slate-500">Budget Range</dt><dd className="font-medium">{ngo.budgetRange || '—'}</dd></div>
               <div className="flex justify-between"><dt className="text-slate-500">Org Size</dt><dd className="font-medium capitalize">{ngo.orgSize || '—'}</dd></div>
               <div className="flex justify-between"><dt className="text-slate-500">SDGs</dt><dd className="font-medium">{(ngo.sdgs || []).map((s) => `SDG ${s}`).join(', ') || '—'}</dd></div>
+              {ngo.contactPerson && (
+                <div className="flex justify-between"><dt className="text-slate-500">Contact</dt><dd className="font-medium">{ngo.contactPerson}</dd></div>
+              )}
+              {ngo.email && (
+                <div className="flex justify-between"><dt className="text-slate-500">Email</dt><dd className="font-medium text-primary-600">{ngo.email}</dd></div>
+              )}
             </dl>
           </Card>
         </div>
@@ -265,6 +304,18 @@ export default function CorporateNgoProfile() {
       <div className="mt-6">
         <Button as={Link} to={CORPORATE_ROUTES.discovery} variant="ghost">← Back to Discovery</Button>
       </div>
+
+      {showContact && (
+        <ContactNgoModal
+          ngo={ngo}
+          onClose={() => setShowContact(false)}
+          onSuccess={() => {
+            setShowContact(false)
+            setToast('Message sent successfully')
+            setTimeout(() => setToast(null), 3000)
+          }}
+        />
+      )}
     </>
   )
 }
