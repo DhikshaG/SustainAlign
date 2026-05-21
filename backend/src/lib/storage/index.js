@@ -8,6 +8,10 @@ const MIME_BY_CATEGORY = {
   invoice: ['application/pdf', 'image/png', 'image/jpeg'],
   compliance: ['application/pdf', 'image/png', 'image/jpeg'],
   report: ['application/pdf', 'image/png', 'image/jpeg'],
+  public_document: ['application/pdf', 'image/png', 'image/jpeg'],
+  logo: ['image/png', 'image/jpeg', 'image/webp'],
+  gallery_image: ['image/png', 'image/jpeg', 'image/webp'],
+  gallery_video: ['video/mp4', 'video/webm', 'video/quicktime'],
   image: ['image/png', 'image/jpeg', 'image/webp'],
   video: ['video/mp4', 'video/webm', 'video/quicktime'],
 }
