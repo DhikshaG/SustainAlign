@@ -318,6 +318,47 @@ npm run db:verify-audit
 
 `activity_logs` and `workflow_events` are protected by SQLite triggers (no UPDATE/DELETE). File uploads store SHA-256 checksums and computed `audit_path`.
 
+## Step 13 — Employee Volunteering
+
+Corporate volunteer events, employee registration, QR attendance, PDF certificates, and dashboard hours rollup.
+
+```bash
+npm run db:verify-volunteers
+```
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/corporate/volunteers/summary` | Hours, volunteers, active events |
+| GET/POST | `/api/corporate/volunteers/events` | List / create events (`volunteers:manage` for POST) |
+| GET/PATCH | `/api/corporate/volunteers/events/:id` | Event detail / update |
+| POST/DELETE | `/api/corporate/volunteers/events/:id/register` | Employee signup / cancel |
+| GET/POST | `/api/corporate/volunteers/events/:id/qr` | QR check-in payload (`volunteers:manage`) |
+| POST | `/api/corporate/volunteers/check-in` | Check in with QR token |
+| POST | `/api/corporate/volunteers/events/:id/attendance/manual` | Manual attendance |
+| POST | `/api/corporate/volunteers/signups/:id/certificate` | Issue PDF certificate |
+| GET | `/api/corporate/volunteers/certificates/:id` | Certificate metadata + download URL |
+
+Dashboard summary includes `volunteering.hoursLogged`, `activeEvents`, and `volunteersCount`.
+
+## Step 14 — AI CSR Copilot RAG
+
+Hybrid RAG pipeline: SQLite vector store + Ollama embeddings + structured NGO filters + LLM synthesis.
+
+```bash
+ollama pull nomic-embed-text
+ollama pull llama3.1:1b
+npm run db:verify-rag
+```
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/corporate/copilot/chat` | Chat with RAG routing for NGO discovery queries |
+| POST | `/api/corporate/ai/rag/recommend` | Explicit NGO recommendation query |
+| POST | `/api/corporate/ai/rag/reindex` | Rebuild vector embeddings for all NGO profiles |
+| POST | `/api/corporate/ai/search` | NGO-focused queries delegate to RAG |
+
+Copilot responses include `recommendations[]` and `citations[]` when RAG path is used. Vector index runs on seed and NGO profile updates.
+
 ## Step 6 — Compliance Automation Engine
 
 Section 135 eligibility (net worth / turnover / net profit OR logic), 2% obligation formula, Schedule VII validation, unspent tracking, alerts, background sync, MCA JSON export.
@@ -339,7 +380,7 @@ Background alert sync runs on server start (`COMPLIANCE_SYNC_INTERVAL_MINUTES`, 
 
 ## Step 7 — AI Layer (Ollama)
 
-Requires `ollama pull llama3.1:1b` and `ollama serve`.
+Requires `ollama pull llama3.1:1b` and `ollama pull nomic-embed-text`, then `ollama serve`.
 
 ```bash
 npm run db:verify-ai

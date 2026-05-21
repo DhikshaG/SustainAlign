@@ -492,3 +492,77 @@ export const complianceAlerts = sqliteTable('compliance_alerts', {
 }, (table) => [
   index('compliance_alerts_tenant_idx').on(table.tenantId),
 ])
+
+export const volunteerEvents = sqliteTable('volunteer_events', {
+  id: text('id').primaryKey(),
+  corporateTenantId: text('corporate_tenant_id').notNull().references(() => tenants.id),
+  title: text('title').notNull(),
+  description: text('description'),
+  location: text('location').notNull(),
+  startsAt: integer('starts_at', { mode: 'timestamp' }).notNull(),
+  endsAt: integer('ends_at', { mode: 'timestamp' }).notNull(),
+  slots: integer('slots').notNull(),
+  status: text('status').notNull().default('draft'),
+  hoursCredit: real('hours_credit').notNull().default(4),
+  createdBy: text('created_by').notNull().references(() => users.id),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+}, (table) => [
+  index('volunteer_events_tenant_starts_idx').on(table.corporateTenantId, table.startsAt),
+])
+
+export const volunteerSignups = sqliteTable('volunteer_signups', {
+  id: text('id').primaryKey(),
+  eventId: text('event_id').notNull().references(() => volunteerEvents.id, { onDelete: 'cascade' }),
+  userId: text('user_id').notNull().references(() => users.id),
+  status: text('status').notNull().default('registered'),
+  registeredAt: integer('registered_at', { mode: 'timestamp' }).notNull(),
+}, (table) => [
+  uniqueIndex('volunteer_signups_event_user_idx').on(table.eventId, table.userId),
+  index('volunteer_signups_user_idx').on(table.userId),
+])
+
+export const volunteerAttendance = sqliteTable('volunteer_attendance', {
+  id: text('id').primaryKey(),
+  signupId: text('signup_id').notNull().references(() => volunteerSignups.id, { onDelete: 'cascade' }),
+  checkInAt: integer('check_in_at', { mode: 'timestamp' }).notNull(),
+  checkOutAt: integer('check_out_at', { mode: 'timestamp' }),
+  method: text('method').notNull().default('qr'),
+  recordedBy: text('recorded_by').references(() => users.id),
+}, (table) => [
+  index('volunteer_attendance_signup_idx').on(table.signupId),
+])
+
+export const volunteerQrTokens = sqliteTable('volunteer_qr_tokens', {
+  id: text('id').primaryKey(),
+  eventId: text('event_id').notNull().references(() => volunteerEvents.id, { onDelete: 'cascade' }),
+  token: text('token').notNull(),
+  expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
+  revokedAt: integer('revoked_at', { mode: 'timestamp' }),
+}, (table) => [
+  uniqueIndex('volunteer_qr_tokens_token_idx').on(table.token),
+  index('volunteer_qr_tokens_event_idx').on(table.eventId),
+])
+
+export const volunteerCertificates = sqliteTable('volunteer_certificates', {
+  id: text('id').primaryKey(),
+  signupId: text('signup_id').notNull().references(() => volunteerSignups.id, { onDelete: 'cascade' }),
+  fileId: text('file_id').notNull().references(() => files.id),
+  issuedAt: integer('issued_at', { mode: 'timestamp' }).notNull(),
+  hoursCredited: real('hours_credited').notNull(),
+}, (table) => [
+  uniqueIndex('volunteer_certificates_signup_idx').on(table.signupId),
+])
+
+export const vectorDocuments = sqliteTable('vector_documents', {
+  id: text('id').primaryKey(),
+  entityType: text('entity_type').notNull(),
+  entityId: text('entity_id').notNull(),
+  chunkIndex: integer('chunk_index').notNull(),
+  text: text('text').notNull(),
+  embedding: text('embedding').notNull(),
+  metadata: text('metadata'),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+}, (table) => [
+  index('vector_documents_entity_idx').on(table.entityType, table.entityId),
+])

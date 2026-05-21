@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { Wallet, FolderKanban, ShieldCheck, Calendar, TrendingUp, Sparkles, RefreshCw, Leaf } from 'lucide-react'
+import { Wallet, FolderKanban, ShieldCheck, Calendar, TrendingUp, Sparkles, RefreshCw, Leaf, HeartHandshake } from 'lucide-react'
 import { PageHeader } from '../../components/corporate/PageHeader'
 import { StatCard } from '../../components/corporate/StatCard'
 import { ProgressBar } from '../../components/corporate/ProgressBar'
@@ -34,7 +34,7 @@ export default function DashboardHome() {
   if (error && !data) return <div className="p-6"><Alert variant="error">{error}</Alert></div>
   if (!data) return <p className="text-sm text-slate-500 p-6">Loading dashboard…</p>
 
-  const { budget, spendProgress, activeProjects, complianceScore, deadlines, ngoPerformance, impactMetrics, aiRecommendations } = data
+  const { budget, spendProgress, activeProjects, complianceScore, deadlines, ngoPerformance, impactMetrics, aiRecommendations, volunteering } = data
   const liveSpend = live?.spendProgress ?? spendProgress
   const districtAnalytics = live?.districtAnalytics ?? []
   const beneficiarySeries = live?.timeSeries ?? []
@@ -70,11 +70,19 @@ export default function DashboardHome() {
         }
       />
 
-      <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+      <div className="grid sm:grid-cols-2 xl:grid-cols-5 gap-4 mb-6">
         <StatCard label="CSR Budget" value={formatINR(budget.total)} subtext={`${formatINR(budget.spent)} spent`} icon={Wallet} />
         <StatCard label="Active Projects" value={activeProjects.count} subtext="Live from project data" icon={FolderKanban} />
         <StatCard label="Compliance Score" value={`${complianceScore}/100`} subtext="From compliance engine" icon={ShieldCheck} />
         <StatCard label="Spend Rate" value={`${budget.total ? Math.round((budget.spent / budget.total) * 100) : 0}%`} subtext="Of total CSR budget" icon={TrendingUp} />
+        <Link to={CORPORATE_ROUTES.volunteers} className="block hover:opacity-95 transition-opacity">
+          <StatCard
+            label="Volunteer Hours"
+            value={volunteering?.hoursLogged?.toLocaleString?.() ?? volunteering?.hoursLogged ?? 0}
+            subtext={`${volunteering?.activeEvents ?? 0} active events`}
+            icon={HeartHandshake}
+          />
+        </Link>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6 mb-6">

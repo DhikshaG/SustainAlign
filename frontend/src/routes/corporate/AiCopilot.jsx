@@ -1,19 +1,53 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Send, Sparkles } from 'lucide-react'
+import { Send, Sparkles, ChevronDown, ChevronUp } from 'lucide-react'
 import { PageHeader } from '../../components/corporate/PageHeader'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { Alert } from '../../components/ui/Alert'
+import { NgoRecommendationCards } from '../../components/copilot/NgoRecommendationCards'
 import { fetchCopilotSuggestions, sendCopilotMessage } from '../../lib/copilot'
 import { CORPORATE_ROUTES } from '../../lib/routes'
 
 const MATCH_DISCOVERY_LINK = `${CORPORATE_ROUTES.discovery}?mode=match`
 const COMPLIANCE_LINK = CORPORATE_ROUTES.compliance
 
+const NGO_PROMPTS = [
+  'Suggest NGOs for healthcare in Karnataka',
+  'Find education NGOs under ₹50L budget',
+  'Which verified NGOs work on SDG 13 climate action?',
+]
+
+function CitationList({ citations }) {
+  const [open, setOpen] = useState(false)
+  if (!citations?.length) return null
+  return (
+    <div className="mt-2">
+      <button
+        type="button"
+        className="text-xs text-slate-500 flex items-center gap-1 hover:text-primary-600"
+        onClick={() => setOpen(!open)}
+      >
+        {open ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+        {citations.length} source snippet{citations.length > 1 ? 's' : ''}
+      </button>
+      {open && (
+        <ul className="mt-1 space-y-1 text-xs text-slate-500 border-l-2 border-slate-200 pl-2">
+          {citations.map((c, i) => (
+            <li key={i}>{c.snippet}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 export default function AiCopilot() {
   const [messages, setMessages] = useState([
-    { role: 'assistant', text: 'Hello! I\'m your CSR Copilot powered by Ollama. Ask about obligations, projects, compliance, or NGO performance.' },
+    {
+      role: 'assistant',
+      text: 'Hello! I\'m your CSR Copilot with RAG-powered NGO discovery. Ask about compliance, projects, or say "Suggest NGOs for healthcare in Karnataka".',
+    },
   ])
   const [suggestions, setSuggestions] = useState([])
   const [input, setInput] = useState('')
@@ -42,7 +76,12 @@ export default function AiCopilot() {
     try {
       const result = await sendCopilotMessage(userText, history)
       setOffline(!!result.offline)
-      setMessages((m) => [...m, { role: 'assistant', text: result.reply }])
+      setMessages((m) => [...m, {
+        role: 'assistant',
+        text: result.reply,
+        recommendations: result.recommendations,
+        citations: result.citations,
+      }])
     } catch (err) {
       setMessages((m) => [...m, { role: 'assistant', text: err.message || 'Copilot request failed' }])
     } finally {
@@ -54,12 +93,12 @@ export default function AiCopilot() {
     <>
       <PageHeader
         title="AI Copilot"
-        description="Ask CSR questions grounded in your live project and compliance data (Ollama llama3.1:1b)."
+        description="RAG-powered CSR assistant — semantic NGO search, live project data, and Ollama synthesis."
       />
 
       {offline && (
         <Alert variant="warning" className="mb-4">
-          Ollama is offline. Start it with: ollama pull llama3.1:1b && ollama serve
+          Ollama is offline. Vector search still works; run: ollama pull llama3.1:1b && ollama pull nomic-embed-text && ollama serve
         </Alert>
       )}
 
@@ -85,6 +124,17 @@ export default function AiCopilot() {
                 Find matching NGOs →
               </Link>
             </li>
+            {NGO_PROMPTS.map((prompt) => (
+              <li key={prompt}>
+                <button
+                  type="button"
+                  className="w-full text-left text-sm text-primary-700 hover:text-primary-800 hover:bg-primary-50 rounded-lg px-3 py-2 transition-colors"
+                  onClick={() => sendMessage(prompt)}
+                >
+                  {prompt}
+                </button>
+              </li>
+            ))}
             {suggestions.map((s) => (
               <li key={s.id}>
                 <button
@@ -109,6 +159,12 @@ export default function AiCopilot() {
                     : 'bg-slate-100 text-slate-800'
                 }`}>
                   {msg.text}
+                  {msg.role === 'assistant' && (
+                    <>
+                      <CitationList citations={msg.citations} />
+                      <NgoRecommendationCards recommendations={msg.recommendations} />
+                    </>
+                  )}
                 </div>
               </div>
             ))}
@@ -127,7 +183,7 @@ export default function AiCopilot() {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask a CSR question…"
+              placeholder="Ask a CSR question or request NGO recommendations…"
               className="flex-1 rounded-lg border border-slate-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
             <Button type="submit" disabled={!input.trim() || typing}>

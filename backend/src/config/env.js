@@ -21,6 +21,7 @@ const envSchema = z.object({
   MAX_FILE_SIZE_MB: z.coerce.number().default(10),
   OLLAMA_BASE_URL: z.string().default('http://localhost:11434'),
   OLLAMA_MODEL: z.string().default('llama3.1:1b'),
+  OLLAMA_EMBED_MODEL: z.string().default('nomic-embed-text'),
   AI_ENABLED: z.union([z.boolean(), z.string()]).default(true),
   COMPLIANCE_SYNC_INTERVAL_MINUTES: z.coerce.number().default(60),
 })

@@ -15,8 +15,30 @@ import {
   createNgoInquiry,
 } from '../../services/discovery/index.js'
 import {
-  volunteerCampaigns,
-} from '../../data/corporate-sample.js'
+  getVolunteerSummary,
+  listEvents,
+  getEvent,
+  createEvent,
+  updateEvent,
+  listSignups,
+  listCalendarEvents,
+  registerForEvent,
+  cancelRegistration,
+  mintQrToken,
+  getQrPayload,
+  checkInWithToken,
+  recordManualAttendance,
+  issueCertificate,
+  getCertificate,
+} from '../../services/volunteers/index.js'
+import {
+  createVolunteerEventSchema,
+  updateVolunteerEventSchema,
+  volunteerCheckInSchema,
+  manualAttendanceSchema,
+  volunteerEventsQuerySchema,
+} from '../../schemas/volunteers.js'
+import { logMutation } from '../../services/activity-log/index.js'
 import { getAuditTrail, getAuditFolderTree, buildAuditPackage, getComplianceAuditSummary } from '../../services/audit/index.js'
 import { listDocumentsGrouped, listFileVersions, createFileVersion } from '../../services/files/index.js'
 import { auditQuerySchema, auditExportSchema, fileVersionSchema } from '../../schemas/audit.js'
@@ -39,6 +61,12 @@ import {
   generateImpactSummary,
   generateEsgSummary,
 } from '../../services/ai/context.js'
+import {
+  ragCopilotChat,
+  ragRecommendNgos,
+  reindexAllVectors,
+  isNgoDiscoveryQuery,
+} from '../../services/ai/rag.js'
 import {
   addKpi,
   addBeneficiaryLog,
@@ -96,6 +124,7 @@ import {
   copilotChatSchema,
   matchNgosSchema,
   aiSearchSchema,
+  ragRecommendSchema,
   narrativeSchema,
 } from '../../schemas/ai.js'
 
@@ -431,7 +460,138 @@ router.post('/funds/intelligence', requirePermission(PERMISSIONS.FUNDS_READ), va
   }
 })
 
-router.get('/volunteers/campaigns', (_req, res) => ok(res, volunteerCampaigns))
+router.get('/volunteers/summary', (req, res, next) => {
+  try {
+    ok(res, getVolunteerSummary(req.user.tenantId))
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.get('/volunteers/events', validate(volunteerEventsQuerySchema, 'query'), (req, res, next) => {
+  try {
+    ok(res, { events: listEvents(req.user.tenantId, req.validated) })
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/volunteers/events', requirePermission(PERMISSIONS.VOLUNTEERS_MANAGE), validate(createVolunteerEventSchema), async (req, res, next) => {
+  try {
+    const event = createEvent(req.user.tenantId, req.user.id, req.validated)
+    await logMutation({ req, action: 'volunteer.event.create', entityType: 'volunteer_event', entityId: event.id, after: event })
+    ok(res, event, 201)
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.get('/volunteers/events/:id', (req, res, next) => {
+  try {
+    ok(res, getEvent(req.user.tenantId, req.params.id))
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.patch('/volunteers/events/:id', requirePermission(PERMISSIONS.VOLUNTEERS_MANAGE), validate(updateVolunteerEventSchema), async (req, res, next) => {
+  try {
+    const event = updateEvent(req.user.tenantId, req.params.id, req.validated)
+    await logMutation({ req, action: 'volunteer.event.update', entityType: 'volunteer_event', entityId: event.id, after: event })
+    ok(res, event)
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.get('/volunteers/signups', (req, res, next) => {
+  try {
+    const eventId = req.query.eventId || undefined
+    ok(res, { signups: listSignups(req.user.tenantId, { eventId }) })
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.get('/volunteers/calendar', (req, res, next) => {
+  try {
+    ok(res, { events: listCalendarEvents(req.user.tenantId) })
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/volunteers/events/:id/register', async (req, res, next) => {
+  try {
+    const result = registerForEvent(req.user.tenantId, req.params.id, req.user.id)
+    await logMutation({ req, action: 'volunteer.signup', entityType: 'volunteer_signup', entityId: result.signupId, after: result })
+    ok(res, result, 201)
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.delete('/volunteers/events/:id/register', async (req, res, next) => {
+  try {
+    ok(res, cancelRegistration(req.user.tenantId, req.params.id, req.user.id))
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/volunteers/events/:id/qr', requirePermission(PERMISSIONS.VOLUNTEERS_MANAGE), (req, res, next) => {
+  try {
+    ok(res, mintQrToken(req.user.tenantId, req.params.id), 201)
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.get('/volunteers/events/:id/qr', requirePermission(PERMISSIONS.VOLUNTEERS_MANAGE), async (req, res, next) => {
+  try {
+    ok(res, await getQrPayload(req.user.tenantId, req.params.id))
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/volunteers/check-in', validate(volunteerCheckInSchema), async (req, res, next) => {
+  try {
+    const result = checkInWithToken(req.user.tenantId, req.user.id, req.validated.token)
+    await logMutation({ req, action: 'volunteer.checkin', entityType: 'volunteer_event', entityId: result.eventTitle, after: result })
+    ok(res, result)
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/volunteers/events/:id/attendance/manual', requirePermission(PERMISSIONS.VOLUNTEERS_MANAGE), validate(manualAttendanceSchema), async (req, res, next) => {
+  try {
+    const result = recordManualAttendance(req.user.tenantId, req.params.id, req.validated.signupIds, req.user.id)
+    await logMutation({ req, action: 'volunteer.attendance.manual', entityType: 'volunteer_event', entityId: req.params.id, after: result })
+    ok(res, result)
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/volunteers/signups/:id/certificate', async (req, res, next) => {
+  try {
+    const cert = await issueCertificate(req.user.tenantId, req.params.id, req.user.id, req)
+    await logMutation({ req, action: 'volunteer.certificate.issue', entityType: 'volunteer_certificate', entityId: cert.id, after: cert })
+    ok(res, cert, 201)
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.get('/volunteers/certificates/:id', (req, res, next) => {
+  try {
+    ok(res, getCertificate(req.user.tenantId, req.params.id))
+  } catch (err) {
+    next(err)
+  }
+})
 
 router.get('/audit/trail', requirePermission(PERMISSIONS.ACTIVITY_READ), validate(auditQuerySchema, 'query'), (req, res) => {
   ok(res, { trail: getAuditTrail(req.user.tenantId, req.validated) })
@@ -556,8 +716,24 @@ router.get('/copilot/suggestions', requirePermission(PERMISSIONS.COPILOT_USE), (
 
 router.post('/copilot/chat', requirePermission(PERMISSIONS.COPILOT_USE), validate(copilotChatSchema), async (req, res, next) => {
   try {
-    const result = await copilotChat(req.user.tenantId, req.validated.message, req.validated.history)
+    const result = await ragCopilotChat(req.user.tenantId, req.validated.message, req.validated.history)
     ok(res, result)
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/ai/rag/recommend', requirePermission(PERMISSIONS.COPILOT_USE), validate(ragRecommendSchema), async (req, res, next) => {
+  try {
+    ok(res, await ragRecommendNgos(req.user.tenantId, req.validated.query))
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/ai/rag/reindex', requirePermission(PERMISSIONS.DISCOVERY_READ), async (req, res, next) => {
+  try {
+    ok(res, await reindexAllVectors())
   } catch (err) {
     next(err)
   }
@@ -573,7 +749,12 @@ router.post('/ai/match-ngos', requirePermission(PERMISSIONS.DISCOVERY_READ), val
 
 router.post('/ai/search', requirePermission(PERMISSIONS.SEARCH_READ), validate(aiSearchSchema), async (req, res, next) => {
   try {
-    ok(res, await aiSearch(req.user.tenantId, req.validated.query))
+    const { query } = req.validated
+    if (isNgoDiscoveryQuery(query)) {
+      ok(res, await ragRecommendNgos(req.user.tenantId, query))
+    } else {
+      ok(res, await aiSearch(req.user.tenantId, query))
+    }
   } catch (err) {
     next(err)
   }

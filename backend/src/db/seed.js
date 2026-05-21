@@ -180,6 +180,11 @@ export async function runSeed() {
   reindexAll()
   console.log('  search index built')
 
+  console.log('\n=== Indexing vector embeddings ===\n')
+  const { reindexAllVectors } = await import('../services/ai/rag.js')
+  const vectorResult = await reindexAllVectors()
+  console.log(`  vector index: ${vectorResult.chunksIndexed} chunks across ${vectorResult.ngos} NGOs`)
+
   console.log('\n=== Seeding workflows ===\n')
   seedWorkflowDefinitions()
   console.log('  workflow definitions seeded')

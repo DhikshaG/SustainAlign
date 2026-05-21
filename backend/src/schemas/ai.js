@@ -26,6 +26,10 @@ export const aiSearchSchema = z.object({
   query: z.string().min(1).max(500),
 })
 
+export const ragRecommendSchema = z.object({
+  query: z.string().min(1).max(2000),
+})
+
 export const narrativeSchema = z.object({
   reportId: z.string().min(1).optional(),
   projectId: z.string().min(1).optional(),

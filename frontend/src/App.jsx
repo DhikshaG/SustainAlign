@@ -52,6 +52,8 @@ import FundAllocation from './routes/corporate/FundAllocation'
 import FundIntelligence from './routes/corporate/FundIntelligence'
 import EsgDashboard from './routes/corporate/EsgDashboard'
 import VolunteerManagement from './routes/corporate/VolunteerManagement'
+import VolunteerEventDetail from './routes/corporate/VolunteerEventDetail'
+import VolunteerCheckIn from './routes/corporate/VolunteerCheckIn'
 import ApprovalsPage from './routes/corporate/ApprovalsPage'
 import DocumentVault from './routes/corporate/DocumentVault'
 import CommunicationCenter from './routes/corporate/CommunicationCenter'
@@ -136,6 +138,8 @@ export default function App() {
             <Route path="funds" element={<FundAllocation />} />
             <Route path="funds/intelligence" element={<FundIntelligence />} />
             <Route path="volunteers" element={<VolunteerManagement />} />
+            <Route path="volunteers/check-in/:token" element={<VolunteerCheckIn />} />
+            <Route path="volunteers/:id" element={<VolunteerEventDetail />} />
             <Route path="documents" element={<DocumentVault />} />
             <Route path="approvals" element={<ApprovalsPage />} />
             <Route path="communications" element={<CommunicationCenter />} />

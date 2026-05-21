@@ -68,3 +68,43 @@ export async function chatWithSystem(systemPrompt, userMessage, history = []) {
   ]
   return ollamaChat({ messages })
 }
+
+export async function ollamaEmbed(text, model) {
+  const baseUrl = env.OLLAMA_BASE_URL || 'http://localhost:11434'
+  const modelName = model || env.OLLAMA_EMBED_MODEL || 'nomic-embed-text'
+
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS)
+
+  try {
+    const res = await fetch(`${baseUrl}/api/embeddings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: modelName, prompt: text }),
+      signal: controller.signal,
+    })
+
+    if (!res.ok) {
+      const errText = await res.text()
+      throw new Error(`Ollama embed error ${res.status}: ${errText.slice(0, 200)}`)
+    }
+
+    const data = await res.json()
+    return data.embedding || []
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
+export async function isEmbedModelAvailable(model) {
+  const baseUrl = env.OLLAMA_BASE_URL || 'http://localhost:11434'
+  const modelName = model || env.OLLAMA_EMBED_MODEL || 'nomic-embed-text'
+  try {
+    const res = await fetch(`${baseUrl}/api/tags`, { signal: AbortSignal.timeout(5000) })
+    if (!res.ok) return false
+    const data = await res.json()
+    return (data.models || []).some((m) => m.name === modelName || m.name.startsWith(`${modelName}:`))
+  } catch {
+    return false
+  }
+}

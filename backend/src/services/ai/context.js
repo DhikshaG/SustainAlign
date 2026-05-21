@@ -80,6 +80,8 @@ export function getCopilotSuggestions(tenantId) {
 
   suggestions.push(
     { id: suggestions.length + 1, prompt: 'Summarize our CSR impact this quarter', category: 'impact' },
+    { id: suggestions.length + 1, prompt: 'Suggest NGOs for healthcare in Karnataka', category: 'discovery' },
+    { id: suggestions.length + 1, prompt: 'Find education NGOs under ₹50L budget', category: 'discovery' },
     { id: suggestions.length + 1, prompt: 'How should I allocate unspent CSR funds by district?', category: 'funds' },
     { id: suggestions.length + 1, prompt: 'Summarize our ESG performance across environmental, social, and governance pillars', category: 'esg' },
     { id: suggestions.length + 1, prompt: 'Generate a board-ready CSR report', category: 'reporting' },

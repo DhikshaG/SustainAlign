@@ -40,6 +40,8 @@ export const CORPORATE_ROUTES = {
   fundIntelligence: '/dashboard/funds/intelligence',
   esg: '/dashboard/esg',
   volunteers: '/dashboard/volunteers',
+  volunteerEvent: (id) => `/dashboard/volunteers/${id}`,
+  volunteerCheckIn: (token) => `/dashboard/volunteers/check-in/${token}`,
   documents: '/dashboard/documents',
   communications: '/dashboard/communications',
   auditTrail: '/dashboard/audit-trail',

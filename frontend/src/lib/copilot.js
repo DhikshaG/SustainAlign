@@ -10,6 +10,11 @@ export async function sendCopilotMessage(message, history = []) {
   return res.data
 }
 
+export async function ragRecommend(query) {
+  const res = await api.post('/api/corporate/ai/rag/recommend', { query })
+  return res.data
+}
+
 export { runNgoMatch, matchNgos, fetchMatchDefaults } from './matching.js'
 
 export async function aiSearch(query) {

@@ -385,6 +385,7 @@ export function reindexNgo(tenantId) {
       ...(dto.sdgs || []).map((s) => `sdg-${s}`),
     ],
   })
+  import('../ai/rag.js').then(({ indexNgoProfile }) => indexNgoProfile(tenantId)).catch(() => {})
 }
 
 function profileScalarsFromInput(data) {

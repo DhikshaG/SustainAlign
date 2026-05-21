@@ -21,6 +21,7 @@ const MIME_BY_CATEGORY = {
   gallery_video: ['video/mp4', 'video/webm', 'video/quicktime'],
   image: ['image/png', 'image/jpeg', 'image/webp'],
   video: ['video/mp4', 'video/webm', 'video/quicktime'],
+  volunteer_certificate: ['application/pdf'],
 }
 
 export const FILE_CATEGORIES = Object.keys(MIME_BY_CATEGORY)
