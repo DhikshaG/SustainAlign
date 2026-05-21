@@ -53,6 +53,9 @@ export const NGO_ROUTES = {
   projectDetail: (id) => `/ngo/projects/${id}`,
   finance: '/ngo/finance',
   beneficiaries: '/ngo/beneficiaries',
+  partnershipRequests: '/ngo/partnership-requests',
+  communications: '/ngo/communications',
+  submissions: '/ngo/submissions',
 }
 
 export const ADMIN_ROUTES = {

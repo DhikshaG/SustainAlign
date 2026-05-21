@@ -4,6 +4,10 @@ import { FileUploadZone } from '../../components/uploads/FileUploadZone'
 import { MediaGallery } from '../../components/corporate/MediaGallery'
 import { PageHeader } from '../../components/corporate/PageHeader'
 import { ProgressBar } from '../../components/corporate/ProgressBar'
+import { TabbedSections } from '../../components/corporate/TabbedSections'
+import { MessageThreadView } from '../../components/crm/MessageThreadView'
+import { TaskList } from '../../components/crm/TaskList'
+import { ProjectTimeline } from '../../components/crm/ProjectTimeline'
 import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
@@ -22,10 +26,21 @@ import {
   attachUpdateFiles,
 } from '../../lib/impact'
 import { postProjectUpdateSchema } from '../../lib/validation/schemas'
+import { fetchProjectThread, postMessage } from '../../lib/messaging'
+import { fetchProjectTasks, createProjectTask, updateProjectTask } from '../../lib/tasks'
+import { fetchProjectTimeline, submitMilestoneForReview } from '../../lib/crm'
 import NotFound from '../public/NotFound'
+
+const TABS = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'messages', label: 'Messages' },
+  { id: 'tasks', label: 'Tasks' },
+  { id: 'timeline', label: 'Timeline' },
+]
 
 export default function NgoProjectDetail() {
   const { id } = useParams()
+  const [activeTab, setActiveTab] = useState('overview')
   const [project, setProject] = useState(null)
   const [loadedId, setLoadedId] = useState(null)
   const [error, setError] = useState(null)
@@ -46,6 +61,26 @@ export default function NgoProjectDetail() {
   const [geoForm, setGeoForm] = useState({ state: '', district: '', note: '' })
   const [geoError, setGeoError] = useState(null)
   const [geoSaving, setGeoSaving] = useState(false)
+  const [thread, setThread] = useState(null)
+  const [threadLoading, setThreadLoading] = useState(false)
+  const [threadError, setThreadError] = useState(null)
+  const [sendingMsg, setSendingMsg] = useState(false)
+  const [tasks, setTasks] = useState([])
+  const [tasksLoading, setTasksLoading] = useState(false)
+  const [timeline, setTimeline] = useState([])
+  const [timelineLoading, setTimelineLoading] = useState(false)
+  const [submittingMilestoneId, setSubmittingMilestoneId] = useState(null)
+
+  function handleTabChange(tab) {
+    setActiveTab(tab)
+    if (tab === 'messages') {
+      setThreadLoading(true)
+      setThread(null)
+      setThreadError(null)
+    }
+    if (tab === 'tasks') setTasksLoading(true)
+    if (tab === 'timeline') setTimelineLoading(true)
+  }
 
   useEffect(() => {
     let active = true
@@ -68,6 +103,41 @@ export default function NgoProjectDetail() {
       })
     return () => { active = false }
   }, [id])
+
+  useEffect(() => {
+    if (activeTab !== 'messages' || !project) return
+    let active = true
+    fetchProjectThread(id, 'ngo')
+      .then((data) => { if (active) setThread(data) })
+      .catch((err) => {
+        if (active) {
+          setThread(null)
+          setThreadError(err.message || 'Messaging unavailable')
+        }
+      })
+      .finally(() => { if (active) setThreadLoading(false) })
+    return () => { active = false }
+  }, [activeTab, id, project])
+
+  useEffect(() => {
+    if (activeTab !== 'tasks' || !project) return
+    let active = true
+    fetchProjectTasks(id, 'ngo')
+      .then((data) => { if (active) setTasks(data) })
+      .catch(() => { if (active) setTasks([]) })
+      .finally(() => { if (active) setTasksLoading(false) })
+    return () => { active = false }
+  }, [activeTab, id, project])
+
+  useEffect(() => {
+    if (activeTab !== 'timeline' || !project) return
+    let active = true
+    fetchProjectTimeline(id, 'ngo')
+      .then((data) => { if (active) setTimeline(data) })
+      .catch(() => { if (active) setTimeline([]) })
+      .finally(() => { if (active) setTimelineLoading(false) })
+    return () => { active = false }
+  }, [activeTab, id, project])
 
   function showToast(msg) {
     setToast(msg)
@@ -229,6 +299,42 @@ export default function NgoProjectDetail() {
     }
   }
 
+  async function handleSendMessage(body) {
+    if (!thread?.id) return
+    setSendingMsg(true)
+    try {
+      await postMessage(thread.id, body, 'ngo')
+      const updated = await fetchProjectThread(id, 'ngo')
+      setThread(updated)
+    } finally {
+      setSendingMsg(false)
+    }
+  }
+
+  async function handleCreateTask(payload) {
+    const task = await createProjectTask(id, payload, 'ngo')
+    setTasks((prev) => [task, ...prev])
+    showToast('Task created')
+  }
+
+  async function handleTaskStatusChange(taskId, status) {
+    const updated = await updateProjectTask(id, taskId, { status }, 'ngo')
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? updated : t)))
+  }
+
+  async function handleSubmitMilestone(milestoneId) {
+    setSubmittingMilestoneId(milestoneId)
+    try {
+      await submitMilestoneForReview(id, milestoneId)
+      await refreshProject()
+      showToast('Milestone submitted for review')
+    } catch (err) {
+      showToast(err.message || 'Failed to submit milestone')
+    } finally {
+      setSubmittingMilestoneId(null)
+    }
+  }
+
   const updateMedia = updates.flatMap((u) => (u.images || []).map((img) => ({
     ...img,
     projectName: project.name,
@@ -244,6 +350,52 @@ export default function NgoProjectDetail() {
         breadcrumbs={[{ label: 'Projects', href: NGO_ROUTES.projects }, { label: project.name }]}
         actions={<Badge variant={status.variant}>{status.label}</Badge>}
       />
+
+      {project.ngoPartnershipStatus === 'pending' && (
+        <Alert variant="warning" className="mb-4">
+          This project is awaiting your partnership response.{' '}
+          <Link to={NGO_ROUTES.partnershipRequests} className="underline font-medium">Respond in Partnership Requests →</Link>
+        </Alert>
+      )}
+
+      <TabbedSections tabs={TABS} activeTab={activeTab} onTabChange={handleTabChange} />
+
+      {activeTab === 'messages' && (
+        <div className="mb-6">
+          {threadError ? (
+            <Alert variant="warning">{threadError}</Alert>
+          ) : (
+            <MessageThreadView
+              thread={thread}
+              loading={threadLoading}
+              onSend={handleSendMessage}
+              sending={sendingMsg}
+            />
+          )}
+        </div>
+      )}
+
+      {activeTab === 'tasks' && (
+        <div className="mb-6">
+          <TaskList
+            tasks={tasks}
+            loading={tasksLoading}
+            canCreate
+            onCreate={handleCreateTask}
+            onStatusChange={handleTaskStatusChange}
+            defaultAssigneeSide="corporate"
+          />
+        </div>
+      )}
+
+      {activeTab === 'timeline' && (
+        <div className="mb-6">
+          <ProjectTimeline items={timeline} loading={timelineLoading} />
+        </div>
+      )}
+
+      {activeTab === 'overview' && (
+      <>
       <div className="grid lg:grid-cols-3 gap-6 mb-6">
         <Card className="lg:col-span-2">
           <dl className="grid sm:grid-cols-2 gap-3 text-sm">
@@ -351,6 +503,20 @@ export default function NgoProjectDetail() {
               <Badge variant={(milestoneDraft[m.id] ?? m.status) === 'completed' ? 'verified' : 'default'}>
                 {(milestoneDraft[m.id] ?? m.status).replace('_', ' ')}
               </Badge>
+              {(milestoneDraft[m.id] ?? m.status) === 'completed'
+                && (!m.reviewStatus || m.reviewStatus === 'none' || m.reviewStatus === 'rejected') && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={submittingMilestoneId === m.id}
+                  onClick={() => handleSubmitMilestone(m.id)}
+                >
+                  {submittingMilestoneId === m.id ? 'Submitting…' : 'Submit for review'}
+                </Button>
+              )}
+              {m.reviewStatus === 'submitted' && (
+                <Badge variant="warning">In review</Badge>
+              )}
             </div>
           ))}
         </div>
@@ -425,6 +591,8 @@ export default function NgoProjectDetail() {
       </div>
 
       <div className="mt-6"><Button as={Link} to={NGO_ROUTES.projects} variant="ghost">← Back to Projects</Button></div>
+      </>
+      )}
     </>
   )
 }

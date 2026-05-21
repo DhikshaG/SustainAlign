@@ -61,6 +61,9 @@ import NgoDashboardHome from './routes/ngo/NgoDashboardHome'
 import ProfileManagement from './routes/ngo/ProfileManagement'
 import NgoProjectsIndex from './routes/ngo/NgoProjectsIndex'
 import NgoProjectDetail from './routes/ngo/NgoProjectDetail'
+import NgoPartnershipInbox from './routes/ngo/NgoPartnershipInbox'
+import NgoCommunicationCenter from './routes/ngo/NgoCommunicationCenter'
+import NgoSubmissions from './routes/ngo/NgoSubmissions'
 import FinancialReporting from './routes/ngo/FinancialReporting'
 import BeneficiaryTracking from './routes/ngo/BeneficiaryTracking'
 
@@ -152,6 +155,9 @@ export default function App() {
             <Route path="profile" element={<ProfileManagement />} />
             <Route path="projects" element={<NgoProjectsIndex />} />
             <Route path="projects/:id" element={<NgoProjectDetail />} />
+            <Route path="partnership-requests" element={<NgoPartnershipInbox />} />
+            <Route path="communications" element={<NgoCommunicationCenter />} />
+            <Route path="submissions" element={<NgoSubmissions />} />
             <Route path="finance" element={<FinancialReporting />} />
             <Route path="beneficiaries" element={<BeneficiaryTracking />} />
           </Route>

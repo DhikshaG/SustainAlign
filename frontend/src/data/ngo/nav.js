@@ -4,6 +4,9 @@ import {
   FolderKanban,
   Wallet,
   Users,
+  Handshake,
+  Mail,
+  FileCheck,
 } from 'lucide-react'
 import { NGO_ROUTES } from '../../lib/routes'
 import { PERMISSIONS } from '../../lib/permissions'
@@ -30,6 +33,32 @@ export const ngoNavSections = [
         icon: FolderKanban,
         roles: ['ngo_admin', 'field_officer'],
         permissions: [PERMISSIONS.PROJECTS_READ],
+      },
+    ],
+  },
+  {
+    label: 'Partnerships',
+    items: [
+      {
+        label: 'Requests',
+        href: NGO_ROUTES.partnershipRequests,
+        icon: Handshake,
+        roles: ['ngo_admin'],
+        permissions: [PERMISSIONS.PROJECTS_READ],
+      },
+      {
+        label: 'Communications',
+        href: NGO_ROUTES.communications,
+        icon: Mail,
+        roles: ['ngo_admin', 'field_officer'],
+        permissions: [PERMISSIONS.COMMUNICATIONS_READ],
+      },
+      {
+        label: 'Submissions',
+        href: NGO_ROUTES.submissions,
+        icon: FileCheck,
+        roles: ['ngo_admin'],
+        permissions: [PERMISSIONS.WORKFLOW_READ],
       },
     ],
   },

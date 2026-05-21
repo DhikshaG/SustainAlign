@@ -2,11 +2,14 @@ import { useState } from 'react'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
+import { Checkbox } from '../ui/Checkbox'
 import { contactNgo } from '../../lib/discovery'
+import { createThread } from '../../lib/messaging'
 
 export function ContactNgoModal({ ngo, onClose, onSuccess }) {
   const [subject, setSubject] = useState('')
   const [message, setMessage] = useState('')
+  const [startThread, setStartThread] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
 
@@ -15,7 +18,16 @@ export function ContactNgoModal({ ngo, onClose, onSuccess }) {
     setSubmitting(true)
     setError(null)
     try {
-      const result = await contactNgo(ngo.slug, { subject, message })
+      let result
+      if (startThread) {
+        result = await createThread({
+          ngoSlug: ngo.slug,
+          subject,
+          message,
+        }, 'corporate')
+      } else {
+        result = await contactNgo(ngo.slug, { subject, message })
+      }
       onSuccess?.(result)
       onClose()
     } catch (err) {
@@ -41,6 +53,12 @@ export function ContactNgoModal({ ngo, onClose, onSuccess }) {
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             required
+          />
+          <Checkbox
+            id="start-thread"
+            checked={startThread}
+            onChange={(e) => setStartThread(e.target.checked)}
+            label="Start an ongoing message thread (instead of one-shot inquiry)"
           />
           {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex gap-2 justify-end">

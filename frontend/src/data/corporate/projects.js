@@ -200,6 +200,7 @@ export const projects = [
 
 export const projectStatuses = {
   pending_approval: { label: 'Pending approval', variant: 'warning' },
+  pending_ngo: { label: 'Awaiting NGO', variant: 'warning' },
   active: { label: 'Active', variant: 'primary' },
   on_hold: { label: 'On hold', variant: 'default' },
   at_risk: { label: 'At Risk', variant: 'warning' },

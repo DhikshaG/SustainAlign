@@ -1,16 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { CheckCircle } from 'lucide-react'
 import { PageHeader } from '../../components/corporate/PageHeader'
 import { Card } from '../../components/ui/Card'
-import { Button } from '../../components/ui/Button'
 import { Alert } from '../../components/ui/Alert'
 import { MessageThreadList } from '../../components/crm/MessageThreadList'
 import { MessageThreadView } from '../../components/crm/MessageThreadView'
 import { fetchThreads, fetchThread, postMessage } from '../../lib/messaging'
-import { CORPORATE_ROUTES } from '../../lib/routes'
 
-export default function CommunicationCenter() {
+export default function NgoCommunicationCenter() {
   const [threads, setThreads] = useState([])
   const [activeId, setActiveId] = useState(null)
   const [thread, setThread] = useState(null)
@@ -21,7 +17,7 @@ export default function CommunicationCenter() {
 
   useEffect(() => {
     let active = true
-    fetchThreads('corporate')
+    fetchThreads('ngo')
       .then((list) => {
         if (!active) return
         setThreads(list)
@@ -41,7 +37,7 @@ export default function CommunicationCenter() {
   useEffect(() => {
     if (!activeId) return
     let active = true
-    fetchThread(activeId, 'corporate')
+    fetchThread(activeId, 'ngo')
       .then((data) => { if (active) setThread(data) })
       .catch(() => { if (active) setThread(null) })
       .finally(() => { if (active) setThreadLoading(false) })
@@ -55,15 +51,15 @@ export default function CommunicationCenter() {
   }
 
   async function refreshThreads() {
-    const list = await fetchThreads('corporate')
+    const list = await fetchThreads('ngo')
     setThreads(list)
   }
 
   async function handleSend(body) {
     setSending(true)
     try {
-      await postMessage(activeId, body, 'corporate')
-      const updated = await fetchThread(activeId, 'corporate')
+      await postMessage(activeId, body, 'ngo')
+      const updated = await fetchThread(activeId, 'ngo')
       setThread(updated)
       await refreshThreads()
     } finally {
@@ -74,13 +70,13 @@ export default function CommunicationCenter() {
   return (
     <>
       <PageHeader
-        title="Communication Center"
-        description="Message threads with NGO partners on active projects."
+        title="Communications"
+        description="Message threads with corporate partners."
       />
 
       {error && <Alert variant="error" className="mb-4">{error}</Alert>}
 
-      <div className="grid lg:grid-cols-3 gap-6 mb-6">
+      <div className="grid lg:grid-cols-3 gap-6">
         {loading ? (
           <Card className="lg:col-span-3"><p className="text-sm text-slate-500">Loading threads…</p></Card>
         ) : (
@@ -89,7 +85,8 @@ export default function CommunicationCenter() {
               threads={threads}
               activeId={activeId}
               onSelect={selectThread}
-              counterpartyKey="ngoName"
+              counterpartyKey="corporateName"
+              emptyLabel="No message threads yet. Threads appear after a partnership is active."
             />
             <MessageThreadView
               thread={thread}
@@ -100,24 +97,6 @@ export default function CommunicationCenter() {
           </>
         )}
       </div>
-
-      <Card className="mb-6">
-        <h3 className="font-semibold text-slate-900 mb-2 flex items-center gap-2">
-          <CheckCircle className="h-4 w-4" /> Approval Workflows
-        </h3>
-        <p className="text-sm text-slate-600 mb-3">
-          Project approvals, milestone reviews, and other workflow items are managed in the Approvals inbox.
-        </p>
-        <Button as={Link} to={CORPORATE_ROUTES.approvals} size="sm" variant="secondary">
-          Open Approvals Inbox
-        </Button>
-      </Card>
-
-      <Card>
-        <h3 className="font-semibold text-slate-900 mb-2">Email Integration</h3>
-        <p className="text-sm text-slate-600">Connect your corporate email to sync NGO communications and approval notifications.</p>
-        <Button variant="secondary" size="sm" className="mt-3">Configure Email — Coming Soon</Button>
-      </Card>
     </>
   )
 }
