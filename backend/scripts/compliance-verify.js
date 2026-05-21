@@ -30,10 +30,16 @@ check('CSR profile seeded', !!profile)
 
 const summary = getComplianceSummary(acmeMem.tenantId)
 check('2% obligation computed', summary.section135.csrObligation > 0, `₹${summary.section135.csrObligation}`)
+check('Section 135 criteria', !!summary.section135.criteria)
+check('Obligation breakdown', !!summary.section135.obligationBreakdown?.formula)
 check('Spend breakdown', summary.spend.breakdown.length >= 1)
 check('Schedule VII validation', summary.scheduleVIIValidation.length >= 4)
 check('Compliance alerts', Array.isArray(summary.alerts))
 check('MCA preview', !!summary.mcaReportPreview.companyName)
+
+const { exportMcaCsr2 } = await import('../src/services/compliance/index.js')
+const mcaJson = exportMcaCsr2(acmeMem.tenantId)
+check('MCA JSON export', mcaJson.form === 'MCA CSR-2' && mcaJson.projects.length >= 1)
 
 const funds = getFundAllocation(acmeMem.tenantId)
 check('Fund allocation projects', funds.projects.length >= 1)

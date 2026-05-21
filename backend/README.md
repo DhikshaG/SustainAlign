@@ -225,18 +225,23 @@ npm run db:verify-reports
 | POST | `/api/corporate/reports/generate` | Generate PDF (`quarterly`, `board`, `sdg`, `impact`, `mca_csr2`) |
 | POST | `/api/corporate/reports/:id/submit` | Mark report submitted |
 
-## Step 6 — Compliance Engine
+## Step 6 — Compliance Automation Engine
 
-Section 135 obligation, Schedule VII validation, unspent tracking, alerts.
+Section 135 eligibility (net worth / turnover / net profit OR logic), 2% obligation formula, Schedule VII validation, unspent tracking, alerts, background sync, MCA JSON export.
 
 ```bash
 npm run db:verify-compliance
 ```
 
+Background alert sync runs on server start (`COMPLIANCE_SYNC_INTERVAL_MINUTES`, default 60).
+
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/corporate/compliance/summary` | Computed compliance DTO |
+| GET | `/api/corporate/compliance/summary` | Full compliance DTO with obligation breakdown + criteria |
 | PATCH | `/api/corporate/compliance/profile` | Update FY financials |
+| PATCH | `/api/corporate/compliance/alerts/:id/acknowledge` | Acknowledge alert |
+| POST | `/api/corporate/compliance/run-check` | Manual alert sync trigger |
+| GET | `/api/corporate/compliance/mca-export` | Structured MCA CSR-2 JSON (`compliance:export`) |
 | GET | `/api/corporate/funds/allocation` | Live fund allocation |
 
 ## Step 7 — AI Layer (Ollama)

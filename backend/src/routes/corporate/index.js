@@ -20,7 +20,7 @@ import {
   communications,
 } from '../../data/corporate-sample.js'
 import { getDashboardSummary, getReportingOverview } from '../../services/dashboard/index.js'
-import { getComplianceSummary, getFundAllocation, updateProfile, acknowledgeAlert } from '../../services/compliance/index.js'
+import { getComplianceSummary, getFundAllocation, updateProfile, acknowledgeAlert, exportMcaCsr2, syncComplianceForTenant } from '../../services/compliance/index.js'
 import { deriveDefaultsFromProjects } from '../../services/matching/index.js'
 import { listReports, generateReport, getReport, submitReport } from '../../services/reports/index.js'
 import {
@@ -304,6 +304,22 @@ router.patch('/compliance/profile', requirePermission(PERMISSIONS.COMPLIANCE_WRI
 router.patch('/compliance/alerts/:id/acknowledge', requirePermission(PERMISSIONS.COMPLIANCE_READ), (req, res, next) => {
   try {
     ok(res, acknowledgeAlert(req.params.id, req.user.tenantId), 'Alert acknowledged')
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/compliance/run-check', requirePermission(PERMISSIONS.COMPLIANCE_READ), (req, res, next) => {
+  try {
+    ok(res, syncComplianceForTenant(req.user.tenantId), 'Compliance check completed')
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.get('/compliance/mca-export', requirePermission(PERMISSIONS.COMPLIANCE_EXPORT), (req, res, next) => {
+  try {
+    ok(res, exportMcaCsr2(req.user.tenantId))
   } catch (err) {
     next(err)
   }

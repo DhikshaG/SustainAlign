@@ -72,10 +72,27 @@ function buildReportSections(type, aggregate, compliance, projectList) {
       heading: 'Compliance (Section 135)',
       body: [
         `FY: ${compliance.section135.fy}`,
+        `Eligible: ${compliance.section135.eligible ? 'Yes' : 'No'}`,
+        `Formula: ${compliance.section135.obligationBreakdown?.formula || 'N/A'}`,
         `CSR Obligation (2%): ₹${compliance.section135.csrObligation.toLocaleString('en-IN')}`,
         `Total Spent: ₹${compliance.spend.spent.toLocaleString('en-IN')}`,
         `Unspent: ₹${compliance.spend.unspent.toLocaleString('en-IN')}`,
       ].join('\n'),
+    })
+  }
+
+  if (type === 'mca_csr2' || type === 'board') {
+    const validationLines = compliance.scheduleVIIValidation
+      .map((v) => `${v.item}: ${v.status}${v.note ? ` (${v.note})` : ''}`)
+    sections.push({
+      heading: 'Schedule VII Validation',
+      body: validationLines.join('\n') || 'No validation data.',
+    })
+    const schedLines = compliance.spend.breakdown
+      .map((b) => `${b.category} | ${b.scheduleVII} | ₹${b.amount.toLocaleString('en-IN')}`)
+    sections.push({
+      heading: 'Schedule VII Spend Breakdown',
+      body: schedLines.join('\n') || 'No spend data.',
     })
   }
 

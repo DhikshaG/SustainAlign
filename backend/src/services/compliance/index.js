@@ -4,22 +4,16 @@ import {
   csrProjects,
   corporateCsrProfile,
   complianceAlerts,
-  projectMilestones,
   tenants,
 } from '../../db/schema.js'
 import { newId } from '../../lib/ids.js'
-import { aggregateForTenant } from '../impact/index.js'
-
-const SCHEDULE_VII_OPTIONS = [
-  'Promoting education',
-  'Promoting health care',
-  'Ensuring environmental sustainability',
-  'Employment enhancing vocation skills',
-  'Rural development projects',
-  'Administrative overheads',
-  'Eradicating hunger, poverty and malnutrition',
-  'Promoting gender equality and empowering women',
-]
+import {
+  computeSection135,
+  computeSpendBreakdown,
+  validateScheduleVii,
+  getComplianceDueDates,
+  evaluateAlerts,
+} from './rules.js'
 
 function httpError(message, status) {
   const err = new Error(message)
@@ -67,105 +61,10 @@ export function updateProfile(tenantId, patch, fyLabel = 'FY 2025-26') {
   return getOrCreateProfile(tenantId, patch.fyLabel || fyLabel)
 }
 
-function computeObligation(profile) {
-  const eligible = profile.netProfitInr >= profile.obligationThresholdInr
-  const csrObligation = eligible ? Math.round(profile.netProfitInr * 0.02) : 0
-  return { eligible, csrObligation, obligationRate: 2 }
-}
+export function syncAlerts(tenantId, profile, spend) {
+  const candidates = evaluateAlerts(tenantId, profile, spend)
 
-function computeSpendBreakdown(tenantId) {
-  const projects = db.select().from(csrProjects).where(eq(csrProjects.corporateTenantId, tenantId)).all()
-  const byCategory = new Map()
-  let totalSpent = 0
-  let adminSpent = 0
-
-  for (const p of projects) {
-    if (p.status === 'archived' || p.status === 'rejected') continue
-    const cat = p.theme || 'Other'
-    byCategory.set(cat, (byCategory.get(cat) || 0) + (p.spentInr || 0))
-    totalSpent += p.spentInr || 0
-    if (p.scheduleVii?.toLowerCase().includes('administrative')) {
-      adminSpent += p.spentInr || 0
-    }
-  }
-
-  const breakdown = [...byCategory.entries()].map(([category, amount]) => {
-    const scheduleVii = projects.find((p) => p.theme === category)?.scheduleVii || category
-    const valid = SCHEDULE_VII_OPTIONS.some((s) => scheduleVii.toLowerCase().includes(s.toLowerCase().slice(0, 8)))
-    return { category, amount, scheduleVII: scheduleVii, valid }
-  })
-
-  return { totalSpent, adminSpent, breakdown }
-}
-
-function validateScheduleVii(tenantId, profile, spend) {
-  const projects = db.select().from(csrProjects)
-    .where(eq(csrProjects.corporateTenantId, tenantId))
-    .all()
-    .filter((p) => p.status === 'active' || p.status === 'pending_approval')
-
-  const unmapped = projects.filter((p) => !SCHEDULE_VII_OPTIONS.some((s) =>
-    p.scheduleVii?.toLowerCase().includes(s.toLowerCase().slice(0, 10))))
-
-  const adminPct = spend.totalSpent > 0 ? (spend.adminSpent / spend.totalSpent) * 100 : 0
-  const adminOk = adminPct <= profile.adminCapPct
-
-  const localStates = new Set(['Maharashtra'])
-  const localSpend = projects
-    .filter((p) => localStates.has(p.state || p.location?.split(',').pop()?.trim()))
-    .reduce((s, p) => s + (p.spentInr || 0), 0)
-  const localPct = spend.totalSpent > 0 ? (localSpend / spend.totalSpent) * 100 : 0
-
-  const { csrObligation } = computeObligation(profile)
-  const unspent = Math.max(csrObligation - spend.totalSpent, 0) + profile.carryForwardInr
-
-  return [
-    { item: 'All projects mapped to Schedule VII', status: unmapped.length ? 'warn' : 'pass', note: unmapped.length ? `${unmapped.length} project(s) need review` : undefined },
-    { item: 'Admin expenses within 5% cap', status: adminOk ? 'pass' : 'fail', note: adminOk ? undefined : `Admin at ${adminPct.toFixed(1)}%` },
-    { item: 'Geographic preference (local area) met', status: localPct >= profile.localAreaTargetPct ? 'pass' : 'warn', note: `${Math.round(localPct)}% local vs ${profile.localAreaTargetPct}% target` },
-    { item: 'Implementing agency due diligence', status: 'pass' },
-    { item: 'Impact assessment for large projects', status: 'warn', note: '2 projects pending IA' },
-    { item: 'Unspent CSR fund transfer plan', status: unspent > 5000000 ? 'fail' : 'pass', note: unspent > 5000000 ? `₹${(unspent / 10000000).toFixed(2)} Cr unallocated` : undefined },
-  ]
-}
-
-function syncAlerts(tenantId, profile, spend, validation) {
-  const { csrObligation } = computeObligation(profile)
-  const unspent = Math.max(csrObligation - spend.totalSpent, 0) + profile.carryForwardInr
-
-  const dynamicAlerts = []
-  if (unspent > 5000000) {
-    dynamicAlerts.push({
-      level: 'warning',
-      ruleKey: 'unspent_csr',
-      message: `Unspent CSR ₹${(unspent / 10000000).toFixed(2)} Cr requires transfer plan by Mar 31`,
-      dueDate: '2026-03-31',
-    })
-  }
-
-  const projects = db.select().from(csrProjects).where(eq(csrProjects.corporateTenantId, tenantId)).all()
-  const today = new Date().toISOString().slice(0, 10)
-  for (const p of projects) {
-    const milestones = db.select().from(projectMilestones).where(eq(projectMilestones.projectId, p.id)).all()
-    for (const m of milestones) {
-      if (m.status !== 'completed' && m.dueDate && m.dueDate < today) {
-        dynamicAlerts.push({
-          level: 'critical',
-          ruleKey: 'milestone_overdue',
-          message: `Milestone overdue: ${m.title} (${p.name})`,
-          dueDate: m.dueDate,
-          entityType: 'project',
-          entityId: p.id,
-        })
-      }
-    }
-  }
-
-  const staticAlerts = [
-    { level: 'info', ruleKey: 'csr2_filing', message: 'CSR-2 filing window opens Feb 1', dueDate: '2026-02-01' },
-  ]
-
-  for (const a of [...dynamicAlerts, ...staticAlerts]) {
+  for (const a of candidates) {
     const exists = db.select().from(complianceAlerts)
       .where(and(
         eq(complianceAlerts.tenantId, tenantId),
@@ -189,63 +88,72 @@ function syncAlerts(tenantId, profile, spend, validation) {
   }
 }
 
+export function syncComplianceForTenant(tenantId, fyLabel = 'FY 2025-26') {
+  const profile = getOrCreateProfile(tenantId, fyLabel)
+  const spend = computeSpendBreakdown(tenantId)
+  syncAlerts(tenantId, profile, spend)
+  return { tenantId, synced: true }
+}
+
 export function getComplianceSummary(tenantId, fyLabel = 'FY 2025-26') {
   const profile = getOrCreateProfile(tenantId, fyLabel)
-  const { eligible, csrObligation, obligationRate } = computeObligation(profile)
-  const spend = computeSpendBreakdown(tenantId)
-  const totalObligation = csrObligation
-  const unspent = Math.max(totalObligation - spend.totalSpent, 0) + profile.carryForwardInr
+  const section135 = computeSection135(profile)
+  const spendData = computeSpendBreakdown(tenantId)
+  const totalObligation = section135.csrObligation
+  const unspent = Math.max(totalObligation - spendData.totalSpent, 0) + profile.carryForwardInr
 
-  syncAlerts(tenantId, profile, spend, [])
+  syncAlerts(tenantId, profile, spendData)
+
   const alerts = db.select().from(complianceAlerts)
     .where(and(eq(complianceAlerts.tenantId, tenantId), isNull(complianceAlerts.acknowledgedAt)))
     .all()
-    .map((a, i) => ({
+    .map((a) => ({
       id: a.id,
       level: a.level,
       message: a.message,
       date: a.dueDate || a.createdAt.toISOString().slice(0, 10),
+      entityType: a.entityType,
+      entityId: a.entityId,
     }))
 
-  const scheduleVIIValidation = validateScheduleVii(tenantId, profile, spend)
+  const scheduleVIIValidation = validateScheduleVii(tenantId, profile, spendData)
   const passCount = scheduleVIIValidation.filter((v) => v.status === 'pass').length
   const auditScore = Math.round((passCount / scheduleVIIValidation.length) * 100)
 
   const tenant = db.select().from(tenants).where(eq(tenants.id, tenantId)).get()
   const projects = db.select().from(csrProjects).where(eq(csrProjects.corporateTenantId, tenantId)).all()
+  const dueDates = getComplianceDueDates(profile.fyLabel)
 
   return {
     section135: {
-      eligible,
-      netWorth: profile.netWorthInr,
-      turnover: profile.turnoverInr,
-      netProfit: profile.netProfitInr,
-      csrObligation,
-      obligationRate,
-      fy: profile.fyLabel,
+      eligible: section135.eligible,
+      netWorth: section135.netWorth,
+      turnover: section135.turnover,
+      netProfit: section135.netProfit,
+      csrObligation: section135.csrObligation,
+      obligationRate: section135.obligationRate,
+      averageNetProfit: section135.averageNetProfit,
+      criteria: section135.criteria,
+      obligationBreakdown: section135.obligationBreakdown,
+      fy: section135.fy,
     },
     spend: {
       totalObligation,
-      spent: spend.totalSpent,
-      administrative: spend.adminSpent,
+      spent: spendData.totalSpent,
+      administrative: spendData.adminSpent,
       unspent,
       carryForward: profile.carryForwardInr,
-      breakdown: spend.breakdown,
+      breakdown: spendData.breakdown,
     },
-    dueDates: [
-      { id: 1, title: 'CSR-2 Form filing with MCA', date: '2026-03-31', status: 'upcoming' },
-      { id: 2, title: 'Annual CSR Committee meeting', date: '2026-02-15', status: 'upcoming' },
-      { id: 3, title: 'Transfer unspent CSR (if applicable)', date: '2026-04-30', status: 'upcoming' },
-      { id: 4, title: 'Q3 Utilization certificates', date: '2026-01-15', status: spend.totalSpent > 0 ? 'upcoming' : 'overdue' },
-    ],
+    dueDates,
     scheduleVIIValidation,
     auditReadiness: {
       score: auditScore,
       checklist: [
         { item: 'CSR policy updated', done: true },
         { item: 'Board resolution on CSR', done: true },
-        { item: 'Utilization certificates collected', done: spend.totalSpent > 0 },
-        { item: 'Impact assessments filed', done: false },
+        { item: 'Utilization certificates collected', done: spendData.totalSpent > 0 },
+        { item: 'Impact assessments filed', done: !scheduleVIIValidation.some((v) => v.item.includes('Impact') && v.status !== 'pass') },
         { item: 'MCA CSR-2 draft ready', done: true },
       ],
     },
@@ -254,7 +162,7 @@ export function getComplianceSummary(tenantId, fyLabel = 'FY 2025-26') {
       companyName: tenant?.name || 'Company',
       cin: 'L12345MH2010PLC123456',
       fy: profile.fyLabel.replace('FY ', ''),
-      totalCSR: spend.totalSpent,
+      totalCSR: spendData.totalSpent,
       unspent,
       projects: projects.filter((p) => p.status === 'active').length,
     },
@@ -269,9 +177,58 @@ export function getComplianceSummary(tenantId, fyLabel = 'FY 2025-26') {
   }
 }
 
+export function exportMcaCsr2(tenantId, fyLabel = 'FY 2025-26') {
+  const summary = getComplianceSummary(tenantId, fyLabel)
+  const tenant = db.select().from(tenants).where(eq(tenants.id, tenantId)).get()
+  const projects = db.select().from(csrProjects)
+    .where(eq(csrProjects.corporateTenantId, tenantId))
+    .all()
+    .filter((p) => p.status !== 'archived' && p.status !== 'rejected')
+
+  return {
+    form: 'MCA CSR-2',
+    company: {
+      name: tenant?.name || 'Company',
+      cin: summary.mcaReportPreview.cin,
+    },
+    financialYear: summary.section135.fy,
+    section135: {
+      eligible: summary.section135.eligible,
+      criteria: summary.section135.criteria,
+      averageNetProfit: summary.section135.averageNetProfit,
+      csrObligation: summary.section135.csrObligation,
+      obligationFormula: summary.section135.obligationBreakdown.formula,
+    },
+    spending: {
+      totalSpent: summary.spend.spent,
+      administrative: summary.spend.administrative,
+      unspent: summary.spend.unspent,
+      carryForward: summary.spend.carryForward,
+    },
+    scheduleViiBreakdown: summary.spend.breakdown,
+    validation: summary.scheduleVIIValidation,
+    projects: projects.map((p) => {
+      const ngo = db.select().from(tenants).where(eq(tenants.id, p.ngoTenantId)).get()
+      return {
+        name: p.name,
+        ngo: ngo?.name,
+        scheduleVii: p.scheduleVii,
+        theme: p.theme,
+        location: p.location || p.state,
+        budgetInr: p.budgetInr,
+        spentInr: p.spentInr,
+        status: p.status,
+        startDate: p.startDate,
+        endDate: p.endDate,
+      }
+    }),
+    generatedAt: new Date().toISOString(),
+  }
+}
+
 export function getFundAllocation(tenantId) {
   const profile = getOrCreateProfile(tenantId)
-  const { csrObligation } = computeObligation(profile)
+  const { csrObligation } = computeSection135(profile)
   const projects = db.select().from(csrProjects)
     .where(eq(csrProjects.corporateTenantId, tenantId))
     .all()
