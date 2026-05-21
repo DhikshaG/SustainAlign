@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { Wallet, FolderKanban, ShieldCheck, Calendar, TrendingUp, Sparkles } from 'lucide-react'
+import { Wallet, FolderKanban, ShieldCheck, Calendar, TrendingUp, Sparkles, RefreshCw } from 'lucide-react'
 import { PageHeader } from '../../components/corporate/PageHeader'
 import { StatCard } from '../../components/corporate/StatCard'
 import { ProgressBar } from '../../components/corporate/ProgressBar'
@@ -8,14 +8,20 @@ import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Alert } from '../../components/ui/Alert'
-import { PieChartCard, AreaChartCard, BarChartCard } from '../../components/corporate/Charts'
+import { PieChartCard, AreaChartCard, BarChartCard, LineChartCard } from '../../components/corporate/Charts'
+import { ImpactSummaryPanel } from '../../components/corporate/ImpactSummaryPanel'
 import { formatINR } from '../../data/corporate/dashboard'
 import { CORPORATE_ROUTES } from '../../lib/routes'
-import { fetchDashboardSummary } from '../../lib/impact'
+import { fetchDashboardSummary, fetchImpactLive } from '../../lib/impact'
+import { useImpactPolling } from '../../hooks/useImpactPolling'
+import { useEffect, useState } from 'react'
 
 export default function DashboardHome() {
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
+
+  const fetchLive = useCallback(() => fetchImpactLive(), [])
+  const { data: live, lastUpdated, loading: liveLoading } = useImpactPolling(fetchLive)
 
   useEffect(() => {
     let active = true
@@ -25,10 +31,13 @@ export default function DashboardHome() {
     return () => { active = false }
   }, [])
 
-  if (error) return <div className="p-6"><Alert variant="error">{error}</Alert></div>
+  if (error && !data) return <div className="p-6"><Alert variant="error">{error}</Alert></div>
   if (!data) return <p className="text-sm text-slate-500 p-6">Loading dashboard…</p>
 
   const { budget, spendProgress, activeProjects, complianceScore, deadlines, ngoPerformance, impactMetrics, aiRecommendations } = data
+  const liveSpend = live?.spendProgress ?? spendProgress
+  const districtAnalytics = live?.districtAnalytics ?? []
+  const beneficiarySeries = live?.timeSeries ?? []
 
   const budgetPie = [
     { name: 'Spent', value: budget.spent },
@@ -36,11 +45,23 @@ export default function DashboardHome() {
     { name: 'Unallocated', value: Math.max(budget.total - budget.allocated, 0) },
   ]
 
+  const lastUpdatedLabel = lastUpdated
+    ? lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : null
+
   return (
     <>
       <PageHeader
         title="Dashboard"
         description="Overview of your CSR program, compliance status, and impact."
+        actions={
+          lastUpdatedLabel && (
+            <span className="text-xs text-slate-500 flex items-center gap-1">
+              <RefreshCw className={`h-3 w-3 ${liveLoading ? 'animate-spin' : ''}`} />
+              Last updated {lastUpdatedLabel}
+            </span>
+          )
+        }
       />
 
       <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
@@ -54,12 +75,35 @@ export default function DashboardHome() {
         <PieChartCard title="CSR Budget Status" data={budgetPie} />
         <AreaChartCard
           title="Spend Progress vs Obligation"
-          data={spendProgress}
+          data={liveSpend}
           lines={[
             { key: 'spent', color: '#059669', name: 'Actual Spend' },
             { key: 'obligation', color: '#94a3b8', name: 'Cumulative Obligation' },
           ]}
         />
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-6 mb-6">
+        <LineChartCard
+          title="Beneficiary Trend"
+          data={beneficiarySeries}
+          lines={[
+            { key: 'cumulative', color: '#059669', name: 'Cumulative' },
+            { key: 'beneficiaries', color: '#0891b2', name: 'Monthly' },
+          ]}
+          yTickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}K` : String(v)}
+          tooltipFormatter={(v) => v?.toLocaleString?.() ?? v}
+        />
+        <BarChartCard
+          title="District Impact (Beneficiaries)"
+          data={districtAnalytics.slice(0, 8)}
+          xKey="district"
+          bars={[{ key: 'beneficiaries', color: '#059669', name: 'Beneficiaries' }]}
+        />
+      </div>
+
+      <div className="mb-6">
+        <ImpactSummaryPanel />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6 mb-6">

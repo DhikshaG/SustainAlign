@@ -10,6 +10,16 @@ export async function fetchReportingOverview() {
   return res.data
 }
 
+export async function fetchImpactLive() {
+  const res = await api.get('/api/corporate/impact/live')
+  return res.data
+}
+
+export async function generateImpactSummary() {
+  const res = await api.post('/api/corporate/ai/impact-summary')
+  return res.data
+}
+
 export async function addProjectKpi(projectId, payload) {
   const res = await api.post(`/api/corporate/projects/${projectId}/kpis`, payload)
   return res.data

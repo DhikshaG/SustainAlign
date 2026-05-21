@@ -93,7 +93,18 @@ export function BarChartCard({ title, data, bars = [{ key: 'score', color: '#059
   )
 }
 
-export function LineChartCard({ title, data, lines = [{ key: 'projected', color: '#059669', name: 'Projected' }], xKey = 'month', height = 240 }) {
+export function LineChartCard({
+  title,
+  data,
+  lines = [{ key: 'projected', color: '#059669', name: 'Projected' }],
+  xKey = 'month',
+  height = 240,
+  yTickFormatter,
+  tooltipFormatter,
+}) {
+  const formatY = yTickFormatter || ((v) => `${(v / 10000000).toFixed(1)}Cr`)
+  const formatTip = tooltipFormatter || ((v) => (v ? `₹${(v / 10000000).toFixed(2)} Cr` : '—'))
+
   return (
     <Card>
       {title && <h3 className="font-semibold text-slate-900 mb-4">{title}</h3>}
@@ -101,8 +112,8 @@ export function LineChartCard({ title, data, lines = [{ key: 'projected', color:
         <AreaChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
           <XAxis dataKey={xKey} tick={{ fontSize: 12 }} />
-          <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `${(v / 10000000).toFixed(1)}Cr`} />
-          <Tooltip formatter={(v) => v ? `₹${(v / 10000000).toFixed(2)} Cr` : '—'} />
+          <YAxis tick={{ fontSize: 12 }} tickFormatter={formatY} />
+          <Tooltip formatter={formatTip} />
           <Legend />
           {lines.map((line) => (
             <Area key={line.key} type="monotone" dataKey={line.key} name={line.name} stroke={line.color} fill={line.color} fillOpacity={0.1} />

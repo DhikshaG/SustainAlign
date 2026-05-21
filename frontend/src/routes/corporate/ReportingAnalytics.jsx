@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Download, FileText } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { Download, FileText, RefreshCw } from 'lucide-react'
 import { PageHeader } from '../../components/corporate/PageHeader'
 import { StatCard } from '../../components/corporate/StatCard'
 import { DataTable } from '../../components/corporate/DataTable'
@@ -8,11 +8,13 @@ import { Button } from '../../components/ui/Button'
 import { Badge } from '../../components/ui/Badge'
 import { Alert } from '../../components/ui/Alert'
 import { PieChartCard, BarChartCard, AreaChartCard } from '../../components/corporate/Charts'
+import { ImpactSummaryPanel } from '../../components/corporate/ImpactSummaryPanel'
 import { formatINR } from '../../data/corporate/dashboard'
-import { fetchReportingOverview } from '../../lib/impact'
+import { fetchReportingOverview, fetchImpactLive } from '../../lib/impact'
 import { generateReport, fetchReports } from '../../lib/reporting'
 import { fyToPeriod } from '../../lib/compliance'
 import { api } from '../../lib/api'
+import { useImpactPolling } from '../../hooks/useImpactPolling'
 
 function downloadCsv(filename, rows) {
   const csv = rows.map((r) => r.join(',')).join('\n')
@@ -31,6 +33,9 @@ export default function ReportingAnalytics() {
   const [error, setError] = useState(null)
   const [generating, setGenerating] = useState(false)
 
+  const fetchLive = useCallback(() => fetchImpactLive(), [])
+  const { data: live, lastUpdated, loading: liveLoading } = useImpactPolling(fetchLive)
+
   useEffect(() => {
     let active = true
     Promise.all([fetchReportingOverview(), fetchReports()])
@@ -48,7 +53,14 @@ export default function ReportingAnalytics() {
   if (!data) return <p className="text-sm text-slate-500 p-6">Loading reporting data…</p>
 
   const { impactSummary, sdgMapping, categoryAnalytics, geoAnalytics, budgetUtilization, ngoPerformance } = data
+  const sdgProgress = live?.sdgProgress ?? data.sdgProgress ?? sdgMapping
+  const districtAnalytics = live?.districtAnalytics ?? data.districtAnalytics ?? []
+  const liveBudgetUtil = live?.budgetUtilization ?? budgetUtilization
   const { periodStart, periodEnd } = fyToPeriod()
+
+  const lastUpdatedLabel = lastUpdated
+    ? lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : null
 
   async function downloadPdf(type) {
     setGenerating(true)
@@ -95,7 +107,13 @@ export default function ReportingAnalytics() {
         title="Reporting & Analytics"
         description="Impact dashboards, SDG mapping, and downloadable CSR reports."
         actions={
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {lastUpdatedLabel && (
+              <span className="text-xs text-slate-500 flex items-center gap-1 mr-2">
+                <RefreshCw className={`h-3 w-3 ${liveLoading ? 'animate-spin' : ''}`} />
+                Live {lastUpdatedLabel}
+              </span>
+            )}
             <Button variant="secondary" size="sm" disabled={generating} onClick={() => downloadPdf('quarterly')}>
               <FileText className="h-4 w-4" /> Quarterly
             </Button>
@@ -133,6 +151,10 @@ export default function ReportingAnalytics() {
         <StatCard label="CO₂ Offset (tons)" value={impactSummary.co2Offset.toLocaleString()} />
       </div>
 
+      <div className="mb-6">
+        <ImpactSummaryPanel />
+      </div>
+
       <div className="grid lg:grid-cols-2 gap-6 mb-6">
         <PieChartCard title="CSR Category Analytics" data={categoryAnalytics} />
         <BarChartCard
@@ -144,14 +166,23 @@ export default function ReportingAnalytics() {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6 mb-6">
+        <BarChartCard
+          title="District Impact (Beneficiaries)"
+          data={districtAnalytics.slice(0, 10)}
+          xKey="district"
+          bars={[{ key: 'beneficiaries', color: '#6366f1', name: 'Beneficiaries' }]}
+        />
         <AreaChartCard
           title="Budget Utilization"
-          data={budgetUtilization}
+          data={liveBudgetUtil}
           lines={[
             { key: 'budget', color: '#94a3b8', name: 'Budget' },
             { key: 'utilized', color: '#059669', name: 'Utilized' },
           ]}
         />
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-6 mb-6">
         <Card>
           <h3 className="font-semibold text-slate-900 mb-4">SDG Mapping</h3>
           <ul className="space-y-2 max-h-64 overflow-y-auto">
@@ -159,6 +190,19 @@ export default function ReportingAnalytics() {
               <li key={s.sdg} className="flex justify-between text-sm py-2 border-b border-slate-100 last:border-0">
                 <span>SDG {s.sdg}: {s.label}</span>
                 <span className="text-slate-500">{s.projects} projects · {formatINR(s.spend)}</span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+        <Card>
+          <h3 className="font-semibold text-slate-900 mb-4">SDG Progress (Beneficiaries)</h3>
+          <ul className="space-y-2 max-h-64 overflow-y-auto">
+            {(sdgProgress || []).map((s) => (
+              <li key={s.sdg} className="flex justify-between text-sm py-2 border-b border-slate-100 last:border-0">
+                <span>SDG {s.sdg}: {s.label}</span>
+                <span className="text-slate-500">
+                  {(s.beneficiaries ?? 0).toLocaleString()} beneficiaries · {formatINR(s.spend)}
+                </span>
               </li>
             ))}
           </ul>
