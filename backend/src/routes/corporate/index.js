@@ -18,12 +18,17 @@ import {
   volunteerCampaigns,
   documents,
   communications,
-  copilotSuggestions,
-  complianceSummary,
-  reportingOverview,
-  fundAllocation,
 } from '../../data/corporate-sample.js'
 import { getDashboardSummary, getReportingOverview } from '../../services/dashboard/index.js'
+import { getComplianceSummary, getFundAllocation, updateProfile, acknowledgeAlert } from '../../services/compliance/index.js'
+import { listReports, generateReport, getReport, submitReport } from '../../services/reports/index.js'
+import {
+  getCopilotSuggestions,
+  copilotChat,
+  matchNgos,
+  aiSearch,
+  generateNarrative,
+} from '../../services/ai/context.js'
 import {
   addKpi,
   addBeneficiaryLog,
@@ -56,6 +61,14 @@ import {
   geoUpdateSchema,
   attachUpdateFilesSchema,
 } from '../../schemas/impact.js'
+import { generateReportSchema } from '../../schemas/reports.js'
+import { updateCsrProfileSchema } from '../../schemas/compliance.js'
+import {
+  copilotChatSchema,
+  matchNgosSchema,
+  aiSearchSchema,
+  narrativeSchema,
+} from '../../schemas/ai.js'
 
 const CORPORATE_ROLES = ['super_admin', 'csr_head', 'esg_head', 'finance', 'compliance', 'volunteer', 'board']
 
@@ -267,7 +280,29 @@ router.patch('/projects/:id/spent', requirePermission(PERMISSIONS.FUNDS_READ), v
   }
 })
 
-router.get('/compliance/summary', requirePermission(PERMISSIONS.COMPLIANCE_READ), (_req, res) => ok(res, complianceSummary))
+router.get('/compliance/summary', requirePermission(PERMISSIONS.COMPLIANCE_READ), (req, res, next) => {
+  try {
+    ok(res, getComplianceSummary(req.user.tenantId))
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.patch('/compliance/profile', requirePermission(PERMISSIONS.COMPLIANCE_WRITE), validate(updateCsrProfileSchema), (req, res, next) => {
+  try {
+    ok(res, updateProfile(req.user.tenantId, req.validated), 'Profile updated')
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.patch('/compliance/alerts/:id/acknowledge', requirePermission(PERMISSIONS.COMPLIANCE_READ), (req, res, next) => {
+  try {
+    ok(res, acknowledgeAlert(req.params.id, req.user.tenantId), 'Alert acknowledged')
+  } catch (err) {
+    next(err)
+  }
+})
 
 router.get('/reporting/overview', requirePermission(PERMISSIONS.REPORTING_READ), (req, res, next) => {
   try {
@@ -277,7 +312,45 @@ router.get('/reporting/overview', requirePermission(PERMISSIONS.REPORTING_READ),
   }
 })
 
-router.get('/funds/allocation', (_req, res) => ok(res, fundAllocation))
+router.get('/reports', requirePermission(PERMISSIONS.REPORTING_READ), (req, res) => {
+  ok(res, { reports: listReports(req.user.tenantId) })
+})
+
+router.post('/reports/generate', requirePermission(PERMISSIONS.REPORTS_GENERATE), validate(generateReportSchema), async (req, res, next) => {
+  try {
+    const report = await generateReport({
+      corporateTenantId: req.user.tenantId,
+      userId: req.user.sub,
+      ...req.validated,
+      req,
+    })
+    ok(res, report, 'Report generated')
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.get('/reports/:id', requirePermission(PERMISSIONS.REPORTING_READ), (req, res) => {
+  const report = getReport(req.params.id, req.user.tenantId)
+  if (!report) return fail(res, 404, 'Report not found')
+  ok(res, report)
+})
+
+router.post('/reports/:id/submit', requirePermission(PERMISSIONS.REPORTS_GENERATE), (req, res, next) => {
+  try {
+    ok(res, submitReport(req.params.id, req.user.tenantId), 'Report submitted')
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.get('/funds/allocation', requirePermission(PERMISSIONS.FUNDS_READ), (req, res, next) => {
+  try {
+    ok(res, getFundAllocation(req.user.tenantId))
+  } catch (err) {
+    next(err)
+  }
+})
 
 router.get('/volunteers/campaigns', (_req, res) => ok(res, volunteerCampaigns))
 
@@ -289,6 +362,41 @@ router.get('/settings/permission-matrix', requirePermission(PERMISSIONS.SETTINGS
 
 router.get('/communications/threads', (_req, res) => ok(res, communications))
 
-router.get('/copilot/suggestions', (_req, res) => ok(res, { suggestions: copilotSuggestions }))
+router.get('/copilot/suggestions', requirePermission(PERMISSIONS.COPILOT_USE), (req, res) => {
+  ok(res, { suggestions: getCopilotSuggestions(req.user.tenantId) })
+})
+
+router.post('/copilot/chat', requirePermission(PERMISSIONS.COPILOT_USE), validate(copilotChatSchema), async (req, res, next) => {
+  try {
+    const result = await copilotChat(req.user.tenantId, req.validated.message, req.validated.history)
+    ok(res, result)
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/ai/match-ngos', requirePermission(PERMISSIONS.DISCOVERY_READ), validate(matchNgosSchema), async (req, res, next) => {
+  try {
+    ok(res, await matchNgos(req.user.tenantId, req.validated))
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/ai/search', requirePermission(PERMISSIONS.SEARCH_READ), validate(aiSearchSchema), async (req, res, next) => {
+  try {
+    ok(res, await aiSearch(req.user.tenantId, req.validated.query))
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/ai/narrative', requirePermission(PERMISSIONS.REPORTING_READ), validate(narrativeSchema), async (req, res, next) => {
+  try {
+    ok(res, await generateNarrative(req.user.tenantId, req.validated))
+  } catch (err) {
+    next(err)
+  }
+})
 
 export default router

@@ -9,6 +9,8 @@ import { seedTags } from '../services/tags/index.js'
 import { seedWorkflowDefinitions } from '../services/workflow/index.js'
 import { seedProjects } from '../services/projects/seed.js'
 import { seedImpact } from '../services/impact/seed.js'
+import { seedReports } from '../services/reports/seed.js'
+import { seedComplianceProfile } from '../services/compliance/index.js'
 import { seedNgos } from '../services/ngo/seed.js'
 
 const SEED_PASSWORD = 'Demo@12345'
@@ -166,6 +168,13 @@ export async function runSeed() {
 
   console.log('\n=== Seeding impact data ===\n')
   seedImpact()
+
+  console.log('\n=== Seeding compliance profile ===\n')
+  const acmeTenant = tenantByEmail['admin@acme.com']
+  if (acmeTenant) seedComplianceProfile(acmeTenant)
+
+  console.log('\n=== Seeding demo reports ===\n')
+  await seedReports()
 
   console.log('\n=== Indexing search documents ===\n')
   reindexAll()

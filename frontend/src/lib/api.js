@@ -58,10 +58,27 @@ export async function apiFetch(path, options = {}, retried = false) {
   return parseResponse(res)
 }
 
+export async function apiDownload(path) {
+  const url = path.startsWith('http') ? path : `${BASE_URL}${path}`
+  const headers = {}
+  const token = getAccessToken()
+  if (token) headers.Authorization = `Bearer ${token}`
+  const res = await fetch(url, { headers })
+  if (res.status === 401 && getAccessToken()) {
+    await refreshAccessToken()
+    return apiDownload(path)
+  }
+  if (!res.ok) {
+    throw new ApiError(`Download failed (${res.status})`, res.status, null)
+  }
+  return res.blob()
+}
+
 export const api = {
   get: (path) => apiFetch(path),
   post: (path, body) => apiFetch(path, { method: 'POST', body }),
   put: (path, body) => apiFetch(path, { method: 'PUT', body }),
   patch: (path, body) => apiFetch(path, { method: 'PATCH', body }),
   delete: (path) => apiFetch(path, { method: 'DELETE' }),
+  download: apiDownload,
 }

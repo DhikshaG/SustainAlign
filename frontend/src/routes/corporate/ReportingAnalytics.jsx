@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Download } from 'lucide-react'
+import { Download, FileText } from 'lucide-react'
 import { PageHeader } from '../../components/corporate/PageHeader'
 import { StatCard } from '../../components/corporate/StatCard'
 import { DataTable } from '../../components/corporate/DataTable'
@@ -9,6 +9,8 @@ import { Alert } from '../../components/ui/Alert'
 import { PieChartCard, BarChartCard, AreaChartCard } from '../../components/corporate/Charts'
 import { formatINR } from '../../data/corporate/dashboard'
 import { fetchReportingOverview } from '../../lib/impact'
+import { generateReport } from '../../lib/reporting'
+import { api } from '../../lib/api'
 
 function downloadCsv(filename, rows) {
   const csv = rows.map((r) => r.join(',')).join('\n')
@@ -24,6 +26,7 @@ function downloadCsv(filename, rows) {
 export default function ReportingAnalytics() {
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
+  const [generating, setGenerating] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -38,6 +41,30 @@ export default function ReportingAnalytics() {
 
   const { impactSummary, sdgMapping, categoryAnalytics, geoAnalytics, budgetUtilization, ngoPerformance } = data
 
+  async function downloadPdf(type) {
+    setGenerating(true)
+    try {
+      const report = await generateReport({
+        type,
+        periodStart: '2025-04-01',
+        periodEnd: '2026-03-31',
+      })
+      if (report.downloadUrl) {
+        const blob = await api.download(report.downloadUrl)
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${type}-report.pdf`
+        a.click()
+        URL.revokeObjectURL(url)
+      }
+    } catch (err) {
+      setError(err.message || 'PDF generation failed')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
   const ngoColumns = [
     { key: 'ngo', label: 'NGO', sortable: true },
     { key: 'score', label: 'Score', sortable: true },
@@ -51,17 +78,22 @@ export default function ReportingAnalytics() {
         title="Reporting & Analytics"
         description="Impact dashboards, SDG mapping, and downloadable CSR reports."
         actions={
-          <Button
-            variant="secondary"
-            onClick={() => downloadCsv('csr-impact-report.csv', [
-              ['Metric', 'Value'],
-              ['Total Beneficiaries', impactSummary.totalBeneficiaries],
-              ['Active Projects', impactSummary.projectsActive],
-              ['SDGs Covered', impactSummary.sdgsCovered],
-            ])}
-          >
-            <Download className="h-4 w-4" /> Download CSV
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="secondary" disabled={generating} onClick={() => downloadPdf('quarterly')}>
+              <FileText className="h-4 w-4" /> {generating ? 'Generating…' : 'PDF Report'}
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => downloadCsv('csr-impact-report.csv', [
+                ['Metric', 'Value'],
+                ['Total Beneficiaries', impactSummary.totalBeneficiaries],
+                ['Active Projects', impactSummary.projectsActive],
+                ['SDGs Covered', impactSummary.sdgsCovered],
+              ])}
+            >
+              <Download className="h-4 w-4" /> Download CSV
+            </Button>
+          </div>
         }
       />
 
