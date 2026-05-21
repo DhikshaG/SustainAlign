@@ -1,8 +1,9 @@
 import { Router } from 'express'
 import { validate } from '../middleware/validate.js'
-import { ok, created } from '../lib/response.js'
+import { ok, created, fail } from '../lib/response.js'
 import { contactSchema, demoBookingSchema } from '../schemas/auth.corporate.js'
-import { blogPosts, ngos, caseStudies, jobs } from '../data/sample.js'
+import { blogPosts, caseStudies, jobs } from '../data/sample.js'
+import { listProfiles, getProfileBySlug } from '../services/ngo/index.js'
 
 const router = Router()
 
@@ -23,10 +24,25 @@ router.get('/blog/:slug', (req, res) => {
   return ok(res, post)
 })
 
-router.get('/ngos', (_req, res) => ok(res, ngos))
+router.get('/ngos', (_req, res) => {
+  const { ngos } = listProfiles({ verifiedOnly: true, audience: 'public' })
+  const cards = ngos.map((n) => ({
+    slug: n.slug,
+    name: n.name,
+    sector: n.sector,
+    region: n.region,
+    verified: n.verified,
+    description: n.description,
+    focusAreas: n.focusAreas,
+    beneficiaries: n.beneficiaries,
+    projects: n.projects,
+  }))
+  return ok(res, cards)
+})
+
 router.get('/ngos/:slug', (req, res) => {
-  const ngo = ngos.find((n) => n.slug === req.params.slug)
-  if (!ngo) return res.status(404).json({ ok: false, message: 'NGO not found' })
+  const ngo = getProfileBySlug(req.params.slug, { audience: 'public', verifiedOnly: true })
+  if (!ngo) return fail(res, 404, 'NGO not found')
   return ok(res, ngo)
 })
 

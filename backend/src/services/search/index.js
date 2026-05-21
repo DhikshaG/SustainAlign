@@ -1,8 +1,8 @@
 import { eq, like, or } from 'drizzle-orm'
 import { db, sqlite } from '../../db/index.js'
-import { searchDocuments, tenants, ngoProfiles } from '../../db/schema.js'
-import { ngos, projects } from '../../data/corporate-sample.js'
-import { ngos as publicNgos } from '../../data/sample.js'
+import { searchDocuments, tenants } from '../../db/schema.js'
+import { projects } from '../../data/corporate-sample.js'
+import { reindexNgo, getProfileByTenantId } from '../ngo/index.js'
 
 const SDG_LABELS = {
   1: 'SDG 1 No Poverty',
@@ -67,26 +67,29 @@ export function reindexAll(tenantId = null) {
   db.delete(searchDocuments).run()
   sqlite.prepare('DELETE FROM search_documents_fts').run()
 
-  for (const ngo of ngos) {
-    indexDocument({
-      tenantId,
-      entityType: 'ngo',
-      entityId: ngo.slug,
-      title: ngo.name,
-      body: `${ngo.region} ${(ngo.csrThemes || []).join(' ')}`,
-      keywords: [...(ngo.csrThemes || []), ...(ngo.sdgs || []).map((s) => `sdg-${s}`), ngo.region],
-    })
-    indexDocument({
-      tenantId,
-      entityType: 'location',
-      entityId: ngo.region.toLowerCase().replace(/\s+/g, '-'),
-      title: ngo.region,
-      body: `NGOs and projects in ${ngo.region}`,
-      keywords: [ngo.region, 'location'],
-    })
-    for (const sdg of ngo.sdgs || []) {
+  const dbTenants = db.select().from(tenants).where(eq(tenants.type, 'ngo')).all()
+  const regions = new Set()
+  const sdgsIndexed = new Set()
+
+  for (const t of dbTenants) {
+    reindexNgo(t.id)
+    const dto = getProfileByTenantId(t.id, 'corporate')
+    if (dto?.region && !regions.has(dto.region)) {
+      regions.add(dto.region)
       indexDocument({
-        tenantId,
+        tenantId: null,
+        entityType: 'location',
+        entityId: dto.region.toLowerCase().replace(/\s+/g, '-'),
+        title: dto.region,
+        body: `NGOs and projects in ${dto.region}`,
+        keywords: [dto.region, 'location'],
+      })
+    }
+    for (const sdg of dto?.sdgs || []) {
+      if (sdgsIndexed.has(sdg)) continue
+      sdgsIndexed.add(sdg)
+      indexDocument({
+        tenantId: null,
         entityType: 'sdg',
         entityId: String(sdg),
         title: SDG_LABELS[sdg] || `SDG ${sdg}`,
@@ -124,30 +127,6 @@ export function reindexAll(tenantId = null) {
     body: 'MCA compliance CSR spend disclosure',
     keywords: ['report', 'section-135', 'compliance'],
   })
-
-  for (const n of publicNgos) {
-    indexDocument({
-      tenantId: null,
-      entityType: 'ngo',
-      entityId: n.slug,
-      title: n.name,
-      body: `${n.sector} ${n.region} ${n.description}`,
-      keywords: [n.sector, n.region, ...(n.focusAreas || [])],
-    })
-  }
-
-  const dbTenants = db.select().from(tenants).where(eq(tenants.type, 'ngo')).all()
-  for (const t of dbTenants) {
-    const profile = db.select().from(ngoProfiles).where(eq(ngoProfiles.tenantId, t.id)).get()
-    indexDocument({
-      tenantId: t.id,
-      entityType: 'ngo',
-      entityId: t.slug,
-      title: t.name,
-      body: profile ? `${profile.registrationNumber} ${profile.sectors}` : '',
-      keywords: profile ? JSON.parse(profile.sectors || '[]') : [],
-    })
-  }
 }
 
 function filterResults(results, { types, tenantId, limit }) {

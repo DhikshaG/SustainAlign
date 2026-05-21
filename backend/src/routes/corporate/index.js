@@ -1,16 +1,13 @@
 import { Router } from 'express'
 import { authenticate, requireRole } from '../../middleware/authenticate.js'
 import { requirePermission } from '../../middleware/permissions.js'
+import { validate } from '../../middleware/validate.js'
 import { PERMISSIONS, getPermissionMatrix } from '../../lib/permissions.js'
-import { ok } from '../../lib/response.js'
-import { db } from '../../db/index.js'
-import { findEntitiesByTags, getEntityTags } from '../../services/tags/index.js'
-import { tenants } from '../../db/schema.js'
-import { eq } from 'drizzle-orm'
+import { ok, fail } from '../../lib/response.js'
+import { listProfiles, getProfileBySlug } from '../../services/ngo/index.js'
+import { discoveryQuerySchema } from '../../schemas/ngo.js'
 import {
   dashboardSummary,
-  filterNgos,
-  getNgo,
   getProject,
   projects,
   complianceSummary,
@@ -30,32 +27,15 @@ router.use(authenticate, requireRole(...CORPORATE_ROLES))
 
 router.get('/dashboard/summary', (_req, res) => ok(res, dashboardSummary))
 
-router.get('/discovery/ngos', (req, res) => {
-  let ngos = filterNgos(req.query)
-  if (req.query.tags) {
-    const slugs = String(req.query.tags).split(',').map((s) => s.trim())
-    const entityIds = findEntitiesByTags('ngo', slugs)
-    const matchedSlugs = new Set()
-    for (const tenantId of entityIds) {
-      const t = db.select().from(tenants).where(eq(tenants.id, tenantId)).get()
-      if (t) matchedSlugs.add(t.slug)
-    }
-    ngos = ngos.filter((n) => matchedSlugs.has(n.slug))
-  }
-  const enriched = ngos.map((n) => {
-    const t = db.select().from(tenants).where(eq(tenants.slug, n.slug)).get()
-    const tags = t ? getEntityTags('ngo', t.id) : []
-    return { ...n, tags: tags.map((tag) => tag.slug) }
-  })
-  ok(res, { ngos: enriched, total: enriched.length })
+router.get('/discovery/ngos', requirePermission(PERMISSIONS.DISCOVERY_READ), validate(discoveryQuerySchema, 'query'), (req, res) => {
+  const result = listProfiles({ ...req.validated, audience: 'corporate' })
+  ok(res, result)
 })
 
-router.get('/ngos/:slug', (req, res) => {
-  const ngo = getNgo(req.params.slug)
-  if (!ngo) return res.status(404).json({ ok: false, message: 'NGO not found' })
-  const t = db.select().from(tenants).where(eq(tenants.slug, req.params.slug)).get()
-  const tags = t ? getEntityTags('ngo', t.id) : []
-  ok(res, { ...ngo, tags: tags.map((tag) => tag.slug) })
+router.get('/ngos/:slug', requirePermission(PERMISSIONS.DISCOVERY_READ), (req, res) => {
+  const ngo = getProfileBySlug(req.params.slug, { audience: 'corporate' })
+  if (!ngo) return fail(res, 404, 'NGO not found')
+  ok(res, ngo)
 })
 
 router.get('/projects', (_req, res) => ok(res, { projects }))
