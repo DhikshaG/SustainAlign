@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real, uniqueIndex } from 'drizzle-orm/sqlite-core'
+import { sqliteTable, text, integer, real, uniqueIndex, index } from 'drizzle-orm/sqlite-core'
 
 export const users = sqliteTable('users', {
   id: text('id').primaryKey(),
@@ -291,5 +291,48 @@ export const corporateNgoInquiries = sqliteTable('corporate_ngo_inquiries', {
   subject: text('subject').notNull(),
   message: text('message').notNull(),
   status: text('status').notNull().default('pending'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+})
+
+export const csrProjects = sqliteTable('csr_projects', {
+  id: text('id').primaryKey(),
+  corporateTenantId: text('corporate_tenant_id').notNull().references(() => tenants.id),
+  ngoTenantId: text('ngo_tenant_id').notNull().references(() => tenants.id),
+  name: text('name').notNull(),
+  description: text('description'),
+  scheduleVii: text('schedule_vii').notNull(),
+  theme: text('theme'),
+  location: text('location'),
+  status: text('status').notNull().default('pending_approval'),
+  budgetInr: integer('budget_inr').notNull(),
+  spentInr: integer('spent_inr').notNull().default(0),
+  startDate: text('start_date').notNull(),
+  endDate: text('end_date').notNull(),
+  progress: integer('progress').notNull().default(0),
+  createdBy: text('created_by').notNull().references(() => users.id),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+}, (table) => [
+  index('csr_projects_corporate_idx').on(table.corporateTenantId),
+  index('csr_projects_ngo_idx').on(table.ngoTenantId),
+  index('csr_projects_status_idx').on(table.status),
+])
+
+export const projectMilestones = sqliteTable('project_milestones', {
+  id: text('id').primaryKey(),
+  projectId: text('project_id').notNull().references(() => csrProjects.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  dueDate: text('due_date').notNull(),
+  status: text('status').notNull().default('pending'),
+  progress: integer('progress').notNull().default(0),
+  sortOrder: integer('sort_order').notNull().default(0),
+  completedAt: integer('completed_at', { mode: 'timestamp' }),
+})
+
+export const projectUpdates = sqliteTable('project_updates', {
+  id: text('id').primaryKey(),
+  projectId: text('project_id').notNull().references(() => csrProjects.id, { onDelete: 'cascade' }),
+  authorUserId: text('author_user_id').notNull().references(() => users.id),
+  body: text('body').notNull(),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 })

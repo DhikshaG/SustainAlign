@@ -50,6 +50,13 @@
       "when": 1780000000000,
       "tag": "0008_corporate_discovery_actions",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1780100000000,
+      "tag": "0009_csr_projects",
+      "breakpoints": true
     }
   ]
 }
