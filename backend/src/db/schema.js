@@ -273,3 +273,23 @@ export const workflowEvents = sqliteTable('workflow_events', {
   comment: text('comment'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 })
+
+export const corporateNgoSaves = sqliteTable('corporate_ngo_saves', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id),
+  ngoTenantId: text('ngo_tenant_id').notNull().references(() => tenants.id),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+}, (table) => [
+  uniqueIndex('corporate_ngo_saves_user_ngo_idx').on(table.userId, table.ngoTenantId),
+])
+
+export const corporateNgoInquiries = sqliteTable('corporate_ngo_inquiries', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id),
+  corporateTenantId: text('corporate_tenant_id').notNull().references(() => tenants.id),
+  ngoTenantId: text('ngo_tenant_id').notNull().references(() => tenants.id),
+  subject: text('subject').notNull(),
+  message: text('message').notNull(),
+  status: text('status').notNull().default('pending'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+})

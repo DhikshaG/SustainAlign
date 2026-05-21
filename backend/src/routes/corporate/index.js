@@ -6,7 +6,14 @@ import { PERMISSIONS, getPermissionMatrix } from '../../lib/permissions.js'
 import { ok, fail } from '../../lib/response.js'
 import { listProfiles, getProfileBySlug } from '../../services/ngo/index.js'
 import { discoveryQuerySchema } from '../../schemas/ngo.js'
+import { contactNgoSchema } from '../../schemas/discovery.js'
 import { getDiscoveryFilterOptions } from '../../services/tags/index.js'
+import {
+  listSavedNgos,
+  saveNgo,
+  unsaveNgo,
+  createNgoInquiry,
+} from '../../services/discovery/index.js'
 import {
   dashboardSummary,
   getProject,
@@ -35,6 +42,41 @@ router.get('/discovery/filters', requirePermission(PERMISSIONS.DISCOVERY_READ), 
 router.get('/discovery/ngos', requirePermission(PERMISSIONS.DISCOVERY_READ), validate(discoveryQuerySchema, 'query'), (req, res) => {
   const result = listProfiles({ ...req.validated, audience: 'corporate' })
   ok(res, result)
+})
+
+router.get('/saved-ngos', requirePermission(PERMISSIONS.DISCOVERY_READ), (req, res) => {
+  ok(res, listSavedNgos(req.user.sub))
+})
+
+router.post('/saved-ngos/:slug', requirePermission(PERMISSIONS.DISCOVERY_READ), (req, res, next) => {
+  try {
+    ok(res, saveNgo(req.user.sub, req.params.slug, req))
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.delete('/saved-ngos/:slug', requirePermission(PERMISSIONS.DISCOVERY_READ), (req, res, next) => {
+  try {
+    ok(res, unsaveNgo(req.user.sub, req.params.slug, req))
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/ngos/:slug/contact', requirePermission(PERMISSIONS.DISCOVERY_READ), validate(contactNgoSchema), (req, res, next) => {
+  try {
+    const result = createNgoInquiry({
+      userId: req.user.sub,
+      corporateTenantId: req.user.tenantId,
+      slug: req.params.slug,
+      subject: req.validated.subject,
+      message: req.validated.message,
+    }, req)
+    ok(res, result, 'Inquiry submitted')
+  } catch (err) {
+    next(err)
+  }
 })
 
 router.get('/ngos/:slug', requirePermission(PERMISSIONS.DISCOVERY_READ), (req, res) => {
