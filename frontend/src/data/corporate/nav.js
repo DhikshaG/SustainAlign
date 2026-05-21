@@ -9,6 +9,7 @@ import {
   Users,
   FileText,
   MessageSquare,
+  ScrollText,
   Settings,
   ClipboardCheck,
   Sparkles,
@@ -109,6 +110,13 @@ export const corporateNavSections = [
         href: CORPORATE_ROUTES.volunteers,
         icon: Users,
         roles: ['super_admin', 'csr_head', 'volunteer'],
+      },
+      {
+        label: 'Audit Trail',
+        href: CORPORATE_ROUTES.auditTrail,
+        icon: ScrollText,
+        roles: ['super_admin', 'csr_head', 'finance', 'compliance', 'board'],
+        permissions: [PERMISSIONS.ACTIVITY_READ],
       },
       {
         label: 'Documents',

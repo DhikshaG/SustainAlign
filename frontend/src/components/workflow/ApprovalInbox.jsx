@@ -90,6 +90,9 @@ export function ApprovalInbox({ onUpdate }) {
                     View project →
                   </Link>
                 )}
+                <Link to={CORPORATE_ROUTES.auditTrail} className="text-xs text-slate-500 hover:underline mt-1 block">
+                  View in audit trail →
+                </Link>
               </div>
               <WorkflowStatusBadge status={item.status} />
             </div>

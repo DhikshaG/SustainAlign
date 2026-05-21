@@ -55,6 +55,7 @@ import VolunteerManagement from './routes/corporate/VolunteerManagement'
 import ApprovalsPage from './routes/corporate/ApprovalsPage'
 import DocumentVault from './routes/corporate/DocumentVault'
 import CommunicationCenter from './routes/corporate/CommunicationCenter'
+import AuditTrail from './routes/corporate/AuditTrail'
 import SettingsPage from './routes/corporate/SettingsPage'
 
 import NgoDashboardHome from './routes/ngo/NgoDashboardHome'
@@ -138,6 +139,7 @@ export default function App() {
             <Route path="documents" element={<DocumentVault />} />
             <Route path="approvals" element={<ApprovalsPage />} />
             <Route path="communications" element={<CommunicationCenter />} />
+            <Route path="audit-trail" element={<AuditTrail />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>
 

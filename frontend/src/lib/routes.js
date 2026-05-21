@@ -42,6 +42,7 @@ export const CORPORATE_ROUTES = {
   volunteers: '/dashboard/volunteers',
   documents: '/dashboard/documents',
   communications: '/dashboard/communications',
+  auditTrail: '/dashboard/audit-trail',
   settings: '/dashboard/settings',
   approvals: '/dashboard/approvals',
 }
