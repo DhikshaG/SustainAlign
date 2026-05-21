@@ -70,6 +70,25 @@ export const demoBookingSchema = z.object({
   notes: z.string().optional(),
 })
 
+export const createProjectSchema = z.object({
+  name: z.string().min(1, 'Project name is required'),
+  scheduleVii: z.string().min(1, 'Schedule VII category is required'),
+  startDate: z.string().min(1, 'Start date is required'),
+  endDate: z.string().min(1, 'End date is required'),
+  ngoSlug: z.string().min(1, 'Select an NGO'),
+  budgetInr: z.coerce.number().int().positive('Budget must be positive'),
+  location: z.string().min(1, 'Location is required'),
+  description: z.string().optional(),
+  theme: z.string().optional(),
+}).refine((d) => d.endDate >= d.startDate, {
+  message: 'End date must be on or after start date',
+  path: ['endDate'],
+})
+
+export const postProjectUpdateSchema = z.object({
+  body: z.string().min(1, 'Update text is required').max(5000),
+})
+
 export const CORPORATE_ROLES = [
   { value: 'csr_head', label: 'CSR Head' },
   { value: 'esg_head', label: 'ESG Head' },
