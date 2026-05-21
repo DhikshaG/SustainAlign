@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { Menu, Leaf, Search, ChevronDown, LogOut } from 'lucide-react'
+import { Menu, Leaf, ChevronDown, LogOut } from 'lucide-react'
 import clsx from 'clsx'
 import { corporateNavSections } from '../../data/corporate/nav'
 import { CORPORATE_ROUTES, ROUTES } from '../../lib/routes'
@@ -9,6 +9,7 @@ import { canAccessNavItem } from '../../lib/corporate/roles'
 import { useAuth } from '../../context/AuthContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import { NotificationBell } from '../notifications/NotificationBell'
+import { GlobalSearch } from '../search/GlobalSearch'
 
 export function CorporateLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -119,15 +120,7 @@ export function CorporateLayout() {
             <Menu className="h-5 w-5" />
           </button>
 
-          <div className="hidden sm:flex flex-1 max-w-md items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-            <Search className="h-4 w-4 text-slate-400" />
-            <input
-              type="search"
-              placeholder="Search projects, NGOs..."
-              className="flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400"
-              readOnly
-            />
-          </div>
+          <GlobalSearch className="hidden sm:flex" />
 
           <div className="flex-1 sm:flex-none" />
 

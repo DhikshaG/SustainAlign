@@ -8,6 +8,7 @@ import { getRole } from '../../lib/auth'
 import { canAccessAdminNavItem } from '../../lib/admin/roles'
 import { useAuth } from '../../context/AuthContext'
 import { NotificationBell } from '../notifications/NotificationBell'
+import { GlobalSearch } from '../search/GlobalSearch'
 
 export function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -76,7 +77,8 @@ export function AdminLayout() {
       <div className="lg:pl-64">
         <header className="sticky top-0 z-20 flex h-16 items-center gap-4 border-b border-slate-200 bg-white px-4 lg:px-6">
           <button type="button" className="lg:hidden p-2 text-slate-600" onClick={() => setSidebarOpen(true)} aria-label="Open menu"><Menu className="h-5 w-5" /></button>
-          <span className="flex-1 text-sm font-medium text-slate-700">SustainAlign Platform</span>
+          <GlobalSearch className="hidden md:flex flex-1 max-w-sm" placeholder="Search platform..." />
+          <span className="flex-1 text-sm font-medium text-slate-700 md:hidden">SustainAlign Platform</span>
           <NotificationBell />
           <div className="relative">
             <button type="button" className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-100" onClick={() => setUserMenuOpen(!userMenuOpen)}>

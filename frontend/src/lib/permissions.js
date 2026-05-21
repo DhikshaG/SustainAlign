@@ -25,6 +25,7 @@ export const PERMISSIONS = {
   NOTIFICATIONS_READ: 'notifications:read',
   ACTIVITY_READ: 'activity:read',
   ACTIVITY_EXPORT: 'activity:export',
+  SEARCH_READ: 'search:read',
   ADMIN_USERS: 'admin:users',
   ADMIN_VERIFY_NGO: 'admin:verify_ngo',
   ADMIN_AUDIT_READ: 'admin:audit:read',
@@ -49,6 +50,8 @@ const ALL_CORPORATE = [
   PERMISSIONS.FILES_DOWNLOAD,
   PERMISSIONS.NOTIFICATIONS_READ,
   PERMISSIONS.ACTIVITY_READ,
+  PERMISSIONS.ACTIVITY_EXPORT,
+  PERMISSIONS.SEARCH_READ,
 ]
 
 const ROLE_PERMISSIONS = {

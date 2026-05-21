@@ -132,3 +132,14 @@ export const activityLogs = sqliteTable('activity_logs', {
   userAgent: text('user_agent'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 })
+
+export const searchDocuments = sqliteTable('search_documents', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id'),
+  entityType: text('entity_type').notNull(),
+  entityId: text('entity_id').notNull(),
+  title: text('title').notNull(),
+  body: text('body'),
+  keywords: text('keywords'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+})

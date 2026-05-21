@@ -21,6 +21,8 @@ sqlite.pragma('foreign_keys = ON')
 
 export const db = drizzle(sqlite, { schema })
 
+export { sqlite }
+
 const migrationsFolder = path.resolve(__dirname, '../../drizzle')
 if (fs.existsSync(migrationsFolder)) {
   migrate(db, { migrationsFolder })

@@ -4,6 +4,7 @@ import { users, tenants, memberships, ngoProfiles, notifications } from './schem
 import { hashPassword } from '../lib/password.js'
 import { newId } from '../lib/ids.js'
 import { createNotification } from '../services/notifications/index.js'
+import { reindexAll } from '../services/search/index.js'
 
 const SEED_PASSWORD = 'Demo@12345'
 
@@ -145,4 +146,8 @@ export async function runSeed() {
   }
 
   console.log(`\n  Password for all seeded accounts: ${SEED_PASSWORD}\n`)
+
+  console.log('=== Indexing search documents ===\n')
+  reindexAll()
+  console.log('  search index built')
 }

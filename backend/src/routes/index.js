@@ -8,6 +8,7 @@ import ngoRoutes from './ngo/index.js'
 import adminRoutes from './admin/index.js'
 import filesRoutes from './files/index.js'
 import notificationsRoutes from './notifications/index.js'
+import searchRoutes from './search/index.js'
 import { activityRouter, adminActivityRouter } from './activity/index.js'
 
 const router = Router()
@@ -22,6 +23,7 @@ router.use('/admin/activity', adminActivityRouter)
 router.use('/files', filesRoutes)
 router.use('/notifications', notificationsRoutes)
 router.use('/activity', activityRouter)
+router.use('/search', searchRoutes)
 router.use('/', publicRoutes)
 
 export default router
