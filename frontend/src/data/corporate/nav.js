@@ -11,6 +11,7 @@ import {
   MessageSquare,
   Settings,
   ClipboardCheck,
+  Sparkles,
 } from 'lucide-react'
 import { CORPORATE_ROUTES } from '../../lib/routes'
 import { PERMISSIONS } from '../../lib/permissions'
@@ -70,6 +71,12 @@ export const corporateNavSections = [
         label: 'Fund Allocation',
         href: CORPORATE_ROUTES.funds,
         icon: Wallet,
+        roles: ['super_admin', 'csr_head', 'finance'],
+      },
+      {
+        label: 'Allocation Intelligence',
+        href: CORPORATE_ROUTES.fundIntelligence,
+        icon: Sparkles,
         roles: ['super_admin', 'csr_head', 'finance'],
       },
       {

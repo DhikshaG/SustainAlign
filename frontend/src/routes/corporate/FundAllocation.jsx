@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { Sparkles } from 'lucide-react'
 import { PageHeader } from '../../components/corporate/PageHeader'
 import { Card } from '../../components/ui/Card'
 import { Alert } from '../../components/ui/Alert'
+import { Button } from '../../components/ui/Button'
 import { PieChartCard } from '../../components/corporate/Charts'
 import { formatINR } from '../../data/corporate/dashboard'
 import { fetchFundAllocation } from '../../lib/compliance'
+import { CORPORATE_ROUTES } from '../../lib/routes'
 
 export default function FundAllocation() {
   const [data, setData] = useState(null)
@@ -31,6 +35,12 @@ export default function FundAllocation() {
       <PageHeader
         title="Fund Allocation"
         description="CSR obligation vs project budgets from live project data."
+        actions={
+          <Button as={Link} to={CORPORATE_ROUTES.fundIntelligence} variant="primary" size="sm">
+            <Sparkles className="h-4 w-4" />
+            Open Allocation Intelligence
+          </Button>
+        }
       />
 
       <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">

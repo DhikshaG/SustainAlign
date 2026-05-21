@@ -49,6 +49,7 @@ import ReportingAnalytics from './routes/corporate/ReportingAnalytics'
 import ReportGenerator from './routes/corporate/ReportGenerator'
 import AiCopilot from './routes/corporate/AiCopilot'
 import FundAllocation from './routes/corporate/FundAllocation'
+import FundIntelligence from './routes/corporate/FundIntelligence'
 import VolunteerManagement from './routes/corporate/VolunteerManagement'
 import ApprovalsPage from './routes/corporate/ApprovalsPage'
 import DocumentVault from './routes/corporate/DocumentVault'
@@ -127,6 +128,7 @@ export default function App() {
             <Route path="reports/generate" element={<ReportGenerator />} />
             <Route path="copilot" element={<AiCopilot />} />
             <Route path="funds" element={<FundAllocation />} />
+            <Route path="funds/intelligence" element={<FundIntelligence />} />
             <Route path="volunteers" element={<VolunteerManagement />} />
             <Route path="documents" element={<DocumentVault />} />
             <Route path="approvals" element={<ApprovalsPage />} />
