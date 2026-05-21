@@ -5,6 +5,7 @@ import { PageHeader } from '../../components/corporate/PageHeader'
 import { StatCard } from '../../components/corporate/StatCard'
 import { ProgressBar } from '../../components/corporate/ProgressBar'
 import { Card } from '../../components/ui/Card'
+import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Alert } from '../../components/ui/Alert'
 import { PieChartCard, AreaChartCard, BarChartCard } from '../../components/corporate/Charts'
@@ -141,10 +142,17 @@ export default function DashboardHome() {
           </h3>
           <div className="grid md:grid-cols-3 gap-4">
             {aiRecommendations.map((rec) => (
-              <div key={rec.id} className="rounded-lg border border-slate-200 p-4">
-                <p className="font-medium text-slate-900 text-sm">{rec.title}</p>
-                <p className="text-sm text-slate-600 mt-1">{rec.body}</p>
-                {rec.cta && (
+              <div key={rec.slug || rec.id} className="rounded-lg border border-slate-200 p-4">
+                <p className="font-medium text-slate-900 text-sm">{rec.name || rec.title}</p>
+                {rec.matchPercent != null && (
+                  <Badge variant="primary" className="mt-1">{rec.matchPercent}% match</Badge>
+                )}
+                <p className="text-sm text-slate-600 mt-2">{rec.reason || rec.body}</p>
+                {rec.slug ? (
+                  <Button as={Link} to={CORPORATE_ROUTES.ngoProfile(rec.slug)} variant="link" size="sm" className="mt-2 p-0">
+                    View NGO profile →
+                  </Button>
+                ) : rec.cta && (
                   <Button as={Link} to={rec.cta.href} variant="link" size="sm" className="mt-2 p-0">
                     {rec.cta.label} →
                   </Button>

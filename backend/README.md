@@ -113,7 +113,34 @@ npm run db:verify-discovery
 | POST | `/api/corporate/ngos/:slug/contact` | Submit contact inquiry (`subject`, `message`) |
 | GET | `/api/corporate/ngos/:slug` | Full NGO profile |
 
-Compare NGOs uses browser `sessionStorage` (no server persistence). AI recommendations are not part of V1.
+Compare NGOs uses browser `sessionStorage` (no server persistence). Use **AI Match** mode on the discovery page for ranked recommendations.
+
+## AI NGO Matching Engine
+
+Deterministic scoring (similarity, geography, budget, past impact, credibility) with optional Ollama rerank and reasons. Pre-fills match criteria from past corporate projects.
+
+```bash
+npm run db:verify-matching
+```
+
+### Scoring dimensions
+
+| Dimension | Weight | Notes |
+|-----------|--------|-------|
+| Similarity | 30% | CSR focus/keywords vs NGO profile and tags |
+| Geography | 20% | State/region/states served |
+| Budget fit | 15% | Adjacent budget tiers scored, not hard-filtered |
+| Past impact | 20% | Partner performance or beneficiaries/projects proxy |
+| Credibility | 15% | Verification, transparency, rating (also returned separately) |
+
+### Matching endpoints (corporate auth)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/corporate/discovery/match-defaults` | Pre-fill from past projects |
+| POST | `/api/corporate/ai/match-ngos` | Rank NGOs — body: `csrFocus`, optional `keywords`, `state`, `sdg`, `theme`, `impact`, `budgetRange` |
+
+Response includes `matchPercent`, `credibilityScore`, `riskScore`, `scoreBreakdown`, and `reason` per match. Dashboard summary returns top 3 as `aiRecommendations`.
 
 ## Step 3 — Project Management V1
 
