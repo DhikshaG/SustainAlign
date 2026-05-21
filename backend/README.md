@@ -20,6 +20,7 @@ npm run db:generate   # after schema changes
 npm run db:migrate    # apply migrations (Step 0: files, notifications, activity_logs)
 npm run db:seed       # dev accounts + 10 NGO profiles (password printed to stdout)
 npm run db:verify-ngo # verify NGO seed data after db:seed
+npm run db:verify-discovery # verify Step 2 discovery filters and actions
 ```
 
 SQLite file: `./data/sustainalign.db` (configurable via `DATABASE_PATH`).
@@ -88,6 +89,30 @@ npm run db:verify-ngo
 | Admin | `GET /api/admin/ngo-verification`, `PATCH /api/admin/ngos/:tenantId/risk` |
 
 Search index is rebuilt during seed (`reindexAll`) so discovery filters and FTS include all NGOs.
+
+## Step 2 — NGO Discovery V1 (no AI)
+
+Classic server-side filtering for corporate users: **State**, **SDG**, **Theme**, **Budget**, **Verified**, **Impact area**, plus text search. Save, compare, contact, and profile view are wired to the API.
+
+```bash
+npm run db:migrate
+npm run db:seed
+npm run db:verify-discovery
+```
+
+### Discovery endpoints (corporate auth)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/corporate/discovery/filters` | Filter option lists from tag taxonomy |
+| GET | `/api/corporate/discovery/ngos` | Filtered list (`state`, `sdg`, `theme`, `impact`, `budgetRange`, `verified`, `q`, `limit`, `offset`) |
+| GET | `/api/corporate/saved-ngos` | Saved NGO profiles for current user |
+| POST | `/api/corporate/saved-ngos/:slug` | Save NGO (idempotent) |
+| DELETE | `/api/corporate/saved-ngos/:slug` | Remove saved NGO |
+| POST | `/api/corporate/ngos/:slug/contact` | Submit contact inquiry (`subject`, `message`) |
+| GET | `/api/corporate/ngos/:slug` | Full NGO profile |
+
+Compare NGOs uses browser `sessionStorage` (no server persistence). AI recommendations are not part of V1.
 
 ## Auth endpoints
 

@@ -10,6 +10,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "node scripts/seed.js",
     "db:verify-ngo": "node scripts/ngo-verify.js",
+    "db:verify-discovery": "node scripts/discovery-verify.js",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {

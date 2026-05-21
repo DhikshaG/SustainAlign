@@ -26,7 +26,34 @@ const THEME_TAG = {
   'Gender Equality': 'sdg-5',
 }
 
-function buildTagSlugs({ sdgs = [], csrThemes = [], region, sector }) {
+const IMPACT_TAG = {
+  Environment: 'climate',
+  'Child Welfare': 'child-welfare',
+  Livelihood: 'livelihood',
+  'Rural Development': 'livelihood',
+  'Women Empowerment': 'livelihood',
+}
+
+function inferImpactFromFocus(focusAreas = []) {
+  const slugs = new Set()
+  for (const area of focusAreas) {
+    const lower = area.toLowerCase()
+    if (lower.includes('climate') || lower.includes('afforestation')) slugs.add('climate')
+    if (lower.includes('water') || lower.includes('sanitation')) slugs.add('water-sanitation')
+    if (lower.includes('child')) slugs.add('child-welfare')
+    if (
+      lower.includes('vocational')
+      || lower.includes('agriculture')
+      || lower.includes('micro-enterprise')
+      || lower.includes('livelihood')
+    ) {
+      slugs.add('livelihood')
+    }
+  }
+  return [...slugs]
+}
+
+function buildTagSlugs({ sdgs = [], csrThemes = [], region, sector, focusAreas = [] }) {
   const slugs = new Set()
   for (const s of sdgs) slugs.add(`sdg-${s}`)
   if (REGION_TAG[region]) slugs.add(REGION_TAG[region])
@@ -34,6 +61,8 @@ function buildTagSlugs({ sdgs = [], csrThemes = [], region, sector }) {
     if (THEME_TAG[t]) slugs.add(THEME_TAG[t])
   }
   if (THEME_TAG[sector]) slugs.add(THEME_TAG[sector])
+  if (IMPACT_TAG[sector]) slugs.add(IMPACT_TAG[sector])
+  for (const impact of inferImpactFromFocus(focusAreas)) slugs.add(impact)
   return [...slugs]
 }
 

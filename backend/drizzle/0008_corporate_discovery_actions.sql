@@ -1,28 +1,28 @@
--- Step 2: corporate discovery actions (saved NGOs, contact inquiries)
-
-CREATE TABLE IF NOT EXISTS corporate_ngo_saves (
-  id TEXT PRIMARY KEY NOT NULL,
-  user_id TEXT NOT NULL REFERENCES users(id),
-  ngo_tenant_id TEXT NOT NULL REFERENCES tenants(id),
-  created_at INTEGER NOT NULL
+CREATE TABLE `corporate_ngo_saves` (
+	`id` text PRIMARY KEY NOT NULL,
+	`user_id` text NOT NULL,
+	`ngo_tenant_id` text NOT NULL,
+	`created_at` integer NOT NULL,
+	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`ngo_tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE no action
 );
-
-CREATE UNIQUE INDEX IF NOT EXISTS corporate_ngo_saves_user_ngo_idx
-  ON corporate_ngo_saves(user_id, ngo_tenant_id);
-
-CREATE TABLE IF NOT EXISTS corporate_ngo_inquiries (
-  id TEXT PRIMARY KEY NOT NULL,
-  user_id TEXT NOT NULL REFERENCES users(id),
-  corporate_tenant_id TEXT NOT NULL REFERENCES tenants(id),
-  ngo_tenant_id TEXT NOT NULL REFERENCES tenants(id),
-  subject TEXT NOT NULL,
-  message TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'pending',
-  created_at INTEGER NOT NULL
+--> statement-breakpoint
+CREATE UNIQUE INDEX `corporate_ngo_saves_user_ngo_idx` ON `corporate_ngo_saves` (`user_id`,`ngo_tenant_id`);
+--> statement-breakpoint
+CREATE TABLE `corporate_ngo_inquiries` (
+	`id` text PRIMARY KEY NOT NULL,
+	`user_id` text NOT NULL,
+	`corporate_tenant_id` text NOT NULL,
+	`ngo_tenant_id` text NOT NULL,
+	`subject` text NOT NULL,
+	`message` text NOT NULL,
+	`status` text DEFAULT 'pending' NOT NULL,
+	`created_at` integer NOT NULL,
+	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`corporate_tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`ngo_tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE no action
 );
-
-CREATE INDEX IF NOT EXISTS corporate_ngo_inquiries_ngo_idx
-  ON corporate_ngo_inquiries(ngo_tenant_id);
-
-CREATE INDEX IF NOT EXISTS corporate_ngo_inquiries_user_idx
-  ON corporate_ngo_inquiries(user_id);
+--> statement-breakpoint
+CREATE INDEX `corporate_ngo_inquiries_ngo_idx` ON `corporate_ngo_inquiries` (`ngo_tenant_id`);
+--> statement-breakpoint
+CREATE INDEX `corporate_ngo_inquiries_user_idx` ON `corporate_ngo_inquiries` (`user_id`);
