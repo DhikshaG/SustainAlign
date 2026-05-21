@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Download, FileText, RefreshCw, Sparkles } from 'lucide-react'
+import { Download, FileText, RefreshCw, Sparkles, Leaf } from 'lucide-react'
 import { PageHeader } from '../../components/corporate/PageHeader'
 import { StatCard } from '../../components/corporate/StatCard'
 import { DataTable } from '../../components/corporate/DataTable'
@@ -110,7 +110,10 @@ export default function ReportingAnalytics() {
         description="Impact dashboards, SDG mapping, and downloadable CSR reports."
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <Button as={Link} to={CORPORATE_ROUTES.reportGenerator} variant="primary" size="sm">
+            <Button as={Link} to={CORPORATE_ROUTES.esg} variant="primary" size="sm">
+              <Leaf className="h-4 w-4" /> Unified ESG view
+            </Button>
+            <Button as={Link} to={CORPORATE_ROUTES.reportGenerator} variant="secondary" size="sm">
               <Sparkles className="h-4 w-4" /> Report Generator
             </Button>
             {lastUpdatedLabel && (

@@ -38,6 +38,7 @@ export const CORPORATE_ROUTES = {
   copilot: '/dashboard/copilot',
   funds: '/dashboard/funds',
   fundIntelligence: '/dashboard/funds/intelligence',
+  esg: '/dashboard/esg',
   volunteers: '/dashboard/volunteers',
   documents: '/dashboard/documents',
   communications: '/dashboard/communications',

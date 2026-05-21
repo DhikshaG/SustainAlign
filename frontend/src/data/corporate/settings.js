@@ -7,6 +7,7 @@ export const settingsData = {
   ],
   permissions: [
     { module: 'Dashboard', super_admin: true, csr_head: true, esg_head: true, finance: true, compliance: true, volunteer: true, board: true },
+    { module: 'ESG Dashboard', super_admin: true, csr_head: true, esg_head: true, finance: false, compliance: false, volunteer: false, board: true },
     { module: 'NGO Discovery', super_admin: true, csr_head: true, esg_head: true, finance: false, compliance: false, volunteer: false, board: false },
     { module: 'Projects', super_admin: true, csr_head: true, esg_head: true, finance: true, compliance: false, volunteer: false, board: false },
     { module: 'Compliance', super_admin: true, csr_head: true, esg_head: false, finance: true, compliance: true, volunteer: false, board: false },

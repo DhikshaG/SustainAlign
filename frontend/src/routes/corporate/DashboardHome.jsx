@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { Wallet, FolderKanban, ShieldCheck, Calendar, TrendingUp, Sparkles, RefreshCw } from 'lucide-react'
+import { Wallet, FolderKanban, ShieldCheck, Calendar, TrendingUp, Sparkles, RefreshCw, Leaf } from 'lucide-react'
 import { PageHeader } from '../../components/corporate/PageHeader'
 import { StatCard } from '../../components/corporate/StatCard'
 import { ProgressBar } from '../../components/corporate/ProgressBar'
@@ -55,12 +55,18 @@ export default function DashboardHome() {
         title="Dashboard"
         description="Overview of your CSR program, compliance status, and impact."
         actions={
-          lastUpdatedLabel && (
-            <span className="text-xs text-slate-500 flex items-center gap-1">
-              <RefreshCw className={`h-3 w-3 ${liveLoading ? 'animate-spin' : ''}`} />
-              Last updated {lastUpdatedLabel}
-            </span>
-          )
+          <div className="flex flex-wrap items-center gap-2">
+            <Button as={Link} to={CORPORATE_ROUTES.esg} variant="primary" size="sm">
+              <Leaf className="h-4 w-4" />
+              View ESG Dashboard
+            </Button>
+            {lastUpdatedLabel && (
+              <span className="text-xs text-slate-500 flex items-center gap-1">
+                <RefreshCw className={`h-3 w-3 ${liveLoading ? 'animate-spin' : ''}`} />
+                Last updated {lastUpdatedLabel}
+              </span>
+            )}
+          </div>
         }
       />
 

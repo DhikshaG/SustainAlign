@@ -12,6 +12,7 @@ import {
   Settings,
   ClipboardCheck,
   Sparkles,
+  Leaf,
 } from 'lucide-react'
 import { CORPORATE_ROUTES } from '../../lib/routes'
 import { PERMISSIONS } from '../../lib/permissions'
@@ -25,6 +26,12 @@ export const corporateNavSections = [
         href: CORPORATE_ROUTES.home,
         icon: LayoutDashboard,
         roles: ['super_admin', 'csr_head', 'esg_head', 'finance', 'compliance', 'volunteer', 'board'],
+      },
+      {
+        label: 'ESG Dashboard',
+        href: CORPORATE_ROUTES.esg,
+        icon: Leaf,
+        roles: ['super_admin', 'csr_head', 'esg_head', 'board'],
       },
     ],
   },
