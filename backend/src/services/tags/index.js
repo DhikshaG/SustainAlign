@@ -193,6 +193,7 @@ export function setEntityTags({ req, entityType, entityId, tenantId, tagIds, ski
 }
 
 export function findEntitiesByTags(entityType, tagSlugs) {
+  if (!tagSlugs?.length) return []
   const tagRows = db.select().from(tags).where(inArray(tags.slug, tagSlugs)).all()
   if (!tagRows.length) return []
 
@@ -209,4 +210,111 @@ export function findEntitiesByTags(entityType, tagSlugs) {
   return Object.entries(counts)
     .filter(([, count]) => count >= tagSlugs.length)
     .map(([entityId]) => entityId)
+}
+
+/** Each group is OR'd internally; groups are AND'd together. */
+export function findEntitiesByTagGroups(entityType, tagGroups) {
+  const groups = tagGroups.filter((g) => g?.length)
+  if (!groups.length) return null
+
+  let result = null
+  for (const group of groups) {
+    const tagRows = db.select().from(tags).where(inArray(tags.slug, group)).all()
+    if (!tagRows.length) return []
+
+    const tagIds = tagRows.map((t) => t.id)
+    const assignments = db.select().from(entityTags)
+      .where(and(eq(entityTags.entityType, entityType), inArray(entityTags.tagId, tagIds)))
+      .all()
+
+    const entityIds = new Set()
+    const counts = {}
+    for (const a of assignments) {
+      counts[a.entityId] = (counts[a.entityId] || 0) + 1
+    }
+    for (const [entityId, count] of Object.entries(counts)) {
+      if (count >= 1) entityIds.add(entityId)
+    }
+
+    if (result === null) {
+      result = entityIds
+    } else {
+      result = new Set([...result].filter((id) => entityIds.has(id)))
+    }
+  }
+
+  return result ? [...result] : []
+}
+
+export function getDiscoveryFilterOptions() {
+  const states = listTagsByCategory('geography')
+    .filter((t) => t.metadata?.type === 'state')
+    .map((t) => ({ value: t.label, slug: t.slug, label: t.label }))
+
+  const sdgs = listTagsByCategory('sdg').map((t) => ({
+    value: String(t.metadata?.sdg ?? t.slug.replace('sdg-', '')),
+    slug: t.slug,
+    label: t.label,
+  }))
+
+  const themes = listTagsByCategory('ngo_theme').map((t) => ({
+    value: t.slug,
+    slug: t.slug,
+    label: t.label,
+  }))
+
+  const impactAreas = listTagsByCategory('impact').map((t) => ({
+    value: t.slug,
+    slug: t.slug,
+    label: t.label,
+  }))
+
+  return {
+    states: [{ value: 'All', label: 'All states' }, ...states.map((s) => ({ value: s.value, label: s.label }))],
+    sdgs: [{ value: 'all', label: 'All SDGs' }, ...sdgs.map((s) => ({ value: s.value, label: s.label }))],
+    themes: [{ value: 'All', label: 'All themes' }, ...themes.map((t) => ({ value: t.slug, label: t.label }))],
+    impactAreas: [{ value: 'all', label: 'All impact areas' }, ...impactAreas.map((i) => ({ value: i.slug, label: i.label }))],
+    budgetRanges: ['All', 'Under 10L', '10L-25L', '25L-50L', '50L-1Cr', '1Cr+'].map((b) => ({ value: b, label: b === 'All' ? 'All budgets' : b })),
+    verifiedOptions: [
+      { value: 'all', label: 'All NGOs' },
+      { value: 'true', label: 'Verified only' },
+    ],
+  }
+}
+
+const STATE_LABEL_TO_SLUG = {
+  Maharashtra: 'maharashtra',
+  Karnataka: 'karnataka',
+  'Tamil Nadu': 'tamil-nadu',
+  Rajasthan: 'rajasthan',
+  'Delhi NCR': 'delhi-ncr',
+  Bihar: 'bihar',
+  Gujarat: 'gujarat',
+  Kerala: 'kerala',
+  Odisha: 'odisha',
+  'Pan-India': 'pan-india',
+}
+
+export function resolveStateGeographySlug(state) {
+  if (!state || state === 'All') return null
+  if (STATE_LABEL_TO_SLUG[state]) return STATE_LABEL_TO_SLUG[state]
+  const normalized = state.toLowerCase().replace(/\s+/g, '-')
+  const geo = listTagsByCategory('geography').find((t) => t.slug === normalized || t.label.toLowerCase() === state.toLowerCase())
+  return geo?.slug ?? null
+}
+
+export function resolveThemeSlug(theme) {
+  if (!theme || theme === 'All') return null
+  const row = listTagsByCategory('ngo_theme').find(
+    (t) => t.slug === theme || t.label.toLowerCase() === theme.toLowerCase(),
+  )
+  return row?.slug ?? theme.toLowerCase().replace(/\s+/g, '-')
+}
+
+export function resolveImpactSlug(impact) {
+  if (!impact || impact === 'all') return null
+  const row = listTagsByCategory('impact').find(
+    (t) => t.slug === impact || t.label.toLowerCase() === impact.toLowerCase(),
+  )
+  return row?.slug ?? impact
 }

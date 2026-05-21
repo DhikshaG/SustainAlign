@@ -13,9 +13,9 @@ import {
   tags,
 } from '../../db/schema.js'
 import { newId } from '../../lib/ids.js'
-import { getEntityTags, setEntityTags, findEntitiesByTags } from '../tags/index.js'
+import { getEntityTags, setEntityTags, findEntitiesByTagGroups, resolveStateGeographySlug, resolveThemeSlug, resolveImpactSlug } from '../tags/index.js'
 import { logMutation } from '../activity-log/index.js'
-import { indexDocument } from '../search/index.js'
+import { indexDocument, search } from '../search/index.js'
 import { storeFile, listFiles, getFileById } from '../files/index.js'
 import { getStorage } from '../../lib/storage/index.js'
 
@@ -246,8 +246,11 @@ export function getProfileBySlug(slug, { audience = 'corporate', verifiedOnly = 
 export function listProfiles(filters = {}) {
   const {
     location,
+    state,
     verified,
     sdg,
+    theme,
+    impact,
     tags: tagFilter,
     budgetRange,
     orgSize,
@@ -257,6 +260,8 @@ export function listProfiles(filters = {}) {
     verifiedOnly = false,
     audience = 'corporate',
   } = filters
+
+  const stateFilter = state && state !== 'All' ? state : (location && location !== 'All' ? location : null)
 
   let tenantIds = db.select({ id: tenants.id })
     .from(tenants)
@@ -277,12 +282,18 @@ export function listProfiles(filters = {}) {
     })
   }
 
-  if (location && location !== 'All') {
+  if (stateFilter) {
+    const geoSlug = resolveStateGeographySlug(stateFilter)
+    let geoMatched = []
+    if (geoSlug) {
+      geoMatched = findEntitiesByTagGroups('ngo', [[geoSlug]]) || []
+    }
     tenantIds = tenantIds.filter((id) => {
+      if (geoMatched.includes(id)) return true
       const p = db.select().from(ngoProfiles).where(eq(ngoProfiles.tenantId, id)).get()
       const region = p?.region || ''
       const states = parseJson(p?.statesServed)
-      return region === location || states.includes(location)
+      return region === stateFilter || states.includes(stateFilter)
     })
   }
 
@@ -300,31 +311,52 @@ export function listProfiles(filters = {}) {
     })
   }
 
-  const tagSlugs = []
-  if (sdg && sdg !== 'all') tagSlugs.push(`sdg-${sdg}`)
-  if (tagFilter) tagSlugs.push(...String(tagFilter).split(',').map((s) => s.trim()).filter(Boolean))
-  if (tagSlugs.length) {
-    const matched = findEntitiesByTags('ngo', tagSlugs)
+  const tagGroups = []
+  if (sdg && sdg !== 'all') tagGroups.push([`sdg-${sdg}`])
+  const themeSlug = resolveThemeSlug(theme)
+  if (themeSlug) tagGroups.push([themeSlug])
+  const impactSlug = resolveImpactSlug(impact)
+  if (impactSlug) tagGroups.push([impactSlug])
+  if (tagFilter) {
+    const legacyTags = String(tagFilter).split(',').map((s) => s.trim()).filter(Boolean)
+    if (legacyTags.length) tagGroups.push(legacyTags)
+  }
+  if (tagGroups.length) {
+    const matched = findEntitiesByTagGroups('ngo', tagGroups) ?? []
     tenantIds = tenantIds.filter((id) => matched.includes(id))
   }
 
   if (q?.trim()) {
-    const query = q.trim().toLowerCase()
-    tenantIds = tenantIds.filter((id) => {
-      const tenant = db.select().from(tenants).where(eq(tenants.id, id)).get()
-      const p = db.select().from(ngoProfiles).where(eq(ngoProfiles.tenantId, id)).get()
-      return (
-        tenant?.name?.toLowerCase().includes(query)
-        || p?.description?.toLowerCase().includes(query)
-        || p?.region?.toLowerCase().includes(query)
-        || p?.primarySector?.toLowerCase().includes(query)
-      )
-    })
+    const ftsHits = search({ q: q.trim(), types: ['ngo'], limit: 500 })
+    const ftsSlugs = new Set(ftsHits.map((h) => h.entityId))
+    const ftsTenantIds = db.select({ id: tenants.id, slug: tenants.slug })
+      .from(tenants)
+      .where(and(eq(tenants.type, 'ngo'), inArray(tenants.slug, [...ftsSlugs])))
+      .all()
+      .map((r) => r.id)
+    const ftsSet = new Set(ftsTenantIds)
+
+    if (ftsSet.size > 0) {
+      tenantIds = tenantIds.filter((id) => ftsSet.has(id))
+    } else {
+      const query = q.trim().toLowerCase()
+      tenantIds = tenantIds.filter((id) => {
+        const tenant = db.select().from(tenants).where(eq(tenants.id, id)).get()
+        const p = db.select().from(ngoProfiles).where(eq(ngoProfiles.tenantId, id)).get()
+        return (
+          tenant?.name?.toLowerCase().includes(query)
+          || p?.description?.toLowerCase().includes(query)
+          || p?.region?.toLowerCase().includes(query)
+          || p?.primarySector?.toLowerCase().includes(query)
+        )
+      })
+    }
   }
 
+  const total = tenantIds.length
   const slice = tenantIds.slice(Number(offset), Number(offset) + Number(limit))
   const ngos = slice.map((id) => loadFullProfile(id, audience)).filter(Boolean)
-  return { ngos, total: tenantIds.length }
+  return { ngos, total, limit: Number(limit), offset: Number(offset) }
 }
 
 export function reindexNgo(tenantId) {

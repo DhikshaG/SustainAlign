@@ -73,15 +73,18 @@ export const certificationSchema = z.object({
 })
 
 export const discoveryQuerySchema = z.object({
+  state: z.string().optional(),
   location: z.string().optional(),
-  verified: z.string().optional(),
-  sdg: z.string().optional(),
+  verified: z.enum(['true', 'false', 'all']).optional(),
+  sdg: z.enum(['all', '1', '3', '4', '5', '6', '8', '10', '13', '15']).optional(),
+  theme: z.string().optional(),
+  impact: z.enum(['all', 'climate', 'livelihood', 'child-welfare', 'water-sanitation']).optional(),
   tags: z.string().optional(),
-  budgetRange: z.string().optional(),
-  orgSize: z.string().optional(),
-  q: z.string().optional(),
-  limit: z.coerce.number().optional(),
-  offset: z.coerce.number().optional(),
+  budgetRange: z.enum(['All', 'Under 10L', '10L-25L', '25L-50L', '50L-1Cr', '1Cr+']).optional(),
+  orgSize: z.enum(['all', 'small', 'medium', 'large']).optional(),
+  q: z.string().max(200).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
 })
 
 export const platformFieldsSchema = z.object({

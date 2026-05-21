@@ -6,6 +6,7 @@ import { PERMISSIONS, getPermissionMatrix } from '../../lib/permissions.js'
 import { ok, fail } from '../../lib/response.js'
 import { listProfiles, getProfileBySlug } from '../../services/ngo/index.js'
 import { discoveryQuerySchema } from '../../schemas/ngo.js'
+import { getDiscoveryFilterOptions } from '../../services/tags/index.js'
 import {
   dashboardSummary,
   getProject,
@@ -26,6 +27,10 @@ const router = Router()
 router.use(authenticate, requireRole(...CORPORATE_ROLES))
 
 router.get('/dashboard/summary', (_req, res) => ok(res, dashboardSummary))
+
+router.get('/discovery/filters', requirePermission(PERMISSIONS.DISCOVERY_READ), (_req, res) => {
+  ok(res, getDiscoveryFilterOptions())
+})
 
 router.get('/discovery/ngos', requirePermission(PERMISSIONS.DISCOVERY_READ), validate(discoveryQuerySchema, 'query'), (req, res) => {
   const result = listProfiles({ ...req.validated, audience: 'corporate' })
