@@ -18,7 +18,8 @@ Server: `http://localhost:3001`
 ```bash
 npm run db:generate   # after schema changes
 npm run db:migrate    # apply migrations (Step 0: files, notifications, activity_logs)
-npm run db:seed       # dev accounts (password printed to stdout)
+npm run db:seed       # dev accounts + 10 NGO profiles (password printed to stdout)
+npm run db:verify-ngo # verify NGO seed data after db:seed
 ```
 
 SQLite file: `./data/sustainalign.db` (configurable via `DATABASE_PATH`).
@@ -67,6 +68,26 @@ SQLite file: `./data/sustainalign.db` (configurable via `DATABASE_PATH`).
 Seeded accounts include `field_officer@greenearth.org` (NGO field officer, projects + beneficiaries only).
 
 Virus scanning is **not** enabled in Step 0.
+
+## Step 1 — NGO Database + Profiles
+
+After migrate + seed, the database includes **10 NGO tenants** with full profiles (team, past projects, impact metrics, tags, platform scores). Eight are verified and appear on the public directory; two remain pending verification.
+
+```bash
+npm run db:seed
+npm run db:verify-ngo
+```
+
+### NGO API highlights
+
+| Audience | Endpoints |
+|----------|-----------|
+| Public | `GET /api/ngos`, `GET /api/ngos/:slug` (verified only) |
+| Corporate | `GET /api/corporate/discovery/ngos`, `GET /api/corporate/ngos/:slug` |
+| NGO portal | `GET/PATCH /api/ngo/profile`, team/projects/metrics/stories/certs/media |
+| Admin | `GET /api/admin/ngo-verification`, `PATCH /api/admin/ngos/:tenantId/risk` |
+
+Search index is rebuilt during seed (`reindexAll`) so discovery filters and FTS include all NGOs.
 
 ## Auth endpoints
 
