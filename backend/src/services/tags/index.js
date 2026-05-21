@@ -12,8 +12,12 @@ const TAXONOMY = [
     tags: [
       { slug: 'education', label: 'Education' },
       { slug: 'healthcare', label: 'Healthcare' },
+      { slug: 'environment', label: 'Environment' },
       { slug: 'women-empowerment', label: 'Women empowerment' },
       { slug: 'rural-development', label: 'Rural development' },
+      { slug: 'livelihood', label: 'Livelihood' },
+      { slug: 'child-welfare', label: 'Child welfare' },
+      { slug: 'disaster-relief', label: 'Disaster relief' },
     ],
   },
   {
@@ -21,9 +25,14 @@ const TAXONOMY = [
     name: 'SDG Tags',
     tags: [
       { slug: 'sdg-1', label: 'SDG 1', metadata: { sdg: 1 } },
+      { slug: 'sdg-3', label: 'SDG 3', metadata: { sdg: 3 } },
       { slug: 'sdg-4', label: 'SDG 4', metadata: { sdg: 4 } },
       { slug: 'sdg-5', label: 'SDG 5', metadata: { sdg: 5 } },
+      { slug: 'sdg-6', label: 'SDG 6', metadata: { sdg: 6 } },
+      { slug: 'sdg-8', label: 'SDG 8', metadata: { sdg: 8 } },
+      { slug: 'sdg-10', label: 'SDG 10', metadata: { sdg: 10 } },
       { slug: 'sdg-13', label: 'SDG 13', metadata: { sdg: 13 } },
+      { slug: 'sdg-15', label: 'SDG 15', metadata: { sdg: 15 } },
     ],
   },
   {
@@ -32,6 +41,14 @@ const TAXONOMY = [
     tags: [
       { slug: 'maharashtra', label: 'Maharashtra', metadata: { type: 'state' } },
       { slug: 'karnataka', label: 'Karnataka', metadata: { type: 'state' } },
+      { slug: 'tamil-nadu', label: 'Tamil Nadu', metadata: { type: 'state' } },
+      { slug: 'rajasthan', label: 'Rajasthan', metadata: { type: 'state' } },
+      { slug: 'delhi-ncr', label: 'Delhi NCR', metadata: { type: 'state' } },
+      { slug: 'bihar', label: 'Bihar', metadata: { type: 'state' } },
+      { slug: 'gujarat', label: 'Gujarat', metadata: { type: 'state' } },
+      { slug: 'kerala', label: 'Kerala', metadata: { type: 'state' } },
+      { slug: 'odisha', label: 'Odisha', metadata: { type: 'state' } },
+      { slug: 'pan-india', label: 'Pan-India', metadata: { type: 'state' } },
       { slug: 'rural', label: 'Rural', metadata: { type: 'settlement' } },
       { slug: 'urban', label: 'Urban', metadata: { type: 'settlement' } },
     ],
@@ -43,6 +60,7 @@ const TAXONOMY = [
       { slug: 'climate', label: 'Climate' },
       { slug: 'livelihood', label: 'Livelihood' },
       { slug: 'child-welfare', label: 'Child welfare' },
+      { slug: 'water-sanitation', label: 'Water & Sanitation' },
     ],
   },
 ]

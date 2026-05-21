@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, uniqueIndex } from 'drizzle-orm/sqlite-core'
+import { sqliteTable, text, integer, real, uniqueIndex } from 'drizzle-orm/sqlite-core'
 
 export const users = sqliteTable('users', {
   id: text('id').primaryKey(),
@@ -78,7 +78,78 @@ export const ngoProfiles = sqliteTable('ngo_profiles', {
   sectors: text('sectors').notNull(),
   verificationStatus: text('verification_status').notNull().default('pending'),
   contactPerson: text('contact_person'),
+  pan: text('pan'),
+  csr1Number: text('csr1_number'),
+  website: text('website'),
+  phone: text('phone'),
+  email: text('email'),
+  description: text('description'),
+  statesServed: text('states_served'),
+  districtsServed: text('districts_served'),
+  settlementType: text('settlement_type'),
+  yearsActive: integer('years_active'),
+  beneficiariesCount: integer('beneficiaries_count'),
+  annualFundingInr: integer('annual_funding_inr'),
+  teamSize: integer('team_size'),
+  projectsCount: integer('projects_count'),
+  budgetRange: text('budget_range'),
+  orgSize: text('org_size'),
+  primarySector: text('primary_sector'),
+  region: text('region'),
+  financialTransparencyScore: integer('financial_transparency_score'),
+  riskScore: integer('risk_score'),
+  rating: real('rating'),
+  reviewCount: integer('review_count'),
+  aiRecommended: integer('ai_recommended', { mode: 'boolean' }).notNull().default(false),
+  logoFileId: text('logo_file_id'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }),
+})
+
+export const ngoTeamMembers = sqliteTable('ngo_team_members', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  name: text('name').notNull(),
+  role: text('role').notNull(),
+  sortOrder: integer('sort_order').notNull().default(0),
+})
+
+export const ngoPastProjects = sqliteTable('ngo_past_projects', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  name: text('name').notNull(),
+  budgetLabel: text('budget_label'),
+  outcome: text('outcome'),
+  completedAt: text('completed_at'),
+  sortOrder: integer('sort_order').notNull().default(0),
+})
+
+export const ngoImpactMetrics = sqliteTable('ngo_impact_metrics', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  metricKey: text('metric_key').notNull(),
+  label: text('label').notNull(),
+  value: text('value').notNull(),
+}, (table) => [
+  uniqueIndex('ngo_impact_metrics_tenant_key_idx').on(table.tenantId, table.metricKey),
+])
+
+export const ngoImpactStories = sqliteTable('ngo_impact_stories', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  title: text('title').notNull(),
+  excerpt: text('excerpt'),
+  publishedAt: text('published_at'),
+  coverFileId: text('cover_file_id'),
+})
+
+export const ngoCertifications = sqliteTable('ngo_certifications', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  name: text('name').notNull(),
+  issuedAt: text('issued_at'),
+  expiresAt: text('expires_at'),
+  status: text('status').notNull().default('active'),
 })
 
 export const ngoDocuments = sqliteTable('ngo_documents', {
