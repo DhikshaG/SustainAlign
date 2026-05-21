@@ -242,6 +242,24 @@ Inputs: project data, KPIs, impact updates, budgets, SDG mappings, NGO impact st
 
 If Ollama is offline, reports still generate with deterministic fallback content (`metadata.offline: true`).
 
+## Step 9 — Fund Allocation Intelligence
+
+Recommendation engine for CSR budget splits: scores underserved districts, proposes theme/district allocations from obligation and live analytics, and ranks fund-aware NGO partners.
+
+```bash
+npm run db:verify-allocation
+npm run db:verify-matching
+```
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/corporate/funds/allocation` | Live obligation, allocated/spent/unallocated, theme rollup |
+| POST | `/api/corporate/funds/intelligence` | Full recommendation DTO — body: `budgetToAllocate`, `scenario` (`baseline`/`balanced`/`aggressive`), `sdgFocus`, `includeAi`, `limit` |
+
+Frontend: `/dashboard/funds/intelligence`
+
+Scoring blends district spend gaps, beneficiary coverage, SDG under-coverage, and NGO presence. Optional Ollama rationale when online.
+
 ## Step 6 — Compliance Automation Engine
 
 Section 135 eligibility (net worth / turnover / net profit OR logic), 2% obligation formula, Schedule VII validation, unspent tracking, alerts, background sync, MCA JSON export.

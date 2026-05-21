@@ -21,6 +21,7 @@ import {
 } from '../../data/corporate-sample.js'
 import { getDashboardSummary, getReportingOverview } from '../../services/dashboard/index.js'
 import { getComplianceSummary, getFundAllocation, updateProfile, acknowledgeAlert, exportMcaCsr2, syncComplianceForTenant } from '../../services/compliance/index.js'
+import { runAllocationIntelligence } from '../../services/allocation/index.js'
 import { deriveDefaultsFromProjects } from '../../services/matching/index.js'
 import { listReports, generateReport, getReport, submitReport, previewReport } from '../../services/reports/index.js'
 import {
@@ -65,6 +66,7 @@ import {
   attachUpdateFilesSchema,
 } from '../../schemas/impact.js'
 import { generateReportSchema, previewReportSchema } from '../../schemas/reports.js'
+import { allocationIntelligenceSchema } from '../../schemas/allocation.js'
 import { updateCsrProfileSchema } from '../../schemas/compliance.js'
 import {
   copilotChatSchema,
@@ -379,6 +381,14 @@ router.post('/reports/:id/submit', requirePermission(PERMISSIONS.REPORTS_GENERAT
 router.get('/funds/allocation', requirePermission(PERMISSIONS.FUNDS_READ), (req, res, next) => {
   try {
     ok(res, getFundAllocation(req.user.tenantId))
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/funds/intelligence', requirePermission(PERMISSIONS.FUNDS_READ), validate(allocationIntelligenceSchema), async (req, res, next) => {
+  try {
+    ok(res, await runAllocationIntelligence(req.user.tenantId, req.validated))
   } catch (err) {
     next(err)
   }
