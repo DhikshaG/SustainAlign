@@ -5,13 +5,15 @@ import { PERMISSIONS } from '../../lib/permissions.js'
 import { ok, fail } from '../../lib/response.js'
 import { logMutation } from '../../services/activity-log/index.js'
 import { createNotification } from '../../services/notifications/index.js'
+import { listVerificationQueue, updatePlatformFields } from '../../services/ngo/index.js'
+import { validate } from '../../middleware/validate.js'
+import { platformFieldsSchema } from '../../schemas/ngo.js'
 import { db } from '../../db/index.js'
 import { ngoProfiles, memberships } from '../../db/schema.js'
 import { eq, and } from 'drizzle-orm'
 import {
   overview,
   users,
-  verificationQueue,
   fraudAlerts,
   analytics,
   supportTickets,
@@ -33,7 +35,7 @@ router.use(authenticate, requireRole('platform_super_admin'), requirePlatformTen
 
 router.get('/overview', (_req, res) => ok(res, overview))
 router.get('/users', (_req, res) => ok(res, { users }))
-router.get('/ngo-verification', (_req, res) => ok(res, { queue: verificationQueue }))
+router.get('/ngo-verification', (_req, res) => ok(res, { queue: listVerificationQueue() }))
 router.get('/fraud/alerts', (_req, res) => ok(res, { alerts: fraudAlerts }))
 router.get('/analytics', (_req, res) => ok(res, analytics))
 router.get('/support/tickets', (_req, res) => ok(res, { tickets: supportTickets }))
@@ -97,6 +99,16 @@ router.post('/ngo-verification/:tenantId/reject', requirePermission(PERMISSIONS.
     })
     return ok(res, { tenantId, status: 'rejected' })
   } catch (err) {
+    next(err)
+  }
+})
+
+router.patch('/ngos/:tenantId/risk', requirePermission(PERMISSIONS.ADMIN_VERIFY_NGO), validate(platformFieldsSchema), (req, res, next) => {
+  try {
+    const profile = updatePlatformFields(req.params.tenantId, req.validated, req)
+    return ok(res, profile, 'Platform fields updated')
+  } catch (err) {
+    if (err.status === 404) return fail(res, 404, err.message)
     next(err)
   }
 })
