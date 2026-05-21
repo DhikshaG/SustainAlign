@@ -1,10 +1,12 @@
 import { aggregateForTenant, getReportingOverview } from '../impact/index.js'
 import { getComplianceSummary } from '../compliance/index.js'
+import { getTopRecommendationsSync } from '../matching/index.js'
 
 export function getDashboardSummary(corporateTenantId) {
   const agg = aggregateForTenant(corporateTenantId)
   let complianceScore = 78
   let deadlines = []
+  let aiRecommendations = []
   try {
     const compliance = getComplianceSummary(corporateTenantId)
     complianceScore = compliance.auditReadiness?.score ?? compliance.complianceScore ?? 78
@@ -18,11 +20,16 @@ export function getDashboardSummary(corporateTenantId) {
   } catch {
     // compliance tables may not exist yet during partial migrations
   }
+  try {
+    aiRecommendations = getTopRecommendationsSync(corporateTenantId, 3)
+  } catch {
+    aiRecommendations = []
+  }
   return {
     ...agg.dashboard,
     complianceScore,
     deadlines,
-    aiRecommendations: [],
+    aiRecommendations,
   }
 }
 

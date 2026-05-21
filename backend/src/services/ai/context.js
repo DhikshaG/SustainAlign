@@ -110,56 +110,14 @@ export async function copilotChat(tenantId, message, history = []) {
   return { reply, offline: false }
 }
 
-export async function matchNgos(tenantId, { goals, state, sdgs = [] }) {
-  const filters = { verified: true, limit: 20 }
-  if (state) filters.state = state
-  if (sdgs?.length) filters.sdg = sdgs[0]
-
-  const { ngos } = listProfiles({ ...filters, audience: 'corporate' })
-
-  const projects = listProjects({ corporateTenantId: tenantId, audience: 'corporate' })
-  const partneredSlugs = new Set(projects.projects.map((p) => p.ngoSlug))
-
-  const candidates = ngos.slice(0, 15).map((n) => ({
-    slug: n.slug,
-    name: n.name,
-    state: n.region,
-    sectors: n.sectors,
-    tags: n.tags?.map((t) => t.label) || [],
-    rating: n.rating,
-    previouslyPartnered: partneredSlugs.has(n.slug),
-  }))
-
-  if (!isAiEnabled()) {
-    return { matches: candidates.slice(0, 5), explanation: 'AI disabled — showing filter results.' }
+export async function matchNgos(tenantId, criteria) {
+  const { runNgoMatch } = await import('../matching/index.js')
+  const normalized = {
+    ...criteria,
+    csrFocus: criteria.csrFocus || criteria.goals,
+    sdg: criteria.sdg || (criteria.sdgs?.length ? criteria.sdgs[0].replace(/^sdg-/, '') : undefined),
   }
-
-  const online = await checkOllamaHealth()
-  const modelReady = online && (await isOllamaModelAvailable())
-  if (!modelReady) {
-    return {
-      matches: candidates.slice(0, 5),
-      explanation: online ? 'Ollama model missing — showing filter results.' : 'Ollama offline — showing filter results.',
-      offline: true,
-    }
-  }
-
-  const prompt = `Goals: ${goals}\nState preference: ${state || 'any'}\nSDGs: ${sdgs.join(', ') || 'any'}\n\nNGO candidates JSON:\n${JSON.stringify(candidates)}\n\nReturn JSON only: {"ranked":[{"slug":"","reason":""}],"summary":""} — top 5 matches.`
-  const raw = await chatWithSystem(
-    'You rank NGOs for CSR partnership. Output valid JSON only.',
-    prompt,
-  )
-
-  try {
-    const parsed = JSON.parse(raw.replace(/```json?\n?/g, '').replace(/```/g, '').trim())
-    const ranked = (parsed.ranked || []).slice(0, 5).map((r) => {
-      const ngo = candidates.find((c) => c.slug === r.slug) || ngos.find((n) => n.slug === r.slug)
-      return { ...ngo, reason: r.reason }
-    }).filter(Boolean)
-    return { matches: ranked, explanation: parsed.summary || '', offline: false }
-  } catch {
-    return { matches: candidates.slice(0, 5), explanation: raw.slice(0, 500), offline: false }
-  }
+  return runNgoMatch(tenantId, normalized)
 }
 
 export async function aiSearch(tenantId, query) {

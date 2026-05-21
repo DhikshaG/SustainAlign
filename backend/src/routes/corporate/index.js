@@ -21,6 +21,7 @@ import {
 } from '../../data/corporate-sample.js'
 import { getDashboardSummary, getReportingOverview } from '../../services/dashboard/index.js'
 import { getComplianceSummary, getFundAllocation, updateProfile, acknowledgeAlert } from '../../services/compliance/index.js'
+import { deriveDefaultsFromProjects } from '../../services/matching/index.js'
 import { listReports, generateReport, getReport, submitReport } from '../../services/reports/index.js'
 import {
   getCopilotSuggestions,
@@ -86,6 +87,10 @@ router.get('/dashboard/summary', requirePermission(PERMISSIONS.PROJECTS_READ), (
 
 router.get('/discovery/filters', requirePermission(PERMISSIONS.DISCOVERY_READ), (_req, res) => {
   ok(res, getDiscoveryFilterOptions())
+})
+
+router.get('/discovery/match-defaults', requirePermission(PERMISSIONS.DISCOVERY_READ), (req, res) => {
+  ok(res, deriveDefaultsFromProjects(req.user.tenantId))
 })
 
 router.get('/discovery/ngos', requirePermission(PERMISSIONS.DISCOVERY_READ), validate(discoveryQuerySchema, 'query'), (req, res) => {

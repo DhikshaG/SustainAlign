@@ -43,6 +43,13 @@ if (modelReady) {
   console.log(`  ℹ Ollama not ready — skipping LLM calls (${hint})`)
   const chat = await copilotChat(acmeMem.tenantId, 'test', [])
   check('Copilot graceful offline', chat.offline === true)
+
+  const match = await matchNgos(acmeMem.tenantId, {
+    csrFocus: 'environment and afforestation in Maharashtra',
+    state: 'Maharashtra',
+    sdg: '15',
+  })
+  check('NGO match offline scoring', match.matches?.length >= 1 && typeof match.matches[0].matchPercent === 'number')
 }
 
 console.log('')
