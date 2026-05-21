@@ -69,6 +69,9 @@ export default function ProjectDetail() {
   const evidence = project.evidence ?? project.files ?? []
   const budget = project.budget ?? project.budgetInr
   const spent = project.spent ?? project.spentInr ?? 0
+  const ben = project.beneficiaries ?? { direct: 0, indirect: 0 }
+  const kpis = project.kpis ?? []
+  const geoUpdates = project.geoUpdates ?? []
 
   async function handlePostUpdate(e) {
     e.preventDefault()
@@ -194,10 +197,19 @@ export default function ProjectDetail() {
         </Card>
 
         <Card>
-          <h3 className="font-semibold text-slate-900 mb-3 flex items-center gap-2"><MapPin className="h-4 w-4" /> Location</h3>
-          <div className="rounded-lg bg-slate-100 h-40 flex items-center justify-center text-slate-500 text-sm">
-            {project.location || 'No location set'}
-          </div>
+          <h3 className="font-semibold text-slate-900 mb-3 flex items-center gap-2"><MapPin className="h-4 w-4" /> Location & Impact</h3>
+          <p className="text-sm text-slate-600 mb-2">{project.location || 'No location set'}</p>
+          <p className="text-sm"><strong>Beneficiaries:</strong> {ben.direct?.toLocaleString()} direct · {ben.indirect?.toLocaleString()} indirect</p>
+          {kpis.length > 0 && (
+            <ul className="mt-3 space-y-1 text-sm text-slate-600">
+              {kpis.slice(0, 4).map((k) => (
+                <li key={k.id}>{k.label}: {k.value}{k.unit ? ` ${k.unit}` : ''}</li>
+              ))}
+            </ul>
+          )}
+          {geoUpdates.length > 0 && (
+            <p className="text-xs text-slate-500 mt-2">Latest geo: {geoUpdates[0].district ? `${geoUpdates[0].district}, ` : ''}{geoUpdates[0].state}</p>
+          )}
         </Card>
       </div>
     </>

@@ -12,6 +12,7 @@
     "db:verify-ngo": "node scripts/ngo-verify.js",
     "db:verify-discovery": "node scripts/discovery-verify.js",
     "db:verify-projects": "node scripts/projects-verify.js",
+    "db:verify-impact": "node scripts/impact-verify.js",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {

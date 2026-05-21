@@ -163,6 +163,27 @@ Create project body: `name`, `scheduleVii`, `startDate`, `endDate`, `ngoSlug`, `
 
 Dashboard, funds allocation, and reporting pages still use static sample data until Step 4+.
 
+## Step 4 — Impact Tracking
+
+Project-level KPIs, beneficiary logs, geo updates, and live dashboard/reporting aggregates.
+
+```bash
+npm run db:migrate
+npm run db:seed
+npm run db:verify-impact
+```
+
+### Impact endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/corporate/dashboard/summary` | Live budget, projects, impact metrics |
+| GET | `/api/corporate/reporting/overview` | SDG, geo, category analytics |
+| POST | `/api/corporate/projects/:id/kpis` | Record KPI |
+| POST | `/api/corporate/projects/:id/beneficiaries` | Log beneficiary counts |
+| POST | `/api/corporate/projects/:id/geo` | Geo update |
+| GET | `/api/ngo/beneficiaries` | NGO beneficiary logs across projects |
+
 ## Auth endpoints
 
 ### Corporate

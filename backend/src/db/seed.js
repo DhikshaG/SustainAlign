@@ -8,6 +8,7 @@ import { reindexAll } from '../services/search/index.js'
 import { seedTags } from '../services/tags/index.js'
 import { seedWorkflowDefinitions } from '../services/workflow/index.js'
 import { seedProjects } from '../services/projects/seed.js'
+import { seedImpact } from '../services/impact/seed.js'
 import { seedNgos } from '../services/ngo/seed.js'
 
 const SEED_PASSWORD = 'Demo@12345'
@@ -162,6 +163,9 @@ export async function runSeed() {
   console.log('\n=== Seeding CSR projects ===\n')
   const projectResult = seedProjects()
   console.log(`  ${projectResult.created} projects seeded (${projectResult.skipped} skipped)`)
+
+  console.log('\n=== Seeding impact data ===\n')
+  seedImpact()
 
   console.log('\n=== Indexing search documents ===\n')
   reindexAll()

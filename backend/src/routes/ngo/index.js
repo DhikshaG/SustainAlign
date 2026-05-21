@@ -10,7 +10,6 @@ import { NGO_ROLES } from '../../lib/permissions.js'
 import {
   dashboardSummary,
   financeSummary,
-  beneficiaries,
 } from '../../data/ngo-sample.js'
 import {
   listProjects,
@@ -19,9 +18,22 @@ import {
   addProjectUpdate,
 } from '../../services/projects/index.js'
 import {
+  addKpi,
+  addBeneficiaryLog,
+  addGeoUpdate,
+  attachFilesToUpdate,
+  listBeneficiaryLogsForNgo,
+} from '../../services/impact/index.js'
+import {
   updateMilestoneSchema,
   createUpdateSchema,
 } from '../../schemas/projects.js'
+import {
+  kpiInputSchema,
+  beneficiaryLogSchema,
+  geoUpdateSchema,
+  attachUpdateFilesSchema,
+} from '../../schemas/impact.js'
 import {
   getProfileByTenantId,
   updateProfile,
@@ -99,8 +111,53 @@ router.post('/projects/:id/updates', requirePermission(PERMISSIONS.PROJECTS_WRIT
     next(err)
   }
 })
+router.get('/beneficiaries', requirePermission(PERMISSIONS.BENEFICIARIES_MANAGE), (req, res) => {
+  ok(res, { logs: listBeneficiaryLogsForNgo(req.user.tenantId) })
+})
+
+router.post('/projects/:id/kpis', requirePermission(PERMISSIONS.PROJECTS_WRITE), validate(kpiInputSchema), (req, res, next) => {
+  try {
+    const kpi = addKpi(req.params.id, req.validated, { ngoTenantId: req.user.tenantId, req })
+    ok(res, kpi, 'KPI recorded')
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/projects/:id/beneficiaries', requirePermission(PERMISSIONS.BENEFICIARIES_MANAGE), validate(beneficiaryLogSchema), (req, res, next) => {
+  try {
+    const result = addBeneficiaryLog(req.params.id, req.validated, {
+      ngoTenantId: req.user.tenantId,
+      userId: req.user.sub,
+      req,
+    })
+    ok(res, result, 'Beneficiary log added')
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/projects/:id/geo', requirePermission(PERMISSIONS.PROJECTS_WRITE), validate(geoUpdateSchema), (req, res, next) => {
+  try {
+    const geo = addGeoUpdate(req.params.id, req.validated, { ngoTenantId: req.user.tenantId, req })
+    ok(res, geo, 'Geo update added')
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/projects/:id/updates/:uid/files', requirePermission(PERMISSIONS.PROJECTS_WRITE), validate(attachUpdateFilesSchema), (req, res, next) => {
+  try {
+    const files = attachFilesToUpdate(req.params.uid, req.validated.fileIds, {
+      ngoTenantId: req.user.tenantId,
+    })
+    ok(res, { files }, 'Files attached')
+  } catch (err) {
+    next(err)
+  }
+})
+
 router.get('/finance/summary', (_req, res) => ok(res, financeSummary))
-router.get('/beneficiaries', (_req, res) => ok(res, beneficiaries))
 
 router.get('/profile', (req, res) => {
   const profile = getProfileByTenantId(req.user.tenantId, 'ngo_admin')

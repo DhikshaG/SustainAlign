@@ -1,79 +1,49 @@
-import { useState } from 'react'
-import { Plus } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { PageHeader } from '../../components/corporate/PageHeader'
 import { StatCard } from '../../components/corporate/StatCard'
-import { DataTable } from '../../components/corporate/DataTable'
 import { Card } from '../../components/ui/Card'
-import { Button } from '../../components/ui/Button'
-import { Input } from '../../components/ui/Input'
-import { Select } from '../../components/ui/Select'
-import { ngoBeneficiaries } from '../../data/ngo/beneficiaries'
+import { Alert } from '../../components/ui/Alert'
+import { fetchNgoBeneficiaryLogs } from '../../lib/impact'
 
 export default function BeneficiaryTracking() {
-  const [toast, setToast] = useState(null)
-  const { summary, records, attendance, surveys, outcomes } = ngoBeneficiaries
+  const [logs, setLogs] = useState([])
+  const [error, setError] = useState(null)
 
-  const attendanceCols = [
-    { key: 'session', label: 'Session', sortable: true },
-    { key: 'date', label: 'Date', sortable: true },
-    { key: 'present', label: 'Present', sortable: true },
-    { key: 'total', label: 'Total', sortable: true },
-    { key: 'rate', label: 'Rate', render: (r) => `${Math.round((r.present / r.total) * 100)}%` },
-  ]
+  useEffect(() => {
+    let active = true
+    fetchNgoBeneficiaryLogs()
+      .then((d) => { if (active) { setLogs(d); setError(null) } })
+      .catch((err) => { if (active) setError(err.message || 'Failed to load beneficiaries') })
+    return () => { active = false }
+  }, [])
+
+  const totalDirect = logs.reduce((s, l) => s + (l.direct || 0), 0)
+  const totalIndirect = logs.reduce((s, l) => s + (l.indirect || 0), 0)
 
   return (
     <>
-      <PageHeader title="Beneficiary Tracking" description="Manage beneficiaries, attendance, surveys, and impact outcomes." />
-      {toast && <div className="fixed bottom-4 right-4 z-50 rounded-lg bg-slate-900 text-white px-4 py-3 text-sm shadow-lg">{toast}</div>}
+      <PageHeader title="Beneficiary Tracking" description="Beneficiary counts logged per CSR project." />
+      {error && <Alert variant="error" className="mb-4">{error}</Alert>}
       <div className="grid sm:grid-cols-3 gap-4 mb-6">
-        <StatCard label="Total Beneficiaries" value={summary.total.toLocaleString()} />
-        <StatCard label="Households" value={summary.households.toLocaleString()} />
-        <StatCard label="Surveys Completed" value={summary.surveysCompleted.toLocaleString()} />
+        <StatCard label="Direct Beneficiaries" value={totalDirect.toLocaleString()} />
+        <StatCard label="Indirect Beneficiaries" value={totalIndirect.toLocaleString()} />
+        <StatCard label="Log Entries" value={logs.length} />
       </div>
-      <Card className="mb-6">
-        <h3 className="font-semibold text-slate-900 mb-4">Add Beneficiary</h3>
-        <form className="grid sm:grid-cols-4 gap-3" onSubmit={(e) => { e.preventDefault(); setToast('Beneficiary added — demo mode'); setTimeout(() => setToast(null), 3000) }}>
-          <Input placeholder="Name / cluster" required />
-          <Select defaultValue="individual"><option value="individual">Individual</option><option value="community">Community</option></Select>
-          <Input placeholder="Count" type="number" required />
-          <Button type="submit"><Plus className="h-4 w-4" /> Add</Button>
-        </form>
-      </Card>
-      <Card className="mb-6">
-        <h3 className="font-semibold text-slate-900 mb-4">Beneficiary Records</h3>
+      <Card>
+        <h3 className="font-semibold text-slate-900 mb-4">Beneficiary Logs</h3>
+        {!logs.length && !error && <p className="text-sm text-slate-500">Loading…</p>}
         <div className="space-y-2">
-          {records.map((r) => (
+          {logs.map((r) => (
             <div key={r.id} className="flex justify-between text-sm py-2 border-b border-slate-100 last:border-0">
-              <div><p className="font-medium">{r.name}</p><p className="text-slate-500">{r.project} · {r.type}</p></div>
-              <span className="font-semibold">{r.count.toLocaleString()}</span>
+              <div>
+                <p className="font-medium">{r.projectName}</p>
+                <p className="text-slate-500">{r.note || '—'} · {r.recordedAt ? new Date(r.recordedAt).toLocaleDateString() : ''}</p>
+              </div>
+              <span className="font-semibold">{(r.direct + r.indirect).toLocaleString()}</span>
             </div>
           ))}
         </div>
       </Card>
-      <Card className="mb-6">
-        <h3 className="font-semibold text-slate-900 mb-4">Attendance Log</h3>
-        <DataTable columns={attendanceCols} data={attendance} keyField="id" />
-      </Card>
-      <div className="grid lg:grid-cols-2 gap-6">
-        <Card>
-          <h3 className="font-semibold text-slate-900 mb-4">Surveys</h3>
-          {surveys.map((s) => (
-            <div key={s.id} className="mb-4 last:mb-0 pb-4 last:pb-0 border-b last:border-0 border-slate-100">
-              <p className="font-medium">{s.title}</p>
-              <p className="text-sm text-slate-500">{s.responses} responses · Avg {s.avgScore}/5 · {s.date}</p>
-            </div>
-          ))}
-        </Card>
-        <Card>
-          <h3 className="font-semibold text-slate-900 mb-4">Impact Outcomes</h3>
-          {outcomes.map((o) => (
-            <div key={o.metric} className="flex justify-between text-sm py-2 border-b border-slate-100 last:border-0">
-              <span className="text-slate-600">{o.metric}</span>
-              <span><strong>{o.value}</strong> <span className="text-slate-400">/ {o.target}</span></span>
-            </div>
-          ))}
-        </Card>
-      </div>
     </>
   )
 }

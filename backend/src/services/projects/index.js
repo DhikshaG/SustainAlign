@@ -13,6 +13,12 @@ import { newId } from '../../lib/ids.js'
 import { logMutation } from '../activity-log/index.js'
 import { indexDocument } from '../search/index.js'
 import { createInstance } from '../workflow/index.js'
+import {
+  getLatestBeneficiaries,
+  listKpis,
+  listGeoUpdates,
+  getUpdateFiles,
+} from '../impact/index.js'
 
 function httpError(message, status) {
   const err = new Error(message)
@@ -181,6 +187,7 @@ function toDetailDto(row, audience) {
     text: u.body,
     body: u.body,
     createdAt: u.createdAt,
+    images: getUpdateFiles(u.id),
   }))
   const evidence = loadProjectFiles(row.id).map((f) => ({
     id: f.id,
@@ -201,7 +208,9 @@ function toDetailDto(row, audience) {
     evidence,
     files: evidence,
     partner: getCorporateTenantName(row.corporateTenantId),
-    beneficiaries: { direct: 0, indirect: 0, added: 0 },
+    beneficiaries: getLatestBeneficiaries(row.id),
+    kpis: listKpis(row.id),
+    geoUpdates: listGeoUpdates(row.id),
     expenses: [],
   }
 }

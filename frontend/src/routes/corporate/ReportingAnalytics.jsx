@@ -1,12 +1,14 @@
+import { useEffect, useState } from 'react'
 import { Download } from 'lucide-react'
 import { PageHeader } from '../../components/corporate/PageHeader'
 import { StatCard } from '../../components/corporate/StatCard'
 import { DataTable } from '../../components/corporate/DataTable'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
+import { Alert } from '../../components/ui/Alert'
 import { PieChartCard, BarChartCard, AreaChartCard } from '../../components/corporate/Charts'
-import { reportingOverview } from '../../data/corporate/reporting'
 import { formatINR } from '../../data/corporate/dashboard'
+import { fetchReportingOverview } from '../../lib/impact'
 
 function downloadCsv(filename, rows) {
   const csv = rows.map((r) => r.join(',')).join('\n')
@@ -20,7 +22,21 @@ function downloadCsv(filename, rows) {
 }
 
 export default function ReportingAnalytics() {
-  const { impactSummary, sdgMapping, categoryAnalytics, geoAnalytics, budgetUtilization, ngoPerformance } = reportingOverview
+  const [data, setData] = useState(null)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    let active = true
+    fetchReportingOverview()
+      .then((d) => { if (active) { setData(d); setError(null) } })
+      .catch((err) => { if (active) setError(err.message || 'Failed to load reporting data') })
+    return () => { active = false }
+  }, [])
+
+  if (error) return <div className="p-6"><Alert variant="error">{error}</Alert></div>
+  if (!data) return <p className="text-sm text-slate-500 p-6">Loading reporting data…</p>
+
+  const { impactSummary, sdgMapping, categoryAnalytics, geoAnalytics, budgetUtilization, ngoPerformance } = data
 
   const ngoColumns = [
     { key: 'ngo', label: 'NGO', sortable: true },
@@ -44,7 +60,7 @@ export default function ReportingAnalytics() {
               ['SDGs Covered', impactSummary.sdgsCovered],
             ])}
           >
-            <Download className="h-4 w-4" /> Download Report
+            <Download className="h-4 w-4" /> Download CSV
           </Button>
         }
       />
@@ -79,8 +95,8 @@ export default function ReportingAnalytics() {
           <h3 className="font-semibold text-slate-900 mb-4">SDG Mapping</h3>
           <ul className="space-y-2 max-h-64 overflow-y-auto">
             {sdgMapping.map((s) => (
-              <li key={s.sdg} className="flex items-center justify-between text-sm py-2 border-b border-slate-100 last:border-0">
-                <span className="text-slate-700"><strong>SDG {s.sdg}</strong> — {s.label}</span>
+              <li key={s.sdg} className="flex justify-between text-sm py-2 border-b border-slate-100 last:border-0">
+                <span>SDG {s.sdg}: {s.label}</span>
                 <span className="text-slate-500">{s.projects} projects · {formatINR(s.spend)}</span>
               </li>
             ))}

@@ -15,15 +15,21 @@ import {
   createNgoInquiry,
 } from '../../services/discovery/index.js'
 import {
-  dashboardSummary,
-  complianceSummary,
-  reportingOverview,
-  fundAllocation,
   volunteerCampaigns,
   documents,
   communications,
   copilotSuggestions,
+  complianceSummary,
+  reportingOverview,
+  fundAllocation,
 } from '../../data/corporate-sample.js'
+import { getDashboardSummary, getReportingOverview } from '../../services/dashboard/index.js'
+import {
+  addKpi,
+  addBeneficiaryLog,
+  addGeoUpdate,
+  attachFilesToUpdate,
+} from '../../services/impact/index.js'
 import {
   listProjects,
   getProject,
@@ -44,6 +50,12 @@ import {
   createUpdateSchema,
   updateSpentSchema,
 } from '../../schemas/projects.js'
+import {
+  kpiInputSchema,
+  beneficiaryLogSchema,
+  geoUpdateSchema,
+  attachUpdateFilesSchema,
+} from '../../schemas/impact.js'
 
 const CORPORATE_ROLES = ['super_admin', 'csr_head', 'esg_head', 'finance', 'compliance', 'volunteer', 'board']
 
@@ -51,7 +63,13 @@ const router = Router()
 
 router.use(authenticate, requireRole(...CORPORATE_ROLES))
 
-router.get('/dashboard/summary', (_req, res) => ok(res, dashboardSummary))
+router.get('/dashboard/summary', requirePermission(PERMISSIONS.PROJECTS_READ), (req, res, next) => {
+  try {
+    ok(res, getDashboardSummary(req.user.tenantId))
+  } catch (err) {
+    next(err)
+  }
+})
 
 router.get('/discovery/filters', requirePermission(PERMISSIONS.DISCOVERY_READ), (_req, res) => {
   ok(res, getDiscoveryFilterOptions())
@@ -195,6 +213,48 @@ router.post('/projects/:id/updates', requirePermission(PERMISSIONS.PROJECTS_WRIT
   }
 })
 
+router.post('/projects/:id/updates/:uid/files', requirePermission(PERMISSIONS.PROJECTS_WRITE), validate(attachUpdateFilesSchema), (req, res, next) => {
+  try {
+    const files = attachFilesToUpdate(req.params.uid, req.validated.fileIds, {
+      corporateTenantId: req.user.tenantId,
+    })
+    ok(res, { files }, 'Files attached')
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/projects/:id/kpis', requirePermission(PERMISSIONS.IMPACT_WRITE), validate(kpiInputSchema), (req, res, next) => {
+  try {
+    const kpi = addKpi(req.params.id, req.validated, { corporateTenantId: req.user.tenantId, req })
+    ok(res, kpi, 'KPI recorded')
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/projects/:id/beneficiaries', requirePermission(PERMISSIONS.IMPACT_WRITE), validate(beneficiaryLogSchema), (req, res, next) => {
+  try {
+    const result = addBeneficiaryLog(req.params.id, req.validated, {
+      corporateTenantId: req.user.tenantId,
+      userId: req.user.sub,
+      req,
+    })
+    ok(res, result, 'Beneficiary log added')
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/projects/:id/geo', requirePermission(PERMISSIONS.IMPACT_WRITE), validate(geoUpdateSchema), (req, res, next) => {
+  try {
+    const geo = addGeoUpdate(req.params.id, req.validated, { corporateTenantId: req.user.tenantId, req })
+    ok(res, geo, 'Geo update added')
+  } catch (err) {
+    next(err)
+  }
+})
+
 router.patch('/projects/:id/spent', requirePermission(PERMISSIONS.FUNDS_READ), validate(updateSpentSchema), (req, res, next) => {
   try {
     const project = updateProjectSpent(req.params.id, req.validated.spentInr, {
@@ -209,7 +269,13 @@ router.patch('/projects/:id/spent', requirePermission(PERMISSIONS.FUNDS_READ), v
 
 router.get('/compliance/summary', requirePermission(PERMISSIONS.COMPLIANCE_READ), (_req, res) => ok(res, complianceSummary))
 
-router.get('/reporting/overview', (_req, res) => ok(res, reportingOverview))
+router.get('/reporting/overview', requirePermission(PERMISSIONS.REPORTING_READ), (req, res, next) => {
+  try {
+    ok(res, getReportingOverview(req.user.tenantId))
+  } catch (err) {
+    next(err)
+  }
+})
 
 router.get('/funds/allocation', (_req, res) => ok(res, fundAllocation))
 

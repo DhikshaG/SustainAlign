@@ -303,6 +303,7 @@ export const csrProjects = sqliteTable('csr_projects', {
   scheduleVii: text('schedule_vii').notNull(),
   theme: text('theme'),
   location: text('location'),
+  state: text('state'),
   status: text('status').notNull().default('pending_approval'),
   budgetInr: integer('budget_inr').notNull(),
   spentInr: integer('spent_inr').notNull().default(0),
@@ -336,3 +337,97 @@ export const projectUpdates = sqliteTable('project_updates', {
   body: text('body').notNull(),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 })
+
+export const projectKpis = sqliteTable('project_kpis', {
+  id: text('id').primaryKey(),
+  projectId: text('project_id').notNull().references(() => csrProjects.id, { onDelete: 'cascade' }),
+  metricKey: text('metric_key').notNull(),
+  label: text('label').notNull(),
+  value: text('value').notNull(),
+  unit: text('unit'),
+  recordedAt: integer('recorded_at', { mode: 'timestamp' }).notNull(),
+}, (table) => [
+  index('project_kpis_project_idx').on(table.projectId),
+])
+
+export const projectBeneficiaryLogs = sqliteTable('project_beneficiary_logs', {
+  id: text('id').primaryKey(),
+  projectId: text('project_id').notNull().references(() => csrProjects.id, { onDelete: 'cascade' }),
+  directCount: integer('direct_count').notNull().default(0),
+  indirectCount: integer('indirect_count').notNull().default(0),
+  note: text('note'),
+  recordedAt: integer('recorded_at', { mode: 'timestamp' }).notNull(),
+  recordedBy: text('recorded_by').references(() => users.id),
+}, (table) => [
+  index('project_beneficiary_logs_project_idx').on(table.projectId),
+])
+
+export const projectGeoUpdates = sqliteTable('project_geo_updates', {
+  id: text('id').primaryKey(),
+  projectId: text('project_id').notNull().references(() => csrProjects.id, { onDelete: 'cascade' }),
+  state: text('state').notNull(),
+  district: text('district'),
+  lat: real('lat'),
+  lng: real('lng'),
+  note: text('note'),
+  effectiveDate: text('effective_date').notNull(),
+}, (table) => [
+  index('project_geo_updates_project_idx').on(table.projectId),
+])
+
+export const projectUpdateFiles = sqliteTable('project_update_files', {
+  id: text('id').primaryKey(),
+  updateId: text('update_id').notNull().references(() => projectUpdates.id, { onDelete: 'cascade' }),
+  fileId: text('file_id').notNull().references(() => files.id, { onDelete: 'cascade' }),
+}, (table) => [
+  uniqueIndex('project_update_files_update_file_idx').on(table.updateId, table.fileId),
+])
+
+export const reports = sqliteTable('reports', {
+  id: text('id').primaryKey(),
+  corporateTenantId: text('corporate_tenant_id').notNull().references(() => tenants.id),
+  type: text('type').notNull(),
+  title: text('title').notNull(),
+  periodStart: text('period_start').notNull(),
+  periodEnd: text('period_end').notNull(),
+  status: text('status').notNull().default('draft'),
+  fileId: text('file_id').references(() => files.id),
+  metadataJson: text('metadata_json'),
+  createdBy: text('created_by').notNull().references(() => users.id),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+}, (table) => [
+  index('reports_corporate_idx').on(table.corporateTenantId),
+])
+
+export const corporateCsrProfile = sqliteTable('corporate_csr_profile', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  fyLabel: text('fy_label').notNull(),
+  netProfitInr: integer('net_profit_inr').notNull().default(0),
+  turnoverInr: integer('turnover_inr').notNull().default(0),
+  netWorthInr: integer('net_worth_inr').notNull().default(0),
+  adminCapPct: real('admin_cap_pct').notNull().default(5),
+  localAreaTargetPct: real('local_area_target_pct').notNull().default(70),
+  carryForwardInr: integer('carry_forward_inr').notNull().default(0),
+  obligationThresholdInr: integer('obligation_threshold_inr').notNull().default(50000000),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+}, (table) => [
+  uniqueIndex('corporate_csr_profile_tenant_fy_idx').on(table.tenantId, table.fyLabel),
+])
+
+export const complianceAlerts = sqliteTable('compliance_alerts', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  level: text('level').notNull(),
+  ruleKey: text('rule_key').notNull(),
+  message: text('message').notNull(),
+  dueDate: text('due_date'),
+  entityType: text('entity_type'),
+  entityId: text('entity_id'),
+  acknowledgedAt: integer('acknowledged_at', { mode: 'timestamp' }),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+}, (table) => [
+  index('compliance_alerts_tenant_idx').on(table.tenantId),
+])
