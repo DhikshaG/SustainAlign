@@ -12,6 +12,13 @@ import searchRoutes from './search/index.js'
 import { activityRouter, adminActivityRouter } from './activity/index.js'
 import { tagsRouter, entityTagsRouter } from './tags/index.js'
 import workflowRoutes, { ngoReportsRouter } from './workflows/index.js'
+import { authenticate } from '../middleware/authenticate.js'
+import { requirePermission } from '../middleware/permissions.js'
+import { validate } from '../middleware/validate.js'
+import { ok } from '../lib/response.js'
+import { PERMISSIONS } from '../lib/permissions.js'
+import { auditQuerySchema } from '../schemas/audit.js'
+import { getAuditTrail } from '../services/audit/index.js'
 
 const router = Router()
 
@@ -30,6 +37,9 @@ router.use('/search', searchRoutes)
 router.use('/tags', tagsRouter)
 router.use('/entities', entityTagsRouter)
 router.use('/workflows', workflowRoutes)
+router.get('/audit-trail', authenticate, requirePermission(PERMISSIONS.ACTIVITY_READ), validate(auditQuerySchema, 'query'), (req, res) => {
+  ok(res, { trail: getAuditTrail(req.user.tenantId, req.validated) })
+})
 router.use('/', publicRoutes)
 
 export default router

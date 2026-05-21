@@ -20,6 +20,7 @@
     "db:verify-allocation": "node scripts/allocation-verify.js",
     "db:verify-esg": "node scripts/esg-verify.js",
     "db:verify-crm": "node scripts/crm-verify.js",
+    "db:verify-audit": "node scripts/audit-verify.js",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {

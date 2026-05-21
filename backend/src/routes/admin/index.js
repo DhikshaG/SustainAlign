@@ -1,12 +1,14 @@
 import { Router } from 'express'
 import { authenticate, requireRole } from '../../middleware/authenticate.js'
 import { requirePermission } from '../../middleware/permissions.js'
-import { PERMISSIONS } from '../../lib/permissions.js'
+import { validate } from '../../middleware/validate.js'
 import { ok, fail } from '../../lib/response.js'
+import { PERMISSIONS } from '../../lib/permissions.js'
+import { auditQuerySchema } from '../../schemas/audit.js'
+import { getAuditTrail, getComplianceAuditSummary } from '../../services/audit/index.js'
 import { logMutation } from '../../services/activity-log/index.js'
 import { createNotification } from '../../services/notifications/index.js'
 import { listVerificationQueue, updatePlatformFields } from '../../services/ngo/index.js'
-import { validate } from '../../middleware/validate.js'
 import { platformFieldsSchema } from '../../schemas/ngo.js'
 import { db } from '../../db/index.js'
 import { ngoProfiles, memberships } from '../../db/schema.js'
@@ -40,6 +42,17 @@ router.get('/fraud/alerts', (_req, res) => ok(res, { alerts: fraudAlerts }))
 router.get('/analytics', (_req, res) => ok(res, analytics))
 router.get('/support/tickets', (_req, res) => ok(res, { tickets: supportTickets }))
 router.get('/compliance', (_req, res) => ok(res, { records: compliance }))
+
+router.get('/audit/trail', requirePermission(PERMISSIONS.ADMIN_AUDIT_READ), validate(auditQuerySchema, 'query'), (req, res) => {
+  ok(res, { trail: getAuditTrail(null, { ...req.validated, crossTenant: true, filterTenantId: req.validated.tenantId }) })
+})
+
+router.get('/audit/summary', requirePermission(PERMISSIONS.ADMIN_AUDIT_READ), (req, res) => {
+  const tenantId = req.query.tenantId
+  if (!tenantId) return ok(res, { message: 'Provide tenantId query param' })
+  ok(res, getComplianceAuditSummary(String(tenantId)))
+})
+
 router.get('/ai-monitoring', (_req, res) => ok(res, aiMonitoring))
 router.get('/content/moderation', (_req, res) => ok(res, { items: contentModeration }))
 

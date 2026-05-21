@@ -16,8 +16,15 @@ import {
 } from '../../services/discovery/index.js'
 import {
   volunteerCampaigns,
-  documents,
 } from '../../data/corporate-sample.js'
+import { getAuditTrail, getAuditFolderTree, buildAuditPackage, getComplianceAuditSummary } from '../../services/audit/index.js'
+import { listDocumentsGrouped, listFileVersions, createFileVersion } from '../../services/files/index.js'
+import { auditQuerySchema, auditExportSchema, fileVersionSchema } from '../../schemas/audit.js'
+import multer from 'multer'
+import { env } from '../../config/env.js'
+import { db } from '../../db/index.js'
+import { tenants } from '../../db/schema.js'
+import { eq } from 'drizzle-orm'
 import { getDashboardSummary, getReportingOverview } from '../../services/dashboard/index.js'
 import { getComplianceSummary, getFundAllocation, updateProfile, acknowledgeAlert, exportMcaCsr2, syncComplianceForTenant } from '../../services/compliance/index.js'
 import { runAllocationIntelligence } from '../../services/allocation/index.js'
@@ -93,6 +100,11 @@ import {
 } from '../../schemas/ai.js'
 
 const CORPORATE_ROLES = ['super_admin', 'csr_head', 'esg_head', 'finance', 'compliance', 'volunteer', 'board']
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: env.MAX_FILE_SIZE_MB * 1024 * 1024 },
+})
 
 const router = Router()
 
@@ -316,7 +328,7 @@ router.get('/compliance/summary', requirePermission(PERMISSIONS.COMPLIANCE_READ)
 
 router.patch('/compliance/profile', requirePermission(PERMISSIONS.COMPLIANCE_WRITE), validate(updateCsrProfileSchema), (req, res, next) => {
   try {
-    ok(res, updateProfile(req.user.tenantId, req.validated), 'Profile updated')
+    ok(res, updateProfile(req.user.tenantId, req.validated, undefined, req), 'Profile updated')
   } catch (err) {
     next(err)
   }
@@ -324,7 +336,7 @@ router.patch('/compliance/profile', requirePermission(PERMISSIONS.COMPLIANCE_WRI
 
 router.patch('/compliance/alerts/:id/acknowledge', requirePermission(PERMISSIONS.COMPLIANCE_READ), (req, res, next) => {
   try {
-    ok(res, acknowledgeAlert(req.params.id, req.user.tenantId), 'Alert acknowledged')
+    ok(res, acknowledgeAlert(req.params.id, req.user.tenantId, req), 'Alert acknowledged')
   } catch (err) {
     next(err)
   }
@@ -397,7 +409,7 @@ router.get('/reports/:id', requirePermission(PERMISSIONS.REPORTING_READ), (req, 
 
 router.post('/reports/:id/submit', requirePermission(PERMISSIONS.REPORTS_GENERATE), (req, res, next) => {
   try {
-    ok(res, submitReport(req.params.id, req.user.tenantId), 'Report submitted')
+    ok(res, submitReport(req.params.id, req.user.tenantId, req), 'Report submitted')
   } catch (err) {
     next(err)
   }
@@ -421,7 +433,50 @@ router.post('/funds/intelligence', requirePermission(PERMISSIONS.FUNDS_READ), va
 
 router.get('/volunteers/campaigns', (_req, res) => ok(res, volunteerCampaigns))
 
-router.get('/documents', requirePermission(PERMISSIONS.DOCUMENTS_READ), (_req, res) => ok(res, documents))
+router.get('/audit/trail', requirePermission(PERMISSIONS.ACTIVITY_READ), validate(auditQuerySchema, 'query'), (req, res) => {
+  ok(res, { trail: getAuditTrail(req.user.tenantId, req.validated) })
+})
+
+router.get('/audit/folders', requirePermission(PERMISSIONS.ACTIVITY_READ), validate(auditQuerySchema, 'query'), (req, res) => {
+  ok(res, { folders: getAuditFolderTree(req.user.tenantId, req.validated) })
+})
+
+router.post('/audit/export', requirePermission(PERMISSIONS.ACTIVITY_EXPORT), validate(auditExportSchema), async (req, res, next) => {
+  try {
+    const { buffer, fileName } = await buildAuditPackage(req.user.tenantId, req.validated, req)
+    res.setHeader('Content-Type', 'application/zip')
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`)
+    res.send(buffer)
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.get('/documents', requirePermission(PERMISSIONS.DOCUMENTS_READ), (req, res) => {
+  ok(res, listDocumentsGrouped(req.user.tenantId))
+})
+
+router.get('/files/:id/versions', requirePermission(PERMISSIONS.FILES_DOWNLOAD), (req, res) => {
+  ok(res, { versions: listFileVersions(req.params.id, req.user.tenantId) })
+})
+
+router.post('/files/:id/versions', requirePermission(PERMISSIONS.FILES_UPLOAD), upload.single('file'), validate(fileVersionSchema), async (req, res, next) => {
+  try {
+    if (!req.file) return fail(res, 400, 'No file provided')
+    const tenant = db.select().from(tenants).where(eq(tenants.id, req.user.tenantId)).get()
+    const updated = await createFileVersion(req.params.id, {
+      buffer: req.file.buffer,
+      uploadedBy: req.user.sub,
+      tenantId: req.user.tenantId,
+      tenantType: tenant?.type || 'corporate',
+      changeNote: req.validated?.changeNote,
+      req,
+    })
+    ok(res, updated, 'Version created')
+  } catch (err) {
+    next(err)
+  }
+})
 
 router.get('/settings/permission-matrix', requirePermission(PERMISSIONS.SETTINGS_MANAGE), (_req, res) => {
   ok(res, { matrix: getPermissionMatrix() })

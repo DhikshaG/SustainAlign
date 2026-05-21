@@ -299,6 +299,25 @@ npm run db:verify-projects
 
 Corporate project approval → `pending_ngo` → NGO accept → `active`. Milestone submissions use `milestone_approval` workflow.
 
+## Step 12 — Audit & Transparency
+
+Immutable activity logs, file checksums/versioning, auto-organized audit paths, folder tree API, and audit package export.
+
+```bash
+npm run db:verify-audit
+```
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/corporate/audit/trail` | Filterable audit trail (uploads, approvals, payments, edits) |
+| GET | `/api/corporate/audit/folders` | FY → project → category folder tree |
+| POST | `/api/corporate/audit/export` | ZIP audit package (documents + manifest + activity JSON) |
+| GET | `/api/corporate/documents` | Live document list grouped by category |
+| GET | `/api/audit-trail` | README alias for corporate audit trail |
+| GET | `/api/admin/audit/trail` | Cross-tenant audit trail (platform admin) |
+
+`activity_logs` and `workflow_events` are protected by SQLite triggers (no UPDATE/DELETE). File uploads store SHA-256 checksums and computed `audit_path`.
+
 ## Step 6 — Compliance Automation Engine
 
 Section 135 eligibility (net worth / turnover / net profit OR logic), 2% obligation formula, Schedule VII validation, unspent tracking, alerts, background sync, MCA JSON export.
