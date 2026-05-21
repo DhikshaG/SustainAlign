@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AlertTriangle, FileDown, ShieldCheck } from 'lucide-react'
 import { PageHeader } from '../../components/corporate/PageHeader'
 import { StatCard } from '../../components/corporate/StatCard'
@@ -6,16 +6,57 @@ import { ProgressBar } from '../../components/corporate/ProgressBar'
 import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
+import { Alert } from '../../components/ui/Alert'
 import { PieChartCard } from '../../components/corporate/Charts'
-import { complianceSummary } from '../../data/corporate/compliance'
 import { formatINR } from '../../data/corporate/dashboard'
+import { fetchComplianceSummary } from '../../lib/compliance'
+import { generateReport } from '../../lib/reporting'
+import { api } from '../../lib/api'
 
 const statusBadge = { pass: 'verified', warn: 'warning', fail: 'warning' }
 
 export default function ComplianceDashboard() {
+  const [data, setData] = useState(null)
+  const [error, setError] = useState(null)
   const [showMca, setShowMca] = useState(false)
-  const { section135, spend, dueDates, scheduleVIIValidation, auditReadiness, alerts, mcaReportPreview } = complianceSummary
+  const [generating, setGenerating] = useState(false)
 
+  useEffect(() => {
+    let active = true
+    fetchComplianceSummary()
+      .then((d) => { if (active) { setData(d); setError(null) } })
+      .catch((err) => { if (active) setError(err.message) })
+    return () => { active = false }
+  }, [])
+
+  async function downloadMcaPdf() {
+    setGenerating(true)
+    try {
+      const report = await generateReport({
+        type: 'mca_csr2',
+        periodStart: '2025-04-01',
+        periodEnd: '2026-03-31',
+      })
+      if (report.downloadUrl) {
+        const blob = await api.download(report.downloadUrl)
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = 'mca-csr2-preview.pdf'
+        a.click()
+        URL.revokeObjectURL(url)
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to generate PDF')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  if (error && !data) return <div className="p-6"><Alert variant="error">{error}</Alert></div>
+  if (!data) return <p className="text-sm text-slate-500 p-6">Loading compliance data…</p>
+
+  const { section135, spend, dueDates, scheduleVIIValidation, auditReadiness, alerts, mcaReportPreview } = data
   const spendPie = spend.breakdown.map((b) => ({ name: b.category, value: b.amount }))
 
   return (
@@ -29,6 +70,8 @@ export default function ComplianceDashboard() {
           </Button>
         }
       />
+
+      {error && <Alert variant="error" className="mb-4">{error}</Alert>}
 
       <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
         <StatCard label="CSR Obligation (2%)" value={formatINR(section135.csrObligation)} subtext={section135.fy} icon={ShieldCheck} />
@@ -56,81 +99,65 @@ export default function ComplianceDashboard() {
         <Card>
           <h3 className="font-semibold text-slate-900 mb-4">Section 135 Status</h3>
           <dl className="space-y-3 text-sm">
-            <div className="flex justify-between"><dt className="text-slate-500">Eligible</dt><dd><Badge variant="verified">Yes</Badge></dd></div>
+            <div className="flex justify-between"><dt className="text-slate-500">Eligible</dt><dd><Badge variant={section135.eligible ? 'verified' : 'default'}>{section135.eligible ? 'Yes' : 'No'}</Badge></dd></div>
             <div className="flex justify-between"><dt className="text-slate-500">Net Profit (avg)</dt><dd className="font-medium">{formatINR(section135.netProfit)}</dd></div>
+            <div className="flex justify-between"><dt className="text-slate-500">Turnover</dt><dd className="font-medium">{formatINR(section135.turnover)}</dd></div>
             <div className="flex justify-between"><dt className="text-slate-500">Obligation Rate</dt><dd className="font-medium">{section135.obligationRate}%</dd></div>
-            <div className="flex justify-between"><dt className="text-slate-500">Net Worth</dt><dd className="font-medium">{formatINR(section135.netWorth)}</dd></div>
           </dl>
-          <div className="mt-4 pt-4 border-t border-slate-100">
-            <p className="text-xs text-slate-500 mb-2">Spend vs Obligation</p>
-            <ProgressBar value={spend.spent} max={section135.csrObligation * 1.5} label="Including carry-forward spend" />
-          </div>
         </Card>
-
-        <PieChartCard title="Spend by Schedule VII Category" data={spendPie} />
+        <PieChartCard title="Spend by Category" data={spendPie} />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6 mb-6">
         <Card>
-          <h3 className="font-semibold text-slate-900 mb-4">Due Dates</h3>
-          <ul className="space-y-3">
+          <h3 className="font-semibold text-slate-900 mb-4">Filing Due Dates</h3>
+          <ul className="space-y-2 text-sm">
             {dueDates.map((d) => (
-              <li key={d.id} className="flex items-center justify-between text-sm">
-                <span className="text-slate-900">{d.title}</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-slate-500">{d.date}</span>
-                  <Badge variant={d.status === 'overdue' ? 'warning' : 'primary'}>{d.status}</Badge>
-                </div>
+              <li key={d.label} className="flex justify-between">
+                <span className="text-slate-600">{d.label}</span>
+                <span className="font-medium text-slate-900">{d.date}</span>
               </li>
             ))}
           </ul>
         </Card>
-
         <Card>
           <h3 className="font-semibold text-slate-900 mb-4">Schedule VII Validation</h3>
-          <ul className="space-y-3">
-            {scheduleVIIValidation.map((item, i) => (
-              <li key={i} className="flex items-start gap-3 text-sm">
-                <Badge variant={statusBadge[item.status]}>{item.status}</Badge>
-                <div>
-                  <p className="text-slate-900">{item.item}</p>
-                  {item.note && <p className="text-slate-500 text-xs mt-0.5">{item.note}</p>}
-                </div>
+          <ul className="space-y-2">
+            {scheduleVIIValidation.map((v) => (
+              <li key={v.item} className="flex items-start justify-between gap-2 text-sm">
+                <span className="text-slate-700">{v.item}</span>
+                <Badge variant={statusBadge[v.status] || 'default'}>{v.status}</Badge>
+              </li>
+            ))}
+          </ul>
+        </Card>
+        <Card>
+          <h3 className="font-semibold text-slate-900 mb-4">Audit Checklist</h3>
+          <ProgressBar value={auditReadiness.score} label="Readiness score" className="mb-4" />
+          <ul className="space-y-2 text-sm">
+            {auditReadiness.checklist.map((c) => (
+              <li key={c.item} className="flex justify-between">
+                <span className="text-slate-600">{c.item}</span>
+                <Badge variant={c.done ? 'verified' : 'default'}>{c.done ? 'Done' : 'Pending'}</Badge>
               </li>
             ))}
           </ul>
         </Card>
       </div>
 
-      <Card>
-        <h3 className="font-semibold text-slate-900 mb-4">Audit Readiness Checklist</h3>
-        <ProgressBar value={auditReadiness.score} label="Overall score" className="mb-4" />
-        <ul className="grid sm:grid-cols-2 gap-2">
-          {auditReadiness.checklist.map((item, i) => (
-            <li key={i} className="flex items-center gap-2 text-sm">
-              <span className={item.done ? 'text-emerald-600' : 'text-slate-400'}>{item.done ? '✓' : '○'}</span>
-              <span className={item.done ? 'text-slate-700' : 'text-slate-500'}>{item.item}</span>
-            </li>
-          ))}
-        </ul>
-      </Card>
-
       {showMca && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-          <Card className="w-full max-w-lg max-h-[80vh] overflow-y-auto">
-            <h3 className="font-semibold text-slate-900 mb-4">MCA CSR-2 Report Preview</h3>
-            <div className="rounded-lg bg-slate-50 p-4 text-sm space-y-2 font-mono">
-              <p>Company: {mcaReportPreview.companyName}</p>
-              <p>CIN: {mcaReportPreview.cin}</p>
-              <p>Financial Year: {mcaReportPreview.fy}</p>
-              <p>Total CSR Spend: {formatINR(mcaReportPreview.totalCSR)}</p>
-              <p>Unspent Amount: {formatINR(mcaReportPreview.unspent)}</p>
-              <p>Number of Projects: {mcaReportPreview.projects}</p>
-            </div>
-            <p className="text-xs text-slate-500 mt-3">Demo preview — full PDF export in Phase 2.</p>
-            <div className="flex justify-end gap-2 mt-4">
-              <Button variant="secondary" onClick={() => setShowMca(false)}>Close</Button>
-              <Button onClick={() => setShowMca(false)}>Download PDF</Button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <Card className="max-w-md w-full">
+            <h3 className="font-semibold text-lg mb-2">MCA CSR-2 Preview</h3>
+            <dl className="text-sm space-y-2 mb-4">
+              <div className="flex justify-between"><dt className="text-slate-500">Company</dt><dd>{mcaReportPreview.companyName}</dd></div>
+              <div className="flex justify-between"><dt className="text-slate-500">FY</dt><dd>{mcaReportPreview.fy}</dd></div>
+              <div className="flex justify-between"><dt className="text-slate-500">Total CSR</dt><dd>{formatINR(mcaReportPreview.totalCSR)}</dd></div>
+              <div className="flex justify-between"><dt className="text-slate-500">Unspent</dt><dd>{formatINR(mcaReportPreview.unspent)}</dd></div>
+            </dl>
+            <div className="flex gap-2 justify-end">
+              <Button variant="ghost" onClick={() => setShowMca(false)}>Close</Button>
+              <Button onClick={downloadMcaPdf} disabled={generating}>{generating ? 'Generating…' : 'Download PDF'}</Button>
             </div>
           </Card>
         </div>
