@@ -216,17 +216,31 @@ npm run db:verify-impact
 
 ## Step 5 — Report Generation
 
-PDF reports from live impact and compliance data (`pdfkit`).
+Multi-format CSR reports from live project, KPI, update, budget, and SDG data (`pdfkit`, `docx`, `pptxgenjs`). AI narrative via Ollama when enabled.
 
 ```bash
 npm run db:verify-reports
+npm run db:verify-ai
 ```
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/corporate/reports` | List generated reports |
-| POST | `/api/corporate/reports/generate` | Generate PDF (`quarterly`, `board`, `sdg`, `impact`, `mca_csr2`) |
+| GET | `/api/corporate/reports` | List generated reports (includes format) |
+| POST | `/api/corporate/reports/preview` | Preview report sections JSON (no file) |
+| POST | `/api/corporate/reports/generate` | Generate report — body: `type`, `format` (`pdf`/`docx`/`pptx`), `includeAi`, `periodStart`, `periodEnd` |
 | POST | `/api/corporate/reports/:id/submit` | Mark report submitted |
+
+Report types: `executive`, `impact_stories`, `quarterly`, `board`, `sdg`, `impact`, `mca_csr2` (legacy types PDF-only).
+
+## Step 8 — AI CSR Report Generator
+
+Dedicated workflow: period-scoped context → Ollama executive summary + impact stories → template sections → PDF/DOCX/PPTX export.
+
+Frontend: `/dashboard/reports/generate`
+
+Inputs: project data, KPIs, impact updates, budgets, SDG mappings, NGO impact stories.
+
+If Ollama is offline, reports still generate with deterministic fallback content (`metadata.offline: true`).
 
 ## Step 6 — Compliance Automation Engine
 

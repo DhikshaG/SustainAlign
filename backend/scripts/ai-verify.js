@@ -2,7 +2,8 @@
 import { eq } from 'drizzle-orm'
 import { db } from '../src/db/index.js'
 import { users, memberships } from '../src/db/schema.js'
-import { getCopilotSuggestions, copilotChat, matchNgos } from '../src/services/ai/context.js'
+import { getCopilotSuggestions, copilotChat, matchNgos, generateReportContent } from '../src/services/ai/context.js'
+import { buildReportContext } from '../src/services/reports/context.js'
 import { checkOllamaHealth, isOllamaModelAvailable } from '../src/services/ai/ollama.js'
 
 const errors = []
@@ -26,6 +27,14 @@ check('Corporate tenant', !!acmeMem?.tenantId)
 
 const suggestions = getCopilotSuggestions(acmeMem.tenantId)
 check('Copilot suggestions', suggestions.length >= 2, `count=${suggestions.length}`)
+
+const reportCtx = buildReportContext(acmeMem.tenantId, {
+  periodStart: '2025-04-01',
+  periodEnd: '2026-03-31',
+})
+const reportAi = await generateReportContent(acmeMem.tenantId, reportCtx, 'quarterly')
+check('Report AI content shape', reportAi && typeof reportAi.aiGenerated === 'boolean')
+check('Report AI offline flag', typeof reportAi.offline === 'boolean')
 
 const ollamaOnline = await checkOllamaHealth()
 const modelReady = ollamaOnline && (await isOllamaModelAvailable())

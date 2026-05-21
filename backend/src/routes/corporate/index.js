@@ -22,7 +22,7 @@ import {
 import { getDashboardSummary, getReportingOverview } from '../../services/dashboard/index.js'
 import { getComplianceSummary, getFundAllocation, updateProfile, acknowledgeAlert, exportMcaCsr2, syncComplianceForTenant } from '../../services/compliance/index.js'
 import { deriveDefaultsFromProjects } from '../../services/matching/index.js'
-import { listReports, generateReport, getReport, submitReport } from '../../services/reports/index.js'
+import { listReports, generateReport, getReport, submitReport, previewReport } from '../../services/reports/index.js'
 import {
   getCopilotSuggestions,
   copilotChat,
@@ -64,7 +64,7 @@ import {
   geoUpdateSchema,
   attachUpdateFilesSchema,
 } from '../../schemas/impact.js'
-import { generateReportSchema } from '../../schemas/reports.js'
+import { generateReportSchema, previewReportSchema } from '../../schemas/reports.js'
 import { updateCsrProfileSchema } from '../../schemas/compliance.js'
 import {
   copilotChatSchema,
@@ -348,6 +348,15 @@ router.post('/reports/generate', requirePermission(PERMISSIONS.REPORTS_GENERATE)
       req,
     })
     ok(res, report, 'Report generated')
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/reports/preview', requirePermission(PERMISSIONS.REPORTING_READ), validate(previewReportSchema), async (req, res, next) => {
+  try {
+    const document = await previewReport(req.user.tenantId, req.validated)
+    ok(res, document)
   } catch (err) {
     next(err)
   }

@@ -79,6 +79,7 @@ export function getCopilotSuggestions(tenantId) {
 
   suggestions.push(
     { id: suggestions.length + 1, prompt: 'Summarize our CSR impact this quarter', category: 'impact' },
+    { id: suggestions.length + 1, prompt: 'Generate a board-ready CSR report', category: 'reporting' },
     { id: suggestions.length + 1, prompt: 'Which NGOs are performing best?', category: 'projects' },
   )
 
@@ -221,4 +222,77 @@ export async function generateImpactSummary(tenantId) {
     `Context:\n${JSON.stringify(context)}`,
   )
   return { summary, offline: false }
+}
+
+export async function generateReportContent(tenantId, reportContext, type) {
+  const aiPayload = {
+    type,
+    period: { start: reportContext.periodStart, end: reportContext.periodEnd },
+    impact: reportContext.aggregate.impactSummary,
+    budget: reportContext.budget,
+    sdgProgress: reportContext.sdgProgress.slice(0, 8),
+    districtAnalytics: reportContext.districtAnalytics.slice(0, 6),
+    projects: reportContext.projects.slice(0, 8).map((p) => ({
+      name: p.name,
+      ngo: p.ngoName,
+      progress: p.progress,
+      spent: p.spentInr,
+      updates: p.updates.slice(0, 2).map((u) => u.body),
+      kpis: p.kpis.slice(0, 3),
+    })),
+    ngoStories: reportContext.impactStories.slice(0, 5),
+    updates: reportContext.allUpdates.slice(0, 10).map((u) => ({
+      project: u.projectName,
+      date: u.date,
+      text: u.body,
+    })),
+    compliance: {
+      obligation: reportContext.compliance.section135.csrObligation,
+      spent: reportContext.compliance.spend.spent,
+      unspent: reportContext.compliance.spend.unspent,
+    },
+  }
+
+  if (!isAiEnabled()) {
+    return { content: null, aiGenerated: false, offline: true }
+  }
+
+  const online = await checkOllamaHealth()
+  const modelReady = online && (await isOllamaModelAvailable())
+  if (!modelReady) {
+    return { content: null, aiGenerated: false, offline: true }
+  }
+
+  const systemPrompt = `You are a CSR report writer. Using ONLY the JSON context, respond with valid JSON (no markdown fences):
+{
+  "executiveSummary": "2-3 paragraph executive summary",
+  "impactStories": [{ "title": "Story title", "body": "2-3 sentence story" }]
+}
+Include 2-4 impactStories when type is impact_stories or quarterly or board. Use real project names and numbers from context.`
+
+  const raw = await chatWithSystem(
+    systemPrompt,
+    `Report type: ${type}\nContext:\n${JSON.stringify(aiPayload)}`,
+  )
+
+  try {
+    const parsed = JSON.parse(raw.replace(/^```json?\s*|\s*```$/g, '').trim())
+    return {
+      content: {
+        executiveSummary: parsed.executiveSummary || '',
+        impactStories: Array.isArray(parsed.impactStories) ? parsed.impactStories : [],
+      },
+      aiGenerated: true,
+      offline: false,
+    }
+  } catch {
+    return {
+      content: {
+        executiveSummary: raw.slice(0, 2000),
+        impactStories: [],
+      },
+      aiGenerated: true,
+      offline: false,
+    }
+  }
 }
