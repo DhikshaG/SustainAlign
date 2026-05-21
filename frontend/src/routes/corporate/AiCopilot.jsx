@@ -9,6 +9,7 @@ import { fetchCopilotSuggestions, sendCopilotMessage } from '../../lib/copilot'
 import { CORPORATE_ROUTES } from '../../lib/routes'
 
 const MATCH_DISCOVERY_LINK = `${CORPORATE_ROUTES.discovery}?mode=match`
+const COMPLIANCE_LINK = CORPORATE_ROUTES.compliance
 
 export default function AiCopilot() {
   const [messages, setMessages] = useState([
@@ -68,6 +69,14 @@ export default function AiCopilot() {
             <Sparkles className="h-4 w-4 text-primary-600" /> Suggested Prompts
           </h3>
           <ul className="space-y-2">
+            <li>
+              <Link
+                to={COMPLIANCE_LINK}
+                className="block w-full text-left text-sm text-primary-700 hover:text-primary-800 hover:bg-primary-50 rounded-lg px-3 py-2 transition-colors font-medium"
+              >
+                Open Compliance Assistant →
+              </Link>
+            </li>
             <li>
               <Link
                 to={MATCH_DISCOVERY_LINK}
