@@ -174,6 +174,22 @@ export const files = sqliteTable('files', {
   originalName: text('original_name').notNull(),
   mime: text('mime').notNull(),
   sizeBytes: integer('size_bytes').notNull(),
+  checksum: text('checksum'),
+  auditPath: text('audit_path'),
+  fiscalYear: text('fiscal_year'),
+  version: integer('version').notNull().default(1),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+})
+
+export const fileVersions = sqliteTable('file_versions', {
+  id: text('id').primaryKey(),
+  fileId: text('file_id').notNull().references(() => files.id),
+  version: integer('version').notNull(),
+  storageKey: text('storage_key').notNull(),
+  checksum: text('checksum').notNull(),
+  uploadedBy: text('uploaded_by').notNull().references(() => users.id),
+  sizeBytes: integer('size_bytes').notNull(),
+  changeNote: text('change_note'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 })
 

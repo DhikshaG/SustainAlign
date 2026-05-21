@@ -387,9 +387,10 @@ export function updateProjectSpent(id, spentInr, { corporateTenantId, req } = {}
   if (req) {
     logMutation({
       req,
-      action: 'project.update_spent',
+      action: 'finance.disbursement.record',
       entityType: 'project',
       entityId: id,
+      before: { spentInr: row.spentInr },
       after: { spentInr },
     }).catch(() => {})
   }

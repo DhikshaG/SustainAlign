@@ -8,7 +8,7 @@ import { ok, fail } from '../../lib/response.js'
 import { PERMISSIONS } from '../../lib/permissions.js'
 import { env } from '../../config/env.js'
 import { getStorage } from '../../lib/storage/index.js'
-import { getFileById, listFiles, storeFile } from '../../services/files/index.js'
+import { getFileById, listFiles, storeFile, logFileDownload } from '../../services/files/index.js'
 import { z } from 'zod'
 import { db } from '../../db/index.js'
 import { tenants } from '../../db/schema.js'
@@ -87,6 +87,7 @@ router.get('/:id/download', authenticate, requirePermission(PERMISSIONS.FILES_DO
   try {
     const row = getFileById(req.params.id, req.user.tenantId)
     if (!row) return fail(res, 404, 'File not found')
+    await logFileDownload(req.params.id, req)
     const storage = getStorage()
     const filePath = storage.resolvePath(row.storageKey)
     res.setHeader('Content-Type', row.mime)

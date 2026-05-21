@@ -310,7 +310,7 @@ router.post(
 
 router.delete('/profile/media/:id', requirePermission(PERMISSIONS.FILES_UPLOAD), async (req, res, next) => {
   try {
-    const removed = await removeMedia(req.user.tenantId, req.params.id)
+    const removed = await removeMedia(req.user.tenantId, req.params.id, req)
     if (!removed) return fail(res, 404, 'Media not found')
     return ok(res, { id: req.params.id }, 'Media removed')
   } catch (err) {

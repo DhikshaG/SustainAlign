@@ -605,13 +605,22 @@ export function listMedia(tenantId) {
     .filter((f) => MEDIA_CATEGORIES.includes(f.category))
 }
 
-export async function removeMedia(tenantId, fileId) {
+export async function removeMedia(tenantId, fileId, req) {
   const file = getFileById(fileId, tenantId)
   if (!file || file.entityType !== 'ngo') return false
   const profile = db.select().from(ngoProfiles).where(eq(ngoProfiles.tenantId, tenantId)).get()
   if (profile?.logoFileId === fileId) {
     db.update(ngoProfiles).set({ logoFileId: null, updatedAt: new Date() })
       .where(eq(ngoProfiles.tenantId, tenantId)).run()
+  }
+  if (req) {
+    await logMutation({
+      req,
+      action: 'file.delete',
+      entityType: 'file',
+      entityId: fileId,
+      before: { originalName: file.originalName, category: file.category, auditPath: file.auditPath },
+    }).catch(() => {})
   }
   const storage = getStorage()
   await storage.delete(file.storageKey)

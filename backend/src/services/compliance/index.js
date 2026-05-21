@@ -7,6 +7,7 @@ import {
   tenants,
 } from '../../db/schema.js'
 import { newId } from '../../lib/ids.js'
+import { logMutation } from '../activity-log/index.js'
 import {
   computeSection135,
   computeSpendBreakdown,
@@ -47,8 +48,14 @@ export function getOrCreateProfile(tenantId, fyLabel = 'FY 2025-26') {
   return profile
 }
 
-export function updateProfile(tenantId, patch, fyLabel = 'FY 2025-26') {
+export function updateProfile(tenantId, patch, fyLabel = 'FY 2025-26', req) {
   const profile = getOrCreateProfile(tenantId, fyLabel)
+  const before = {
+    netProfitInr: profile.netProfitInr,
+    turnoverInr: profile.turnoverInr,
+    netWorthInr: profile.netWorthInr,
+    fyLabel: profile.fyLabel,
+  }
   const updates = { updatedAt: new Date() }
   if (patch.netProfitInr !== undefined) updates.netProfitInr = patch.netProfitInr
   if (patch.turnoverInr !== undefined) updates.turnoverInr = patch.turnoverInr
@@ -58,6 +65,16 @@ export function updateProfile(tenantId, patch, fyLabel = 'FY 2025-26') {
   if (patch.localAreaTargetPct !== undefined) updates.localAreaTargetPct = patch.localAreaTargetPct
   if (patch.carryForwardInr !== undefined) updates.carryForwardInr = patch.carryForwardInr
   db.update(corporateCsrProfile).set(updates).where(eq(corporateCsrProfile.id, profile.id)).run()
+  if (req) {
+    logMutation({
+      req,
+      action: 'compliance.profile.update',
+      entityType: 'compliance',
+      entityId: profile.id,
+      before,
+      after: updates,
+    }).catch(() => {})
+  }
   return getOrCreateProfile(tenantId, patch.fyLabel || fyLabel)
 }
 
@@ -268,13 +285,23 @@ export function getFundAllocation(tenantId) {
   }
 }
 
-export function acknowledgeAlert(alertId, tenantId) {
+export function acknowledgeAlert(alertId, tenantId, req) {
   const alert = db.select().from(complianceAlerts).where(eq(complianceAlerts.id, alertId)).get()
   if (!alert || alert.tenantId !== tenantId) throw httpError('Alert not found', 404)
   db.update(complianceAlerts)
     .set({ acknowledgedAt: new Date() })
     .where(eq(complianceAlerts.id, alertId))
     .run()
+  if (req) {
+    logMutation({
+      req,
+      action: 'compliance.alert.acknowledge',
+      entityType: 'compliance_alert',
+      entityId: alertId,
+      before: { acknowledgedAt: null },
+      after: { acknowledgedAt: new Date().toISOString() },
+    }).catch(() => {})
+  }
   return { acknowledged: true, id: alertId }
 }
 

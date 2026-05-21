@@ -241,13 +241,21 @@ export async function transition({ req, instanceId, action, comment }) {
     createdAt: now,
   }).run()
 
+  const enriched = enrichInstance(inst)
+
   await logMutation({
     req,
     action: `workflow.${action}`,
     entityType: 'workflow',
     entityId: instanceId,
     before: { status: previousStatus, step: inst.currentStepIndex },
-    after: { status: newStatus, step: newStepIndex },
+    after: {
+      status: newStatus,
+      step: newStepIndex,
+      entityType: inst.entityType,
+      entityTitle: enriched.entityTitle,
+      projectId: enriched.projectId,
+    },
     reason: comment,
   })
 

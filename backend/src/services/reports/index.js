@@ -2,6 +2,7 @@ import { eq, desc } from 'drizzle-orm'
 import { db } from '../../db/index.js'
 import { reports } from '../../db/schema.js'
 import { newId } from '../../lib/ids.js'
+import { logMutation } from '../activity-log/index.js'
 import { storeFile } from '../files/index.js'
 import { buildReportContext } from './context.js'
 import { composeReportContent, previewReport } from './compose.js'
@@ -117,6 +118,16 @@ export async function generateReport({
     updatedAt: now,
   }).run()
 
+  if (req) {
+    logMutation({
+      req,
+      action: 'report.generate',
+      entityType: 'report',
+      entityId: reportId,
+      after: { type, format, periodStart, periodEnd, fileId: stored.id },
+    }).catch(() => {})
+  }
+
   return {
     id: reportId,
     type,
@@ -143,12 +154,22 @@ export function getReport(id, corporateTenantId) {
   }
 }
 
-export function submitReport(id, corporateTenantId) {
+export function submitReport(id, corporateTenantId, req) {
   const row = getReport(id, corporateTenantId)
   if (!row) throw httpError('Report not found', 404)
   db.update(reports)
     .set({ status: 'submitted', updatedAt: new Date() })
     .where(eq(reports.id, id))
     .run()
+  if (req) {
+    logMutation({
+      req,
+      action: 'report.submit',
+      entityType: 'report',
+      entityId: id,
+      before: { status: row.status },
+      after: { status: 'submitted' },
+    }).catch(() => {})
+  }
   return { id, status: 'submitted' }
 }

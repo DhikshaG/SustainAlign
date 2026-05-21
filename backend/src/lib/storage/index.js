@@ -5,6 +5,7 @@ const MIME_BY_CATEGORY = {
   ngo_verification: ['application/pdf', 'image/png', 'image/jpeg'],
   ngo_evidence: ['application/pdf', 'image/png', 'image/jpeg'],
   project_evidence: ['application/pdf', 'image/png', 'image/jpeg'],
+  project_update: ['application/pdf', 'image/png', 'image/jpeg', 'image/webp'],
   invoice: ['application/pdf', 'image/png', 'image/jpeg'],
   compliance: ['application/pdf', 'image/png', 'image/jpeg'],
   report: [
