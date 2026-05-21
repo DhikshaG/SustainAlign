@@ -11,6 +11,7 @@ import {
   dashboardSummary,
   financeSummary,
 } from '../../data/ngo-sample.js'
+import { getNgoDashboardSummary } from '../../services/impact/analytics.js'
 import {
   listProjects,
   getProject,
@@ -76,7 +77,7 @@ function requireNgoTenant(req, res, next) {
 
 router.use(authenticate, requireRole(...NGO_ROLES), requireNgoTenant)
 
-router.get('/dashboard/summary', (_req, res) => ok(res, dashboardSummary))
+router.get('/dashboard/summary', (req, res) => ok(res, getNgoDashboardSummary(req.user.tenantId)))
 
 router.get('/projects', requirePermission(PERMISSIONS.PROJECTS_READ), (req, res) => {
   ok(res, listProjects({ ngoTenantId: req.user.tenantId, audience: 'ngo' }))

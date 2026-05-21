@@ -205,10 +205,13 @@ npm run db:verify-impact
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/api/corporate/dashboard/summary` | Live budget, projects, impact metrics |
-| GET | `/api/corporate/reporting/overview` | SDG, geo, category analytics |
+| GET | `/api/corporate/reporting/overview` | SDG, geo, district, category analytics |
+| GET | `/api/corporate/impact/live` | Polling snapshot: time series, districts, SDG, media feed |
+| POST | `/api/corporate/ai/impact-summary` | AI executive impact summary (Ollama) |
 | POST | `/api/corporate/projects/:id/kpis` | Record KPI |
 | POST | `/api/corporate/projects/:id/beneficiaries` | Log beneficiary counts |
 | POST | `/api/corporate/projects/:id/geo` | Geo update |
+| GET | `/api/ngo/dashboard/summary` | Live NGO rollup (projects, beneficiaries, milestones) |
 | GET | `/api/ngo/beneficiaries` | NGO beneficiary logs across projects |
 
 ## Step 5 — Report Generation

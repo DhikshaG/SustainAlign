@@ -6,7 +6,9 @@ import {
   aggregateForTenant,
   getLatestBeneficiaries,
   addBeneficiaryLog,
+  getImpactLiveSnapshot,
 } from '../src/services/impact/index.js'
+import { getDistrictImpact, getBeneficiaryTimeSeries } from '../src/services/impact/analytics.js'
 import { getDashboardSummary, getReportingOverview } from '../src/services/dashboard/index.js'
 import { getProject } from '../src/services/projects/index.js'
 
@@ -53,6 +55,19 @@ check('Dashboard active projects', dashboard.activeProjects?.count >= 1)
 
 const reporting = getReportingOverview(acmeMem.tenantId)
 check('Reporting overview', reporting.impactSummary?.projectsActive >= 1)
+check('Reporting district analytics', Array.isArray(reporting.districtAnalytics))
+
+const live = getImpactLiveSnapshot(acmeMem.tenantId)
+check('Impact live snapshot', !!live.updatedAt)
+check('Impact live time series', Array.isArray(live.timeSeries) && live.timeSeries.length >= 1)
+check('Impact live district analytics', Array.isArray(live.districtAnalytics))
+check('Impact live media feed', Array.isArray(live.mediaFeed))
+
+const timeSeries = getBeneficiaryTimeSeries(acmeMem.tenantId)
+check('Beneficiary time series', timeSeries.some((t) => 'beneficiaries' in t))
+
+const districts = getDistrictImpact(acmeMem.tenantId)
+check('District impact rollup', Array.isArray(districts))
 
 try {
   const before = getLatestBeneficiaries('proj-003').direct

@@ -8,6 +8,7 @@ import {
   workflowInstances,
 } from '../../db/schema.js'
 import { aggregateForTenant } from '../impact/index.js'
+import { getDistrictImpact, getSdgProgress } from '../impact/analytics.js'
 import { getComplianceSummary } from '../compliance/index.js'
 import { listProjects } from '../projects/index.js'
 import { listReports } from '../reports/index.js'
@@ -184,4 +185,40 @@ export async function generateNarrative(tenantId, { reportId, projectId }) {
     `Context:\n${JSON.stringify(context)}`,
   )
   return { narrative, offline: false }
+}
+
+export async function generateImpactSummary(tenantId) {
+  const aggregate = aggregateForTenant(tenantId)
+  const districtAnalytics = getDistrictImpact(tenantId)
+  const sdgProgress = getSdgProgress(tenantId)
+
+  const context = {
+    impact: aggregate.impactSummary,
+    sdgProgress,
+    districtAnalytics: districtAnalytics.slice(0, 8),
+    geoAnalytics: aggregate.geoAnalytics.slice(0, 8),
+    activeProjects: aggregate.dashboard.activeProjects,
+    budget: aggregate.dashboard.budget,
+  }
+
+  if (!isAiEnabled()) {
+    return { summary: 'AI disabled. Enable Ollama for impact summaries.', offline: true }
+  }
+
+  const online = await checkOllamaHealth()
+  const modelReady = online && (await isOllamaModelAvailable())
+  if (!modelReady) {
+    return {
+      summary: online
+        ? 'Ollama model not found. Run: ollama pull llama3.1:1b'
+        : 'Ollama offline. Start Ollama to generate impact summaries.',
+      offline: true,
+    }
+  }
+
+  const summary = await chatWithSystem(
+    'Write a 1-paragraph executive summary of CSR impact for a corporate dashboard. Use only provided data. Mention beneficiaries, SDGs, and geographic reach where available.',
+    `Context:\n${JSON.stringify(context)}`,
+  )
+  return { summary, offline: false }
 }

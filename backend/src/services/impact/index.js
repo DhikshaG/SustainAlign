@@ -16,6 +16,15 @@ import {
 } from '../../db/schema.js'
 import { newId } from '../../lib/ids.js'
 import { logMutation } from '../activity-log/index.js'
+import {
+  getLatestKpiValue,
+  getBeneficiaryTimeSeries,
+  buildSpendProgress,
+  buildBudgetUtilization,
+  getDistrictImpact,
+  getSdgProgress,
+  getMediaFeed,
+} from './analytics.js'
 
 function httpError(message, status) {
   const err = new Error(message)
@@ -113,6 +122,7 @@ export function getUpdateFiles(updateId) {
       name: f.originalName,
       mime: f.mime,
       sizeBytes: f.sizeBytes,
+      downloadUrl: `/api/files/${f.id}/download`,
     } : null
   }).filter(Boolean)
 }
@@ -236,18 +246,6 @@ function aggregateBeneficiaries(projectIds) {
   return { direct, indirect, total: direct + indirect }
 }
 
-function aggregateKpiValue(projectIds, metricKey) {
-  let total = 0
-  for (const pid of projectIds) {
-    const kpis = listKpis(pid).filter((k) => k.metricKey === metricKey)
-    for (const k of kpis) {
-      const n = parseFloat(k.value)
-      if (!Number.isNaN(n)) total += n
-    }
-  }
-  return total
-}
-
 export function aggregateForTenant(corporateTenantId) {
   const projects = db.select().from(csrProjects)
     .where(eq(csrProjects.corporateTenantId, corporateTenantId))
@@ -255,8 +253,10 @@ export function aggregateForTenant(corporateTenantId) {
   const active = projects.filter((p) => p.status === 'active' || p.status === 'pending_approval')
   const activeOnly = projects.filter((p) => p.status === 'active')
 
-  const ben = aggregateBeneficiaries(projects.map((p) => p.id))
-  const co2 = aggregateKpiValue(projects.map((p) => p.id), 'co2_offset_tons')
+  const projectIds = projects.map((p) => p.id)
+  const ben = aggregateBeneficiaries(projectIds)
+  const co2 = getLatestKpiValue(projectIds, 'co2_offset_tons')
+  const beneficiarySeries = getBeneficiaryTimeSeries(corporateTenantId)
 
   const sdgMap = new Map()
   const categoryMap = new Map()
@@ -284,19 +284,9 @@ export function aggregateForTenant(corporateTenantId) {
   const totalSpent = projects.reduce((s, p) => s + p.spentInr, 0)
   const totalAllocated = active.reduce((s, p) => s + p.budgetInr, 0)
 
-  const months = ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan']
-  const monthlyObligation = totalBudget / 12
-  const spendProgress = months.map((month, i) => ({
-    month,
-    spent: Math.round(totalSpent * ((i + 1) / 12)),
-    obligation: Math.round(monthlyObligation * (i + 1)),
-  }))
-
-  const budgetUtilization = months.map((month, i) => ({
-    month,
-    budget: Math.round(totalBudget * ((i + 1) / 12)),
-    utilized: Math.round(totalSpent * ((i + 1) / 12)),
-  }))
+  const spendProgress = buildSpendProgress(projects, beneficiarySeries)
+  const budgetUtilization = buildBudgetUtilization(projects, beneficiarySeries)
+  const districtAnalytics = getDistrictImpact(corporateTenantId)
 
   const impactMetrics = []
   if (ben.total > 0) {
@@ -319,6 +309,7 @@ export function aggregateForTenant(corporateTenantId) {
     sdgMapping: [...sdgMap.values()].sort((a, b) => a.sdg - b.sdg),
     categoryAnalytics: [...categoryMap.entries()].map(([name, value]) => ({ name, value })),
     geoAnalytics: [...geoMap.values()].sort((a, b) => b.spend - a.spend),
+    districtAnalytics,
     budgetUtilization,
     ngoPerformance: computeNgoPerformance(activeOnly.length ? activeOnly : projects),
     dashboard: {
@@ -387,10 +378,32 @@ export function getReportingOverview(corporateTenantId) {
   return {
     impactSummary: agg.impactSummary,
     sdgMapping: agg.sdgMapping,
+    sdgProgress: getSdgProgress(corporateTenantId),
     categoryAnalytics: agg.categoryAnalytics,
     geoAnalytics: agg.geoAnalytics,
+    districtAnalytics: agg.districtAnalytics,
     budgetUtilization: agg.budgetUtilization,
     ngoPerformance: agg.ngoPerformance,
+  }
+}
+
+export function getImpactLiveSnapshot(corporateTenantId) {
+  const agg = aggregateForTenant(corporateTenantId)
+  return {
+    summary: {
+      impactSummary: agg.impactSummary,
+      budget: agg.dashboard.budget,
+      activeProjects: agg.dashboard.activeProjects,
+    },
+    timeSeries: getBeneficiaryTimeSeries(corporateTenantId),
+    districtAnalytics: agg.districtAnalytics,
+    sdgProgress: getSdgProgress(corporateTenantId),
+    geoAnalytics: agg.geoAnalytics,
+    categoryAnalytics: agg.categoryAnalytics,
+    spendProgress: agg.dashboard.spendProgress,
+    budgetUtilization: agg.budgetUtilization,
+    mediaFeed: getMediaFeed(corporateTenantId),
+    updatedAt: new Date().toISOString(),
   }
 }
 

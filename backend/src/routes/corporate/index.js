@@ -29,12 +29,14 @@ import {
   matchNgos,
   aiSearch,
   generateNarrative,
+  generateImpactSummary,
 } from '../../services/ai/context.js'
 import {
   addKpi,
   addBeneficiaryLog,
   addGeoUpdate,
   attachFilesToUpdate,
+  getImpactLiveSnapshot,
 } from '../../services/impact/index.js'
 import {
   listProjects,
@@ -415,6 +417,18 @@ router.post('/ai/search', requirePermission(PERMISSIONS.SEARCH_READ), validate(a
 router.post('/ai/narrative', requirePermission(PERMISSIONS.REPORTING_READ), validate(narrativeSchema), async (req, res, next) => {
   try {
     ok(res, await generateNarrative(req.user.tenantId, req.validated))
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.get('/impact/live', requirePermission(PERMISSIONS.PROJECTS_READ), (req, res) => {
+  ok(res, getImpactLiveSnapshot(req.user.tenantId))
+})
+
+router.post('/ai/impact-summary', requirePermission(PERMISSIONS.COPILOT_USE), async (req, res, next) => {
+  try {
+    ok(res, await generateImpactSummary(req.user.tenantId))
   } catch (err) {
     next(err)
   }

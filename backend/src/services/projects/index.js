@@ -195,6 +195,7 @@ function toDetailDto(row, audience) {
     date: f.createdAt.toISOString().slice(0, 10),
     mime: f.mime,
     sizeBytes: f.sizeBytes,
+    downloadUrl: `/api/files/${f.id}/download`,
   }))
 
   const base = toListDto(row, audience)
