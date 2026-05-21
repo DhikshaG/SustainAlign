@@ -33,10 +33,11 @@ export default function FundAllocation() {
         description="CSR obligation vs project budgets from live project data."
       />
 
-      <div className="grid sm:grid-cols-3 gap-4 mb-6">
+      <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
         <Card><p className="text-sm text-slate-500">2% Obligation</p><p className="text-2xl font-bold">{formatINR(data.obligation)}</p></Card>
         <Card><p className="text-sm text-slate-500">Allocated to Projects</p><p className="text-2xl font-bold">{formatINR(data.totalBudget)}</p></Card>
         <Card><p className="text-sm text-slate-500">Spent</p><p className="text-2xl font-bold">{formatINR(data.totalSpent)}</p></Card>
+        <Card><p className="text-sm text-slate-500">Unallocated</p><p className="text-2xl font-bold text-amber-700">{formatINR(data.unallocated)}</p></Card>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6 mb-6">
