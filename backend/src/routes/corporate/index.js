@@ -31,6 +31,7 @@ import {
   aiSearch,
   generateNarrative,
   generateImpactSummary,
+  generateEsgSummary,
 } from '../../services/ai/context.js'
 import {
   addKpi,
@@ -67,6 +68,8 @@ import {
 } from '../../schemas/impact.js'
 import { generateReportSchema, previewReportSchema } from '../../schemas/reports.js'
 import { allocationIntelligenceSchema } from '../../schemas/allocation.js'
+import { esgUnifiedQuerySchema, esgSummarySchema } from '../../schemas/esg.js'
+import { getUnifiedEsgDashboard } from '../../services/esg/index.js'
 import { updateCsrProfileSchema } from '../../schemas/compliance.js'
 import {
   copilotChatSchema,
@@ -337,6 +340,14 @@ router.get('/reporting/overview', requirePermission(PERMISSIONS.REPORTING_READ),
   }
 })
 
+router.get('/esg/unified', requirePermission(PERMISSIONS.REPORTING_READ), validate(esgUnifiedQuerySchema, 'query'), (req, res, next) => {
+  try {
+    ok(res, getUnifiedEsgDashboard(req.user.tenantId, req.validated))
+  } catch (err) {
+    next(err)
+  }
+})
+
 router.get('/reports', requirePermission(PERMISSIONS.REPORTING_READ), (req, res) => {
   ok(res, { reports: listReports(req.user.tenantId) })
 })
@@ -448,6 +459,14 @@ router.get('/impact/live', requirePermission(PERMISSIONS.PROJECTS_READ), (req, r
 router.post('/ai/impact-summary', requirePermission(PERMISSIONS.COPILOT_USE), async (req, res, next) => {
   try {
     ok(res, await generateImpactSummary(req.user.tenantId))
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/ai/esg-summary', requirePermission(PERMISSIONS.REPORTING_READ), validate(esgSummarySchema), async (req, res, next) => {
+  try {
+    ok(res, await generateEsgSummary(req.user.tenantId))
   } catch (err) {
     next(err)
   }

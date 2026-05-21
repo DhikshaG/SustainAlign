@@ -260,6 +260,24 @@ Frontend: `/dashboard/funds/intelligence`
 
 Scoring blends district spend gaps, beneficiary coverage, SDG under-coverage, and NGO presence. Optional Ollama rationale when online.
 
+## Step 10 — ESG + CSR Unified Dashboard
+
+Combines environmental, social, and governance metrics from live CSR projects, KPIs, and compliance data. Maps projects to SDGs and BRSR principles.
+
+```bash
+npm run db:verify-esg
+npm run db:verify-impact
+```
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/corporate/esg/unified` | Unified E/S/G pillars, SDG alignment, BRSR coverage, project mappings, CSR summary |
+| POST | `/api/corporate/ai/esg-summary` | AI ESG executive summary (Ollama) |
+
+Frontend: `/dashboard/esg`
+
+Governance subset (audit score, Schedule VII validation) is included inline for `esg_head` without requiring full compliance module access.
+
 ## Step 6 — Compliance Automation Engine
 
 Section 135 eligibility (net worth / turnover / net profit OR logic), 2% obligation formula, Schedule VII validation, unspent tracking, alerts, background sync, MCA JSON export.

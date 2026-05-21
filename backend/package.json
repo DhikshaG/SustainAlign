@@ -18,6 +18,7 @@
     "db:verify-ai": "node scripts/ai-verify.js",
     "db:verify-matching": "node scripts/matching-verify.js",
     "db:verify-allocation": "node scripts/allocation-verify.js",
+    "db:verify-esg": "node scripts/esg-verify.js",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
