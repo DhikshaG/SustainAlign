@@ -74,6 +74,9 @@ export async function contactNgo(slug, { subject, message }) {
 
 export function filtersToSearchParams(filters) {
   const p = new URLSearchParams()
+  if (filters.mode === 'match') p.set('mode', 'match')
+  if (filters.csrFocus) p.set('csrFocus', filters.csrFocus)
+  if (filters.keywords) p.set('keywords', filters.keywords)
   if (filters.q) p.set('q', filters.q)
   if (filters.state && filters.state !== 'All') p.set('state', filters.state)
   if (filters.sdg && filters.sdg !== 'all') p.set('sdg', filters.sdg)
@@ -87,6 +90,9 @@ export function filtersToSearchParams(filters) {
 
 export function searchParamsToFilters(params) {
   return {
+    mode: params.get('mode') === 'match' ? 'match' : 'browse',
+    csrFocus: params.get('csrFocus') || '',
+    keywords: params.get('keywords') || '',
     q: params.get('q') || '',
     state: params.get('state') || 'All',
     sdg: params.get('sdg') || 'all',

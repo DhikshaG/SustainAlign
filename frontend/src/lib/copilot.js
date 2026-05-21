@@ -10,10 +10,7 @@ export async function sendCopilotMessage(message, history = []) {
   return res.data
 }
 
-export async function matchNgos(payload) {
-  const res = await api.post('/api/corporate/ai/match-ngos', payload)
-  return res.data
-}
+export { runNgoMatch, matchNgos, fetchMatchDefaults } from './matching.js'
 
 export async function aiSearch(query) {
   const res = await api.post('/api/corporate/ai/search', { query })

@@ -1,15 +1,18 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Heart, GitCompare, Mail, MapPin, Search, RefreshCw } from 'lucide-react'
+import { Heart, GitCompare, Mail, MapPin, Search, RefreshCw, Sparkles } from 'lucide-react'
 import { PageHeader } from '../../components/corporate/PageHeader'
 import { FilterPanel, FilterField } from '../../components/corporate/FilterPanel'
 import { ContactNgoModal } from '../../components/corporate/ContactNgoModal'
+import { MatchResultCard } from '../../components/corporate/MatchResultCard'
 import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { Select } from '../../components/ui/Select'
 import { Checkbox } from '../../components/ui/Checkbox'
+import { Textarea } from '../../components/ui/Textarea'
+import { Alert } from '../../components/ui/Alert'
 import { EmptyState } from '../../components/corporate/EmptyState'
 import {
   fetchDiscoveryFilters,
@@ -21,6 +24,7 @@ import {
   searchParamsToFilters,
   PAGE_SIZE,
 } from '../../lib/discovery'
+import { fetchMatchDefaults, runNgoMatch } from '../../lib/matching'
 import { getCompareItems, toggleCompareItem, clearCompareItems } from '../../lib/compare-ngos'
 import { CORPORATE_ROUTES } from '../../lib/routes'
 
@@ -40,12 +44,23 @@ export default function NgoDiscovery() {
   const [contactNgo, setContactNgo] = useState(null)
   const [toast, setToast] = useState(null)
 
+  const [matchResults, setMatchResults] = useState(null)
+  const [matchLoading, setMatchLoading] = useState(false)
+  const [matchError, setMatchError] = useState(null)
+  const [matchOffline, setMatchOffline] = useState(false)
+  const [defaultsLoaded, setDefaultsLoaded] = useState(false)
+
+  const isMatchMode = filters.mode === 'match'
+
   const filterKey = useMemo(() => {
     const f = { ...filters }
     delete f.savedOnly
+    delete f.mode
+    delete f.csrFocus
+    delete f.keywords
     return JSON.stringify(f)
   }, [filters])
-  const loading = readyKey !== syncKey
+  const loading = !isMatchMode && readyKey !== syncKey
 
   const apiParams = useMemo(() => ({
     q: filters.q || undefined,
@@ -69,6 +84,29 @@ export default function NgoDiscovery() {
   }, [filters, setSearchParams])
 
   useEffect(() => {
+    if (!isMatchMode || defaultsLoaded) return
+    let active = true
+    fetchMatchDefaults()
+      .then((defaults) => {
+        if (!active) return
+        setFilters((prev) => ({
+          ...prev,
+          csrFocus: prev.csrFocus || defaults.csrFocus || '',
+          keywords: prev.keywords || defaults.keywords || '',
+          state: prev.state === 'All' && defaults.state ? defaults.state : prev.state,
+          theme: prev.theme === 'All' && defaults.theme ? defaults.theme : prev.theme,
+          budgetRange: prev.budgetRange === 'All' && defaults.budgetRange ? defaults.budgetRange : prev.budgetRange,
+          sdg: prev.sdg === 'all' && defaults.sdg ? defaults.sdg : prev.sdg,
+          impact: prev.impact === 'all' && defaults.impact ? defaults.impact : prev.impact,
+        }))
+        setDefaultsLoaded(true)
+      })
+      .catch(() => setDefaultsLoaded(true))
+    return () => { active = false }
+  }, [isMatchMode, defaultsLoaded])
+
+  useEffect(() => {
+    if (isMatchMode) return undefined
     let active = true
     fetchDiscoveryNgos(apiParams)
       .then((result) => {
@@ -87,7 +125,7 @@ export default function NgoDiscovery() {
         setReadyKey(syncKey)
       })
     return () => { active = false }
-  }, [filterKey, syncKey, apiParams])
+  }, [filterKey, syncKey, apiParams, isMatchMode])
 
   const displayedNgos = filters.savedOnly
     ? ngos.filter((n) => savedSlugs.has(n.slug))
@@ -98,10 +136,47 @@ export default function NgoDiscovery() {
       setFilters((prev) => ({ ...prev, savedOnly: value }))
       return
     }
+    if (key === 'mode') {
+      setFilters((prev) => ({ ...prev, mode: value }))
+      setMatchResults(null)
+      setMatchError(null)
+      return
+    }
+    if (key === 'csrFocus' || key === 'keywords') {
+      setFilters((prev) => ({ ...prev, [key]: value }))
+      return
+    }
     setReadyKey(-1)
     setSyncKey((k) => k + 1)
     setFilters((prev) => ({ ...prev, [key]: value }))
   }
+
+  const runMatch = useCallback(async () => {
+    if (!filters.csrFocus?.trim()) {
+      setMatchError('CSR focus is required for AI matching.')
+      return
+    }
+    setMatchLoading(true)
+    setMatchError(null)
+    try {
+      const result = await runNgoMatch({
+        csrFocus: filters.csrFocus.trim(),
+        keywords: filters.keywords?.trim() || undefined,
+        state: filters.state !== 'All' ? filters.state : undefined,
+        sdg: filters.sdg !== 'all' ? filters.sdg : undefined,
+        theme: filters.theme !== 'All' ? filters.theme : undefined,
+        impact: filters.impact !== 'all' ? filters.impact : undefined,
+        budgetRange: filters.budgetRange !== 'All' ? filters.budgetRange : undefined,
+      })
+      setMatchResults(result.matches || [])
+      setMatchOffline(!!result.offline)
+    } catch (err) {
+      setMatchError(err.message || 'Matching failed')
+      setMatchResults(null)
+    } finally {
+      setMatchLoading(false)
+    }
+  }, [filters])
 
   async function loadMore() {
     setLoadingMore(true)
@@ -165,7 +240,27 @@ export default function NgoDiscovery() {
     <>
       <PageHeader
         title="NGO Discovery"
-        description="Search and filter verified implementing agencies for your CSR programs."
+        description={isMatchMode
+          ? 'AI-ranked NGO matches based on your CSR focus, geography, budget, and impact criteria.'
+          : 'Search and filter verified implementing agencies for your CSR programs.'}
+        actions={
+          <div className="flex gap-2">
+            <Button
+              variant={!isMatchMode ? 'primary' : 'secondary'}
+              size="sm"
+              onClick={() => updateFilter('mode', 'browse')}
+            >
+              Browse
+            </Button>
+            <Button
+              variant={isMatchMode ? 'primary' : 'secondary'}
+              size="sm"
+              onClick={() => updateFilter('mode', 'match')}
+            >
+              <Sparkles className="h-4 w-4" /> AI Match
+            </Button>
+          </div>
+        }
       />
 
       {toast && (
@@ -211,99 +306,170 @@ export default function NgoDiscovery() {
               ))}
             </Select>
           </FilterField>
-          <Checkbox
-            label="Verified only"
-            checked={filters.verified === 'true'}
-            onChange={(e) => updateFilter('verified', e.target.checked ? 'true' : 'all')}
-          />
-          <Checkbox
-            label="Saved only"
-            checked={filters.savedOnly}
-            onChange={(e) => updateFilter('savedOnly', e.target.checked)}
-          />
+          {!isMatchMode && (
+            <>
+              <Checkbox
+                label="Verified only"
+                checked={filters.verified === 'true'}
+                onChange={(e) => updateFilter('verified', e.target.checked ? 'true' : 'all')}
+              />
+              <Checkbox
+                label="Saved only"
+                checked={filters.savedOnly}
+                onChange={(e) => updateFilter('savedOnly', e.target.checked)}
+              />
+            </>
+          )}
         </FilterPanel>
 
         <div className="lg:col-span-3 space-y-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input
-              placeholder="Search NGOs by name or description..."
-              value={filters.q}
-              onChange={(e) => updateFilter('q', e.target.value)}
-              className="pl-10"
-            />
-          </div>
-
-          {!loading && !error && (
-            <p className="text-sm text-slate-500">
-              {filters.savedOnly ? `${displayedNgos.length} saved NGO${displayedNgos.length !== 1 ? 's' : ''} shown` : `${total} NGO${total !== 1 ? 's' : ''} found`}
-            </p>
-          )}
-
-          {error && (
-            <Card className="flex items-center justify-between gap-4">
-              <p className="text-sm text-red-600">{error}</p>
-              <Button size="sm" variant="secondary" onClick={retry}>
-                <RefreshCw className="h-4 w-4" /> Retry
+          {isMatchMode ? (
+            <>
+              <FilterField label="CSR focus (required)">
+                <Textarea
+                  placeholder="Describe your CSR goals, e.g. afforestation and climate resilience in Maharashtra…"
+                  value={filters.csrFocus}
+                  onChange={(e) => updateFilter('csrFocus', e.target.value)}
+                  className="min-h-[100px]"
+                />
+              </FilterField>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  placeholder="Keywords (optional) — climate, education, rural…"
+                  value={filters.keywords}
+                  onChange={(e) => updateFilter('keywords', e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Button onClick={runMatch} disabled={matchLoading || !filters.csrFocus?.trim()}>
+                <Sparkles className="h-4 w-4" />
+                {matchLoading ? 'Finding matches…' : 'Find matches'}
               </Button>
-            </Card>
-          )}
 
-          {loading ? (
-            <p className="text-slate-500">Loading NGOs...</p>
-          ) : !error && displayedNgos.length === 0 ? (
-            <EmptyState icon={Search} title="No NGOs match your filters" description="Try adjusting filters or search terms." />
+              {matchOffline && (
+                <Alert variant="warning">
+                  Ollama is offline — showing deterministic match scores. Start Ollama for AI-ranked reasons.
+                </Alert>
+              )}
+
+              {matchError && (
+                <Alert variant="error">{matchError}</Alert>
+              )}
+
+              {matchLoading && (
+                <p className="text-slate-500">Scoring and ranking NGOs…</p>
+              )}
+
+              {!matchLoading && matchResults?.length === 0 && !matchError && (
+                <EmptyState
+                  icon={Sparkles}
+                  title="No matches found"
+                  description="Try broadening state or SDG filters, or adjust your CSR focus text."
+                />
+              )}
+
+              {matchResults?.length > 0 && (
+                <div className="grid md:grid-cols-2 gap-4">
+                  {matchResults.map((match) => (
+                    <MatchResultCard
+                      key={match.slug}
+                      match={match}
+                      saved={savedSlugs.has(match.slug)}
+                      inCompare={compareItems.some((c) => c.slug === match.slug)}
+                      compareFull={compareItems.length >= 3}
+                      onSave={toggleSave}
+                      onCompare={handleCompare}
+                      onContact={setContactNgo}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
           ) : (
             <>
-              <div className="grid md:grid-cols-2 gap-4">
-                {displayedNgos.map((ngo) => (
-                  <Card key={ngo.slug}>
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <Link to={CORPORATE_ROUTES.ngoProfile(ngo.slug)} className="font-semibold text-slate-900 hover:text-primary-600">
-                        {ngo.name}
-                      </Link>
-                      {ngo.verified && <Badge variant="verified">Verified</Badge>}
-                    </div>
-                    <p className="text-sm text-slate-600 line-clamp-2 mb-3">{ngo.description}</p>
-                    <div className="flex flex-wrap gap-1 mb-3">
-                      {(ngo.focusAreas || []).slice(0, 3).map((a) => (
-                        <Badge key={a} variant="primary">{a}</Badge>
-                      ))}
-                    </div>
-                    <div className="flex items-center gap-4 text-xs text-slate-500 mb-4">
-                      <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{ngo.region}</span>
-                      {ngo.riskScore != null && <span>Risk: {ngo.riskScore}/100</span>}
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        variant={savedSlugs.has(ngo.slug) ? 'primary' : 'secondary'}
-                        size="sm"
-                        onClick={() => toggleSave(ngo.slug)}
-                      >
-                        <Heart className={`h-3.5 w-3.5 ${savedSlugs.has(ngo.slug) ? 'fill-current' : ''}`} />
-                        {savedSlugs.has(ngo.slug) ? 'Saved' : 'Save'}
-                      </Button>
-                      <Button
-                        variant={compareItems.some((c) => c.slug === ngo.slug) ? 'primary' : 'secondary'}
-                        size="sm"
-                        onClick={() => handleCompare(ngo)}
-                        disabled={!compareItems.some((c) => c.slug === ngo.slug) && compareItems.length >= 3}
-                      >
-                        <GitCompare className="h-3.5 w-3.5" /> Compare
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => setContactNgo(ngo)}>
-                        <Mail className="h-3.5 w-3.5" /> Contact
-                      </Button>
-                    </div>
-                  </Card>
-                ))}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  placeholder="Search NGOs by name or description..."
+                  value={filters.q}
+                  onChange={(e) => updateFilter('q', e.target.value)}
+                  className="pl-10"
+                />
               </div>
-              {!filters.savedOnly && hasMore && (
-                <div className="flex justify-center pt-2">
-                  <Button variant="secondary" disabled={loadingMore} onClick={loadMore}>
-                    {loadingMore ? 'Loading...' : 'Load more'}
+
+              {!loading && !error && (
+                <p className="text-sm text-slate-500">
+                  {filters.savedOnly ? `${displayedNgos.length} saved NGO${displayedNgos.length !== 1 ? 's' : ''} shown` : `${total} NGO${total !== 1 ? 's' : ''} found`}
+                </p>
+              )}
+
+              {error && (
+                <Card className="flex items-center justify-between gap-4">
+                  <p className="text-sm text-red-600">{error}</p>
+                  <Button size="sm" variant="secondary" onClick={retry}>
+                    <RefreshCw className="h-4 w-4" /> Retry
                   </Button>
-                </div>
+                </Card>
+              )}
+
+              {loading ? (
+                <p className="text-slate-500">Loading NGOs...</p>
+              ) : !error && displayedNgos.length === 0 ? (
+                <EmptyState icon={Search} title="No NGOs match your filters" description="Try adjusting filters or search terms." />
+              ) : (
+                <>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {displayedNgos.map((ngo) => (
+                      <Card key={ngo.slug}>
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <Link to={CORPORATE_ROUTES.ngoProfile(ngo.slug)} className="font-semibold text-slate-900 hover:text-primary-600">
+                            {ngo.name}
+                          </Link>
+                          {ngo.verified && <Badge variant="verified">Verified</Badge>}
+                        </div>
+                        <p className="text-sm text-slate-600 line-clamp-2 mb-3">{ngo.description}</p>
+                        <div className="flex flex-wrap gap-1 mb-3">
+                          {(ngo.focusAreas || []).slice(0, 3).map((a) => (
+                            <Badge key={a} variant="primary">{a}</Badge>
+                          ))}
+                        </div>
+                        <div className="flex items-center gap-4 text-xs text-slate-500 mb-4">
+                          <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{ngo.region}</span>
+                          {ngo.riskScore != null && <span>Risk: {ngo.riskScore}/100</span>}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            variant={savedSlugs.has(ngo.slug) ? 'primary' : 'secondary'}
+                            size="sm"
+                            onClick={() => toggleSave(ngo.slug)}
+                          >
+                            <Heart className={`h-3.5 w-3.5 ${savedSlugs.has(ngo.slug) ? 'fill-current' : ''}`} />
+                            {savedSlugs.has(ngo.slug) ? 'Saved' : 'Save'}
+                          </Button>
+                          <Button
+                            variant={compareItems.some((c) => c.slug === ngo.slug) ? 'primary' : 'secondary'}
+                            size="sm"
+                            onClick={() => handleCompare(ngo)}
+                            disabled={!compareItems.some((c) => c.slug === ngo.slug) && compareItems.length >= 3}
+                          >
+                            <GitCompare className="h-3.5 w-3.5" /> Compare
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => setContactNgo(ngo)}>
+                            <Mail className="h-3.5 w-3.5" /> Contact
+                          </Button>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                  {!filters.savedOnly && hasMore && (
+                    <div className="flex justify-center pt-2">
+                      <Button variant="secondary" disabled={loadingMore} onClick={loadMore}>
+                        {loadingMore ? 'Loading...' : 'Load more'}
+                      </Button>
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}
