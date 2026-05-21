@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Heart, MapPin, FileText, Users, Star, Shield, Globe, Mail } from 'lucide-react'
 import { PageHeader } from '../../components/corporate/PageHeader'
 import { TabbedSections } from '../../components/corporate/TabbedSections'
@@ -29,6 +29,7 @@ const tabs = [
 
 export default function CorporateNgoProfile() {
   const { slug } = useParams()
+  const navigate = useNavigate()
   const [ngo, setNgo] = useState(null)
   const [status, setStatus] = useState({ slug: null, kind: 'loading' })
   const [activeTab, setActiveTab] = useState('overview')
