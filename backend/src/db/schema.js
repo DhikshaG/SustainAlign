@@ -143,3 +143,62 @@ export const searchDocuments = sqliteTable('search_documents', {
   keywords: text('keywords'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 })
+
+export const tagCategories = sqliteTable('tag_categories', {
+  id: text('id').primaryKey(),
+  slug: text('slug').notNull().unique(),
+  name: text('name').notNull(),
+  description: text('description'),
+})
+
+export const tags = sqliteTable('tags', {
+  id: text('id').primaryKey(),
+  categoryId: text('category_id').notNull().references(() => tagCategories.id),
+  slug: text('slug').notNull(),
+  label: text('label').notNull(),
+  metadata: text('metadata'),
+}, (table) => [
+  uniqueIndex('tags_category_slug_idx').on(table.categoryId, table.slug),
+])
+
+export const entityTags = sqliteTable('entity_tags', {
+  id: text('id').primaryKey(),
+  entityType: text('entity_type').notNull(),
+  entityId: text('entity_id').notNull(),
+  tagId: text('tag_id').notNull().references(() => tags.id),
+  tenantId: text('tenant_id').references(() => tenants.id),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+}, (table) => [
+  uniqueIndex('entity_tags_unique_idx').on(table.entityType, table.entityId, table.tagId),
+])
+
+export const workflowDefinitions = sqliteTable('workflow_definitions', {
+  id: text('id').primaryKey(),
+  slug: text('slug').notNull().unique(),
+  name: text('name').notNull(),
+  steps: text('steps').notNull(),
+})
+
+export const workflowInstances = sqliteTable('workflow_instances', {
+  id: text('id').primaryKey(),
+  definitionId: text('definition_id').notNull().references(() => workflowDefinitions.id),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  entityType: text('entity_type').notNull(),
+  entityId: text('entity_id').notNull(),
+  status: text('status').notNull().default('pending'),
+  currentStepIndex: integer('current_step_index').notNull().default(0),
+  submittedBy: text('submitted_by').notNull().references(() => users.id),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+})
+
+export const workflowEvents = sqliteTable('workflow_events', {
+  id: text('id').primaryKey(),
+  instanceId: text('instance_id').notNull().references(() => workflowInstances.id),
+  fromStatus: text('from_status'),
+  toStatus: text('to_status').notNull(),
+  stepIndex: integer('step_index'),
+  actorUserId: text('actor_user_id').references(() => users.id),
+  comment: text('comment'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+})

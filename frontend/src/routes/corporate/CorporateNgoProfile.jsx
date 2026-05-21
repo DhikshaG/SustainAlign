@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Heart, MapPin, FileText, Users, Star, Shield, Globe } from 'lucide-react'
 import { PageHeader } from '../../components/corporate/PageHeader'
@@ -8,6 +8,7 @@ import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { ProgressBar } from '../../components/corporate/ProgressBar'
 import { getCorporateNgo } from '../../data/corporate/ngos'
+import { apiFetch } from '../../lib/api'
 import { CORPORATE_ROUTES } from '../../lib/routes'
 import NotFound from '../public/NotFound'
 
@@ -29,6 +30,14 @@ export default function CorporateNgoProfile() {
   const { slug } = useParams()
   const ngo = getCorporateNgo(slug)
   const [activeTab, setActiveTab] = useState('overview')
+  const [tags, setTags] = useState([])
+
+  useEffect(() => {
+    if (!slug) return
+    apiFetch(`/api/corporate/ngos/${slug}`).then((res) => {
+      setTags(res.data?.tags || [])
+    }).catch(() => {})
+  }, [slug])
 
   if (!ngo) return <NotFound />
 
@@ -51,6 +60,7 @@ export default function CorporateNgoProfile() {
       <div className="flex flex-wrap items-center gap-3 mb-6">
         {ngo.verified && <Badge variant="verified">Verified</Badge>}
         <Badge variant="primary">{ngo.sector}</Badge>
+        {tags.map((t) => <Badge key={t} variant="default">{t}</Badge>)}
         <span className="text-sm text-slate-500 flex items-center gap-1"><MapPin className="h-4 w-4" />{ngo.region}</span>
         <span className="text-sm text-slate-500 flex items-center gap-1"><Star className="h-4 w-4 text-amber-500" />{ngo.rating?.toFixed(1)} ({ngo.reviewCount} reviews)</span>
       </div>

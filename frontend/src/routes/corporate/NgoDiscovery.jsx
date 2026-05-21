@@ -32,6 +32,7 @@ export default function NgoDiscovery() {
   const [budget, setBudget] = useState('All')
   const [size, setSize] = useState('all')
   const [verifiedOnly, setVerifiedOnly] = useState(false)
+  const [tagFilter, setTagFilter] = useState('')
   const [saved, setSaved] = useState(getSaved)
   const [compare, setCompare] = useState([])
   const [contactNgo, setContactNgo] = useState(null)
@@ -48,9 +49,12 @@ export default function NgoDiscovery() {
       if (budget !== 'All' && ngo.budgetRange !== budget) return false
       if (size !== 'all' && ngo.orgSize !== size) return false
       if (verifiedOnly && !ngo.verified) return false
+      if (tagFilter === 'sdg-4' && !ngo.sdgs.includes(4)) return false
+      if (tagFilter === 'sdg-13' && !ngo.sdgs.includes(13)) return false
+      if (tagFilter === 'climate' && !ngo.csrThemes.includes('Environment')) return false
       return true
     })
-  }, [search, location, sdg, theme, budget, size, verifiedOnly])
+  }, [search, location, sdg, theme, budget, size, verifiedOnly, tagFilter])
 
   function toggleSave(slug) {
     const next = saved.includes(slug) ? saved.filter((s) => s !== slug) : [...saved, slug]
@@ -120,6 +124,14 @@ export default function NgoDiscovery() {
               {discoveryFilters.sdgs.map((s) => (
                 <option key={s.value} value={s.value}>{s.label}</option>
               ))}
+            </Select>
+          </FilterField>
+          <FilterField label="Impact tag">
+            <Select value={tagFilter} onChange={(e) => setTagFilter(e.target.value)}>
+              <option value="">All tags</option>
+              <option value="sdg-4">SDG 4 — Education</option>
+              <option value="sdg-13">SDG 13 — Climate</option>
+              <option value="climate">Climate impact</option>
             </Select>
           </FilterField>
           <FilterField label="CSR Theme">

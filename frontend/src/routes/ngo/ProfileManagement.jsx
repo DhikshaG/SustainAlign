@@ -7,10 +7,13 @@ import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { Textarea } from '../../components/ui/Textarea'
+import { TagPicker } from '../../components/tags/TagPicker'
+import { useAuth } from '../../context/AuthContext'
 import { ngoProfile } from '../../data/ngo/profile'
 
 const tabs = [
   { id: 'profile', label: 'Profile' },
+  { id: 'tags', label: 'Tags & Taxonomy' },
   { id: 'certifications', label: 'Certifications' },
   { id: 'csr1', label: 'CSR-1' },
   { id: 'focus', label: 'Focus Areas' },
@@ -19,6 +22,7 @@ const tabs = [
 
 export default function ProfileManagement() {
   const [activeTab, setActiveTab] = useState('profile')
+  const { user } = useAuth()
   const [focusAreas] = useState(ngoProfile.focusAreas)
   const [toast, setToast] = useState(null)
 
@@ -42,6 +46,12 @@ export default function ProfileManagement() {
             <Textarea defaultValue={ngoProfile.description} rows={4} placeholder="Description" />
             <Button type="submit">Save Profile</Button>
           </form>
+        </Card>
+      )}
+      {activeTab === 'tags' && user?.tenantId && (
+        <Card>
+          <p className="text-sm text-slate-600 mb-4">Structured tags power AI matching with corporate CSR themes, SDGs, geography, and impact areas.</p>
+          <TagPicker entityType="ngo" entityId={user.tenantId} />
         </Card>
       )}
       {activeTab === 'certifications' && (
