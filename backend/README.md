@@ -184,6 +184,50 @@ npm run db:verify-impact
 | POST | `/api/corporate/projects/:id/geo` | Geo update |
 | GET | `/api/ngo/beneficiaries` | NGO beneficiary logs across projects |
 
+## Step 5 — Report Generation
+
+PDF reports from live impact and compliance data (`pdfkit`).
+
+```bash
+npm run db:verify-reports
+```
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/corporate/reports` | List generated reports |
+| POST | `/api/corporate/reports/generate` | Generate PDF (`quarterly`, `board`, `sdg`, `impact`, `mca_csr2`) |
+| POST | `/api/corporate/reports/:id/submit` | Mark report submitted |
+
+## Step 6 — Compliance Engine
+
+Section 135 obligation, Schedule VII validation, unspent tracking, alerts.
+
+```bash
+npm run db:verify-compliance
+```
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/corporate/compliance/summary` | Computed compliance DTO |
+| PATCH | `/api/corporate/compliance/profile` | Update FY financials |
+| GET | `/api/corporate/funds/allocation` | Live fund allocation |
+
+## Step 7 — AI Layer (Ollama)
+
+Requires `ollama pull llama3.1:1b` and `ollama serve`.
+
+```bash
+npm run db:verify-ai
+```
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/corporate/copilot/suggestions` | Context-aware prompts |
+| POST | `/api/corporate/copilot/chat` | Grounded copilot chat |
+| POST | `/api/corporate/ai/match-ngos` | AI NGO matching |
+| POST | `/api/corporate/ai/search` | AI-enhanced search |
+| POST | `/api/corporate/ai/narrative` | Impact narrative |
+
 ## Auth endpoints
 
 ### Corporate

@@ -19,6 +19,9 @@ const envSchema = z.object({
   STORAGE_PROVIDER: z.enum(['local']).default('local'),
   UPLOAD_ROOT: z.string().default('./uploads'),
   MAX_FILE_SIZE_MB: z.coerce.number().default(10),
+  OLLAMA_BASE_URL: z.string().default('http://localhost:11434'),
+  OLLAMA_MODEL: z.string().default('llama3.1:1b'),
+  AI_ENABLED: z.union([z.boolean(), z.string()]).default(true),
 })
 
 const parsed = envSchema.parse(process.env)

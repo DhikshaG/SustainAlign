@@ -3,37 +3,60 @@ import { Send, Sparkles } from 'lucide-react'
 import { PageHeader } from '../../components/corporate/PageHeader'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
-import { copilotSuggestions, getCopilotResponse } from '../../data/corporate/copilot-suggestions'
+import { Alert } from '../../components/ui/Alert'
+import { fetchCopilotSuggestions, sendCopilotMessage } from '../../lib/copilot'
 
 export default function AiCopilot() {
   const [messages, setMessages] = useState([
-    { role: 'assistant', text: 'Hello! I\'m your CSR Copilot. Ask me about obligations, NGO recommendations, compliance risks, or budget optimization.' },
+    { role: 'assistant', text: 'Hello! I\'m your CSR Copilot powered by Ollama. Ask about obligations, projects, compliance, or NGO performance.' },
   ])
+  const [suggestions, setSuggestions] = useState([])
   const [input, setInput] = useState('')
   const [typing, setTyping] = useState(false)
+  const [offline, setOffline] = useState(false)
   const bottomRef = useRef(null)
+
+  useEffect(() => {
+    fetchCopilotSuggestions().then(setSuggestions).catch(() => {})
+  }, [])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, typing])
 
-  function sendMessage(text) {
+  async function sendMessage(text) {
     if (!text.trim()) return
-    setMessages((m) => [...m, { role: 'user', text: text.trim() }])
+    const userText = text.trim()
+    const history = messages.filter((m) => m.role === 'user' || m.role === 'assistant').map((m) => ({
+      role: m.role,
+      content: m.text,
+    }))
+    setMessages((m) => [...m, { role: 'user', text: userText }])
     setInput('')
     setTyping(true)
-    setTimeout(() => {
-      setMessages((m) => [...m, { role: 'assistant', text: getCopilotResponse(text) }])
+    try {
+      const result = await sendCopilotMessage(userText, history)
+      setOffline(!!result.offline)
+      setMessages((m) => [...m, { role: 'assistant', text: result.reply }])
+    } catch (err) {
+      setMessages((m) => [...m, { role: 'assistant', text: err.message || 'Copilot request failed' }])
+    } finally {
       setTyping(false)
-    }, 800)
+    }
   }
 
   return (
     <>
       <PageHeader
         title="AI Copilot"
-        description="Ask CSR questions, get NGO suggestions, and analyze compliance risks."
+        description="Ask CSR questions grounded in your live project and compliance data (Ollama llama3.1:1b)."
       />
+
+      {offline && (
+        <Alert variant="warning" className="mb-4">
+          Ollama is offline. Start it with: ollama pull llama3.1:1b && ollama serve
+        </Alert>
+      )}
 
       <div className="grid lg:grid-cols-4 gap-6">
         <Card className="lg:col-span-1 h-fit">
@@ -41,14 +64,14 @@ export default function AiCopilot() {
             <Sparkles className="h-4 w-4 text-primary-600" /> Suggested Prompts
           </h3>
           <ul className="space-y-2">
-            {copilotSuggestions.map((prompt) => (
-              <li key={prompt}>
+            {suggestions.map((s) => (
+              <li key={s.id}>
                 <button
                   type="button"
                   className="w-full text-left text-sm text-slate-600 hover:text-primary-600 hover:bg-primary-50 rounded-lg px-3 py-2 transition-colors"
-                  onClick={() => sendMessage(prompt)}
+                  onClick={() => sendMessage(s.prompt)}
                 >
-                  {prompt}
+                  {s.prompt}
                 </button>
               </li>
             ))}
@@ -64,13 +87,13 @@ export default function AiCopilot() {
                     ? 'bg-primary-600 text-white'
                     : 'bg-slate-100 text-slate-800'
                 }`}>
-                  {msg.text.split('**').map((part, j) => j % 2 === 1 ? <strong key={j}>{part}</strong> : part)}
+                  {msg.text}
                 </div>
               </div>
             ))}
             {typing && (
               <div className="flex justify-start">
-                <div className="bg-slate-100 rounded-xl px-4 py-3 text-sm text-slate-500">Thinking...</div>
+                <div className="bg-slate-100 rounded-xl px-4 py-3 text-sm text-slate-500">Thinking…</div>
               </div>
             )}
             <div ref={bottomRef} />
@@ -83,7 +106,7 @@ export default function AiCopilot() {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask a CSR question..."
+              placeholder="Ask a CSR question…"
               className="flex-1 rounded-lg border border-slate-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
             <Button type="submit" disabled={!input.trim() || typing}>
