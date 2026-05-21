@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { Sparkles, Heart, GitCompare, Mail, MapPin } from 'lucide-react'
+import { Sparkles, Heart, GitCompare, Mail, MapPin, Search } from 'lucide-react'
 import { PageHeader } from '../../components/corporate/PageHeader'
 import { FilterPanel, FilterField } from '../../components/corporate/FilterPanel'
 import { Card } from '../../components/ui/Card'
@@ -10,9 +10,9 @@ import { Input } from '../../components/ui/Input'
 import { Select } from '../../components/ui/Select'
 import { Checkbox } from '../../components/ui/Checkbox'
 import { EmptyState } from '../../components/corporate/EmptyState'
-import { corporateNgos, discoveryFilters } from '../../data/corporate/ngos'
+import { discoveryFilters } from '../../data/corporate/ngos'
+import { fetchCorporateNgos } from '../../lib/ngo'
 import { CORPORATE_ROUTES } from '../../lib/routes'
-import { Search } from 'lucide-react'
 
 const SAVED_KEY = 'savedNgos'
 
@@ -33,28 +33,45 @@ export default function NgoDiscovery() {
   const [size, setSize] = useState('all')
   const [verifiedOnly, setVerifiedOnly] = useState(false)
   const [tagFilter, setTagFilter] = useState('')
+  const queryKey = useMemo(
+    () => JSON.stringify({ search, location, sdg, budget, size, verifiedOnly, tagFilter }),
+    [search, location, sdg, budget, size, verifiedOnly, tagFilter],
+  )
+  const [ngos, setNgos] = useState([])
+  const [loadedKey, setLoadedKey] = useState(null)
   const [saved, setSaved] = useState(getSaved)
   const [compare, setCompare] = useState([])
   const [contactNgo, setContactNgo] = useState(null)
   const [toast, setToast] = useState(null)
+  const loading = loadedKey !== queryKey
 
-  const aiRecommended = corporateNgos.filter((n) => n.aiRecommended)
+  useEffect(() => {
+    let active = true
+    const params = {
+      q: search || undefined,
+      location: location !== 'All' ? location : undefined,
+      sdg: sdg !== 'all' ? sdg : undefined,
+      budgetRange: budget !== 'All' ? budget : undefined,
+      orgSize: size !== 'all' ? size : undefined,
+      verified: verifiedOnly ? 'true' : undefined,
+    }
+    if (tagFilter === 'sdg-4') params.sdg = '4'
+    else if (tagFilter === 'sdg-13') params.sdg = '13'
+    else if (tagFilter === 'climate') params.tags = 'environment'
+
+    fetchCorporateNgos(params)
+      .then((data) => { if (active) setNgos(Array.isArray(data) ? data : []) })
+      .catch(() => { if (active) setNgos([]) })
+      .finally(() => { if (active) setLoadedKey(queryKey) })
+    return () => { active = false }
+  }, [queryKey, search, location, sdg, budget, size, verifiedOnly, tagFilter])
 
   const filtered = useMemo(() => {
-    return corporateNgos.filter((ngo) => {
-      if (search && !`${ngo.name} ${ngo.description}`.toLowerCase().includes(search.toLowerCase())) return false
-      if (location !== 'All' && ngo.region !== location) return false
-      if (sdg !== 'all' && !ngo.sdgs.includes(Number(sdg))) return false
-      if (theme !== 'All' && !ngo.csrThemes.includes(theme)) return false
-      if (budget !== 'All' && ngo.budgetRange !== budget) return false
-      if (size !== 'all' && ngo.orgSize !== size) return false
-      if (verifiedOnly && !ngo.verified) return false
-      if (tagFilter === 'sdg-4' && !ngo.sdgs.includes(4)) return false
-      if (tagFilter === 'sdg-13' && !ngo.sdgs.includes(13)) return false
-      if (tagFilter === 'climate' && !ngo.csrThemes.includes('Environment')) return false
-      return true
-    })
-  }, [search, location, sdg, theme, budget, size, verifiedOnly, tagFilter])
+    if (theme === 'All') return ngos
+    return ngos.filter((ngo) => (ngo.csrThemes || []).includes(theme))
+  }, [ngos, theme])
+
+  const aiRecommended = useMemo(() => filtered.filter((n) => n.aiRecommended), [filtered])
 
   function toggleSave(slug) {
     const next = saved.includes(slug) ? saved.filter((s) => s !== slug) : [...saved, slug]
@@ -75,7 +92,7 @@ export default function NgoDiscovery() {
     setTimeout(() => setToast(null), 3000)
   }
 
-  const compareNgos = corporateNgos.filter((n) => compare.includes(n.slug))
+  const compareNgos = filtered.filter((n) => compare.includes(n.slug))
 
   return (
     <>
@@ -90,25 +107,26 @@ export default function NgoDiscovery() {
         </div>
       )}
 
-      {/* AI recommendations */}
-      <Card className="mb-6 bg-gradient-to-r from-primary-50 to-white border-primary-100">
-        <div className="flex items-center gap-2 mb-3">
-          <Sparkles className="h-5 w-5 text-primary-600" />
-          <h3 className="font-semibold text-slate-900">AI Recommendations</h3>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          {aiRecommended.map((ngo) => (
-            <Link
-              key={ngo.slug}
-              to={CORPORATE_ROUTES.ngoProfile(ngo.slug)}
-              className="flex items-center gap-2 rounded-lg border border-primary-200 bg-white px-4 py-2 text-sm hover:border-primary-400"
-            >
-              <span className="font-medium text-slate-900">{ngo.name}</span>
-              <Badge variant="verified">{ngo.rating?.toFixed(1)}★</Badge>
-            </Link>
-          ))}
-        </div>
-      </Card>
+      {aiRecommended.length > 0 && (
+        <Card className="mb-6 bg-gradient-to-r from-primary-50 to-white border-primary-100">
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles className="h-5 w-5 text-primary-600" />
+            <h3 className="font-semibold text-slate-900">AI Recommendations</h3>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            {aiRecommended.map((ngo) => (
+              <Link
+                key={ngo.slug}
+                to={CORPORATE_ROUTES.ngoProfile(ngo.slug)}
+                className="flex items-center gap-2 rounded-lg border border-primary-200 bg-white px-4 py-2 text-sm hover:border-primary-400"
+              >
+                <span className="font-medium text-slate-900">{ngo.name}</span>
+                {ngo.rating != null && <Badge variant="verified">{ngo.rating.toFixed(1)}★</Badge>}
+              </Link>
+            ))}
+          </div>
+        </Card>
+      )}
 
       <div className="grid lg:grid-cols-4 gap-6">
         <FilterPanel className="lg:col-span-1 h-fit">
@@ -173,7 +191,9 @@ export default function NgoDiscovery() {
             />
           </div>
 
-          {filtered.length === 0 ? (
+          {loading ? (
+            <p className="text-slate-500">Loading NGOs...</p>
+          ) : filtered.length === 0 ? (
             <EmptyState icon={Search} title="No NGOs match your filters" description="Try adjusting filters or search terms." />
           ) : (
             <div className="grid md:grid-cols-2 gap-4">
@@ -187,14 +207,14 @@ export default function NgoDiscovery() {
                   </div>
                   <p className="text-sm text-slate-600 line-clamp-2 mb-3">{ngo.description}</p>
                   <div className="flex flex-wrap gap-1 mb-3">
-                    {ngo.focusAreas.slice(0, 3).map((a) => (
+                    {(ngo.focusAreas || []).slice(0, 3).map((a) => (
                       <Badge key={a} variant="primary">{a}</Badge>
                     ))}
                   </div>
                   <div className="flex items-center gap-4 text-xs text-slate-500 mb-4">
                     <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{ngo.region}</span>
-                    <span>{ngo.rating?.toFixed(1)}★ ({ngo.reviewCount})</span>
-                    <span>Risk: {ngo.riskScore}/100</span>
+                    {ngo.rating != null && <span>{ngo.rating.toFixed(1)}★ ({ngo.reviewCount ?? 0})</span>}
+                    {ngo.riskScore != null && <span>Risk: {ngo.riskScore}/100</span>}
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Button
@@ -226,7 +246,6 @@ export default function NgoDiscovery() {
         </div>
       </div>
 
-      {/* Compare drawer */}
       {compareNgos.length > 0 && (
         <div className="fixed bottom-0 inset-x-0 z-40 border-t border-slate-200 bg-white p-4 shadow-lg lg:pl-72">
           <div className="max-w-5xl mx-auto">
@@ -235,9 +254,9 @@ export default function NgoDiscovery() {
               {compareNgos.map((ngo) => (
                 <div key={ngo.slug} className="rounded-lg border border-slate-200 p-3">
                   <p className="font-medium">{ngo.name}</p>
-                  <p>Rating: {ngo.rating?.toFixed(1)} · Risk: {ngo.riskScore}</p>
-                  <p>Transparency: {ngo.financialTransparency}%</p>
-                  <p>Budget: {ngo.budgetRange}</p>
+                  <p>Rating: {ngo.rating?.toFixed(1) ?? '—'} · Risk: {ngo.riskScore ?? '—'}</p>
+                  <p>Transparency: {ngo.financialTransparency ?? '—'}%</p>
+                  <p>Budget: {ngo.budgetRange ?? '—'}</p>
                 </div>
               ))}
             </div>
@@ -246,7 +265,6 @@ export default function NgoDiscovery() {
         </div>
       )}
 
-      {/* Contact modal */}
       {contactNgo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
           <Card className="w-full max-w-md">

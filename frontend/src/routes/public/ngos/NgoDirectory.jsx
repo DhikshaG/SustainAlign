@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { Seo } from '../../../components/seo/Seo'
 import { Hero } from '../../../components/marketing/Hero'
@@ -8,14 +8,26 @@ import { Card } from '../../../components/ui/Card'
 import { Badge } from '../../../components/ui/Badge'
 import { Input } from '../../../components/ui/Input'
 import { Select } from '../../../components/ui/Select'
-import { ngos, ngoSectors, ngoRegions } from '../../../data/sample-ngos'
+import { ngoSectors, ngoRegions } from '../../../data/sample-ngos'
+import { fetchPublicNgos } from '../../../lib/ngo'
 import { ROUTES } from '../../../lib/routes'
 import { MapPin, Users } from 'lucide-react'
 
 export default function NgoDirectory() {
+  const [ngos, setNgos] = useState([])
+  const [loading, setLoading] = useState(true)
   const [sector, setSector] = useState('All')
   const [region, setRegion] = useState('All')
   const [search, setSearch] = useState('')
+
+  useEffect(() => {
+    let active = true
+    fetchPublicNgos()
+      .then((data) => { if (active) setNgos(Array.isArray(data) ? data : []) })
+      .catch(() => { if (active) setNgos([]) })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [])
 
   const filtered = useMemo(() => {
     return ngos.filter((n) => {
@@ -24,7 +36,7 @@ export default function NgoDirectory() {
       if (search && !n.name.toLowerCase().includes(search.toLowerCase())) return false
       return true
     })
-  }, [sector, region, search])
+  }, [ngos, sector, region, search])
 
   return (
     <>
@@ -41,28 +53,34 @@ export default function NgoDirectory() {
               {ngoRegions.map((r) => <option key={r} value={r}>{r === 'All' ? 'All Regions' : r}</option>)}
             </Select>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filtered.map((ngo) => (
-              <Link key={ngo.slug} to={ROUTES.ngoProfile(ngo.slug)}>
-                <Card className="h-full hover:shadow-md transition-shadow">
-                  <div className="flex items-start justify-between mb-3">
-                    <h3 className="text-lg font-semibold text-slate-900">{ngo.name}</h3>
-                    {ngo.verified && <Badge variant="verified">Verified</Badge>}
-                  </div>
-                  <p className="text-sm text-slate-600 mb-4 line-clamp-2">{ngo.description}</p>
-                  <div className="flex items-center gap-4 text-xs text-slate-400">
-                    <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{ngo.region}</span>
-                    <span className="flex items-center gap-1"><Users className="h-3 w-3" />{ngo.beneficiaries}</span>
-                  </div>
-                  <div className="flex flex-wrap gap-1 mt-3">
-                    {ngo.focusAreas.slice(0, 3).map((a) => (
-                      <Badge key={a} variant="default">{a}</Badge>
-                    ))}
-                  </div>
-                </Card>
-              </Link>
-            ))}
-          </div>
+          {loading ? (
+            <p className="text-slate-500">Loading NGOs...</p>
+          ) : filtered.length === 0 ? (
+            <p className="text-slate-500">No verified NGOs match your filters.</p>
+          ) : (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filtered.map((ngo) => (
+                <Link key={ngo.slug} to={ROUTES.ngoProfile(ngo.slug)}>
+                  <Card className="h-full hover:shadow-md transition-shadow">
+                    <div className="flex items-start justify-between mb-3">
+                      <h3 className="text-lg font-semibold text-slate-900">{ngo.name}</h3>
+                      {ngo.verified && <Badge variant="verified">Verified</Badge>}
+                    </div>
+                    <p className="text-sm text-slate-600 mb-4 line-clamp-2">{ngo.description}</p>
+                    <div className="flex items-center gap-4 text-xs text-slate-400">
+                      <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{ngo.region}</span>
+                      <span className="flex items-center gap-1"><Users className="h-3 w-3" />{ngo.beneficiaries}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1 mt-3">
+                      {(ngo.focusAreas || []).slice(0, 3).map((a) => (
+                        <Badge key={a} variant="default">{a}</Badge>
+                      ))}
+                    </div>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          )}
         </Container>
       </Section>
     </>

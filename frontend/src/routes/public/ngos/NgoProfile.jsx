@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Seo } from '../../../components/seo/Seo'
 import { Container } from '../../../components/ui/Container'
@@ -5,15 +6,41 @@ import { Section } from '../../../components/ui/Section'
 import { Card } from '../../../components/ui/Card'
 import { Badge } from '../../../components/ui/Badge'
 import { Button } from '../../../components/ui/Button'
-import { ngos } from '../../../data/sample-ngos'
+import { fetchPublicNgo } from '../../../lib/ngo'
 import { ROUTES } from '../../../lib/routes'
 import NotFound from '../NotFound'
 import { MapPin, Users, FolderKanban } from 'lucide-react'
 
 export default function NgoProfile() {
   const { slug } = useParams()
-  const ngo = ngos.find((n) => n.slug === slug)
-  if (!ngo) return <NotFound />
+  const [ngo, setNgo] = useState(null)
+  const [status, setStatus] = useState({ slug: null, kind: 'loading' })
+
+  useEffect(() => {
+    let active = true
+    fetchPublicNgo(slug)
+      .then((data) => {
+        if (active) {
+          setNgo(data)
+          setStatus({ slug, kind: 'ok' })
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setNgo(null)
+          setStatus({ slug, kind: 'notfound' })
+        }
+      })
+    return () => { active = false }
+  }, [slug])
+
+  const loading = status.slug !== slug
+  const notFound = status.slug === slug && status.kind === 'notfound'
+
+  if (loading) {
+    return <Section bg="white" className="pt-12"><Container><p className="text-slate-500">Loading...</p></Container></Section>
+  }
+  if (notFound || !ngo) return <NotFound />
 
   return (
     <>
@@ -32,7 +59,7 @@ export default function NgoProfile() {
               <p className="text-slate-600 leading-relaxed mb-6">{ngo.description}</p>
               <h2 className="text-lg font-semibold text-slate-900 mb-3">Focus Areas</h2>
               <div className="flex flex-wrap gap-2 mb-8">
-                {ngo.focusAreas.map((a) => <Badge key={a} variant="primary">{a}</Badge>)}
+                {(ngo.focusAreas || []).map((a) => <Badge key={a} variant="primary">{a}</Badge>)}
               </div>
               <h2 className="text-lg font-semibold text-slate-900 mb-3">Active Projects</h2>
               <p className="text-sm text-slate-500">Project details available after corporate login.</p>
