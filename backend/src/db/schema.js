@@ -127,6 +127,7 @@ export const activityLogs = sqliteTable('activity_logs', {
   entityId: text('entity_id'),
   metadata: text('metadata'),
   previousValue: text('previous_value'),
+  reason: text('reason'),
   ipAddress: text('ip_address'),
   userAgent: text('user_agent'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),

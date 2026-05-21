@@ -15,6 +15,12 @@
       "when": 1779400000000,
       "tag": "0001_step0_foundation",
       "breakpoints": true
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1779500000000,
+      "tag": "0002_activity_indexes",
+      "breakpoints": true
     }
   ]
 }

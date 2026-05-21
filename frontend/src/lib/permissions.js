@@ -24,6 +24,7 @@ export const PERMISSIONS = {
   FILES_DOWNLOAD: 'files:download',
   NOTIFICATIONS_READ: 'notifications:read',
   ACTIVITY_READ: 'activity:read',
+  ACTIVITY_EXPORT: 'activity:export',
   ADMIN_USERS: 'admin:users',
   ADMIN_VERIFY_NGO: 'admin:verify_ngo',
   ADMIN_AUDIT_READ: 'admin:audit:read',

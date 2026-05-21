@@ -3,7 +3,7 @@ import { authenticate, requireRole } from '../../middleware/authenticate.js'
 import { requirePermission } from '../../middleware/permissions.js'
 import { PERMISSIONS } from '../../lib/permissions.js'
 import { ok, fail } from '../../lib/response.js'
-import { logActivity } from '../../services/activity-log/index.js'
+import { logMutation } from '../../services/activity-log/index.js'
 import { createNotification } from '../../services/notifications/index.js'
 import { db } from '../../db/index.js'
 import { ngoProfiles, memberships } from '../../db/schema.js'
@@ -47,6 +47,7 @@ router.post('/ngo-verification/:tenantId/approve', requirePermission(PERMISSIONS
     const profile = db.select().from(ngoProfiles).where(eq(ngoProfiles.tenantId, tenantId)).get()
     if (!profile) return fail(res, 404, 'NGO not found')
 
+    const previousStatus = profile.verificationStatus
     db.update(ngoProfiles).set({ verificationStatus: 'verified' }).where(eq(ngoProfiles.tenantId, tenantId)).run()
 
     const admins = db.select().from(memberships)
@@ -64,11 +65,13 @@ router.post('/ngo-verification/:tenantId/approve', requirePermission(PERMISSIONS
       })
     }
 
-    await logActivity({
+    await logMutation({
       req,
       action: 'ngo.verify.approve',
       entityType: 'ngo',
       entityId: tenantId,
+      before: { verificationStatus: previousStatus },
+      after: { verificationStatus: 'verified' },
     })
 
     return ok(res, { tenantId, status: 'verified' })
@@ -80,13 +83,17 @@ router.post('/ngo-verification/:tenantId/approve', requirePermission(PERMISSIONS
 router.post('/ngo-verification/:tenantId/reject', requirePermission(PERMISSIONS.ADMIN_VERIFY_NGO), async (req, res, next) => {
   try {
     const { tenantId } = req.params
+    const profile = db.select().from(ngoProfiles).where(eq(ngoProfiles.tenantId, tenantId)).get()
+    const previousStatus = profile?.verificationStatus ?? 'unknown'
     db.update(ngoProfiles).set({ verificationStatus: 'rejected' }).where(eq(ngoProfiles.tenantId, tenantId)).run()
-    await logActivity({
+    await logMutation({
       req,
       action: 'ngo.verify.reject',
       entityType: 'ngo',
       entityId: tenantId,
-      metadata: { reason: req.body?.reason },
+      before: { verificationStatus: previousStatus },
+      after: { verificationStatus: 'rejected' },
+      reason: req.body?.reason,
     })
     return ok(res, { tenantId, status: 'rejected' })
   } catch (err) {

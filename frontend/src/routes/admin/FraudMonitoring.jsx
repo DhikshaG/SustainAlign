@@ -4,14 +4,24 @@ import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
 import { BarChartCard } from '../../components/corporate/Charts'
 import { fraudAlerts, fraudTrend } from '../../data/admin/fraud'
+import { useActivityLog } from '../../hooks/useActivityLog'
 
 export default function FraudMonitoring() {
+  const { activity } = useActivityLog({ admin: true, limit: 15 })
+
   const columns = [
     { key: 'level', label: 'Level', render: (r) => <Badge variant={r.level === 'high' ? 'warning' : 'default'}>{r.level}</Badge> },
     { key: 'type', label: 'Type', sortable: true },
     { key: 'entity', label: 'Entity', sortable: true },
     { key: 'score', label: 'Risk Score', sortable: true },
     { key: 'date', label: 'Date', sortable: true },
+  ]
+
+  const activityColumns = [
+    { key: 'at', label: 'Time', render: (r) => new Date(r.at).toLocaleString() },
+    { key: 'action', label: 'Action' },
+    { key: 'user', label: 'User', render: (r) => r.user?.email || '—' },
+    { key: 'entity', label: 'Entity', render: (r) => `${r.entity?.type || ''} ${r.entity?.id || ''}`.trim() || '—' },
   ]
 
   return (
@@ -29,6 +39,12 @@ export default function FraudMonitoring() {
           ))}
         </div>
       </Card>
+
+      <Card className="mb-6">
+        <h3 className="font-semibold text-slate-900 mb-4">Recent Platform Activity</h3>
+        <DataTable columns={activityColumns} data={activity} keyField="id" />
+      </Card>
+
       <BarChartCard title="Alert Trend" data={fraudTrend} xKey="month" bars={[{ key: 'alerts', color: '#dc2626', name: 'Alerts' }]} />
       <div className="mt-6">
         <h3 className="font-semibold text-slate-900 mb-4">Risk Score Table</h3>

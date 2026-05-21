@@ -14,7 +14,7 @@ import { newId, uniqueSlug } from '../../lib/ids.js'
 import { sendMfaCode, sendPasswordReset, sendInvitation } from '../../lib/email.js'
 import { authLog } from '../../lib/auth-log.js'
 import { getPermissionsForRole } from '../../lib/permissions.js'
-import { logActivity } from '../activity-log/index.js'
+import { logActivity, logMutation } from '../activity-log/index.js'
 import { storeFile } from '../files/index.js'
 import { notifyPlatformAdmins } from '../notifications/index.js'
 
@@ -150,6 +150,7 @@ export async function corporateSignup(data, reqMeta) {
   }).run()
 
   authLog('signup.corporate', { userId, tenantId })
+  await logActivity({ tenantId, userId, action: 'auth.signup.corporate', entityType: 'tenant', entityId: tenantId }).catch(() => {})
 
   if (data.enableMfa) {
     return createMfaChallenge(userId)
@@ -215,6 +216,13 @@ export async function verifyMfa(sessionId, code, reqMeta) {
 
   const ctx = await loadUserContext(challenge.userId)
   authLog('mfa.verified', { userId: challenge.userId })
+  await logActivity({
+    tenantId: ctx.tenant.id,
+    userId: challenge.userId,
+    action: 'auth.mfa.verified',
+    ipAddress: reqMeta.ipAddress,
+    userAgent: reqMeta.userAgent,
+  }).catch(() => {})
   return issueTokenPair(ctx, reqMeta)
 }
 
@@ -233,6 +241,7 @@ export async function forgotPassword(email) {
 
   await sendPasswordReset(user.email, token)
   authLog('password.reset_requested', { userId: user.id })
+  await logActivity({ userId: user.id, action: 'auth.password.reset_requested', entityType: 'user', entityId: user.id }).catch(() => {})
   return { ok: true }
 }
 
@@ -258,6 +267,7 @@ export async function resetPassword(token, password) {
   ).run()
 
   authLog('password.reset_completed', { userId: row.userId })
+  await logActivity({ userId: row.userId, action: 'auth.password.reset_completed', entityType: 'user', entityId: row.userId }).catch(() => {})
   return { ok: true }
 }
 
@@ -283,6 +293,14 @@ export async function inviteTeam(inviter, invites) {
   }
 
   authLog('invite.sent', { tenantId: inviter.tenantId, count: sent })
+  await logActivity({
+    tenantId: inviter.tenantId,
+    userId: inviter.sub,
+    action: 'team.invite.sent',
+    entityType: 'tenant',
+    entityId: inviter.tenantId,
+    metadata: { count: sent, emails: invites.map((i) => i.email) },
+  }).catch(() => {})
   return { sent }
 }
 
@@ -442,6 +460,7 @@ export async function ngoRegister(data, reqMeta) {
   }).run()
 
   authLog('signup.ngo', { userId, tenantId })
+  await logActivity({ tenantId, userId, action: 'auth.signup.ngo', entityType: 'ngo', entityId: tenantId }).catch(() => {})
 
   const ctx = await loadUserContext(userId)
   return issueTokenPair(ctx, reqMeta)

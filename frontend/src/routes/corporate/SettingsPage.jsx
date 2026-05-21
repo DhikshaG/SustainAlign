@@ -8,6 +8,7 @@ import { Button } from '../../components/ui/Button'
 import { Checkbox } from '../../components/ui/Checkbox'
 import { settingsData } from '../../data/corporate/settings'
 import { getPermissionMatrix } from '../../lib/permissions'
+import { useActivityLog } from '../../hooks/useActivityLog'
 import { useAuth } from '../../context/AuthContext'
 import { ROUTES } from '../../lib/routes'
 import { CORPORATE_ROLES as CORPORATE_ROLE_OPTIONS } from '../../lib/validation/schemas'
@@ -30,6 +31,7 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('team')
   const [notifications, setNotifications] = useState(settingsData.notifications)
   const { user } = useAuth()
+  const { activity: authEvents } = useActivityLog({ limit: 10 })
 
   function toggleNotif(key) {
     setNotifications((n) => ({ ...n, [key]: !n[key] }))
@@ -165,6 +167,18 @@ export default function SettingsPage() {
             <div className="flex justify-between"><dt className="text-slate-500">Session</dt><dd className="font-medium">Active</dd></div>
           </dl>
           <Button variant="secondary" size="sm" className="mt-4">Change Password</Button>
+          <div className="mt-6 pt-6 border-t border-slate-100">
+            <h4 className="font-medium text-slate-900 mb-3">Recent account activity</h4>
+            <ul className="space-y-2 text-sm">
+              {authEvents.filter((a) => a.action?.startsWith('auth.')).slice(0, 10).map((a) => (
+                <li key={a.id} className="flex justify-between text-slate-600">
+                  <span>{a.action}</span>
+                  <span>{a.at ? new Date(a.at).toLocaleString() : ''}</span>
+                </li>
+              ))}
+              {authEvents.length === 0 && <li className="text-slate-400">No recent auth events</li>}
+            </ul>
+          </div>
         </Card>
       )}
     </>

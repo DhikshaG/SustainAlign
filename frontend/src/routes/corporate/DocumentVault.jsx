@@ -5,28 +5,41 @@ import { DataTable } from '../../components/corporate/DataTable'
 import { TabbedSections } from '../../components/corporate/TabbedSections'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
+import { Input } from '../../components/ui/Input'
+import { Select } from '../../components/ui/Select'
 import { FileUploadZone } from '../../components/uploads/FileUploadZone'
 import { documentsData } from '../../data/corporate/documents'
-import { apiFetch } from '../../lib/api'
+import { useActivityLog } from '../../hooks/useActivityLog'
+
+function mapRows(activity) {
+  return activity.map((a) => ({
+    timestamp: a.at ? new Date(a.at).toLocaleString() : '—',
+    action: a.action,
+    document: a.metadata?.originalName || a.entity?.id || '—',
+    user: a.user?.email || a.user?.name || 'system',
+  }))
+}
 
 export default function DocumentVault() {
   const [activeTab, setActiveTab] = useState('Evidence')
-  const [auditLog, setAuditLog] = useState([])
-  const filtered = documentsData.documents.filter((d) => d.category === activeTab)
+  const [actionFilter, setActionFilter] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const { activity, setFilters, reload } = useActivityLog({
+    entityType: 'file',
+    limit: 50,
+  })
 
   useEffect(() => {
-    apiFetch('/api/activity?entityType=file&limit=20')
-      .then((res) => {
-        const rows = (res.data?.activity || []).map((a) => ({
-          timestamp: new Date(a.createdAt).toLocaleString(),
-          action: a.action,
-          document: a.metadata?.originalName || a.entityId || '—',
-          user: a.userId?.slice(0, 8) || 'system',
-        }))
-        setAuditLog(rows.length ? rows : documentsData.auditLog)
-      })
-      .catch(() => setAuditLog(documentsData.auditLog))
-  }, [])
+    setFilters((f) => ({
+      ...f,
+      entityType: 'file',
+      action: actionFilter || undefined,
+      dateFrom: dateFrom ? new Date(dateFrom).toISOString() : undefined,
+    }))
+  }, [actionFilter, dateFrom, setFilters])
+
+  const auditLog = activity.length ? mapRows(activity) : documentsData.auditLog
+  const filtered = documentsData.documents.filter((d) => d.category === activeTab)
 
   const auditColumns = [
     { key: 'timestamp', label: 'Time', sortable: true },
@@ -52,17 +65,7 @@ export default function DocumentVault() {
           category="project_evidence"
           label="Upload evidence, invoices, or utilization certificates"
           hint="PDF, JPG, PNG up to 10 MB"
-          onUploaded={() => {
-            apiFetch('/api/activity?entityType=file&limit=20').then((res) => {
-              const rows = (res.data?.activity || []).map((a) => ({
-                timestamp: new Date(a.createdAt).toLocaleString(),
-                action: a.action,
-                document: a.metadata?.originalName || a.entityId || '—',
-                user: a.userId?.slice(0, 8) || 'system',
-              }))
-              if (rows.length) setAuditLog(rows)
-            }).catch(() => {})
-          }}
+          onUploaded={() => reload()}
         />
       </Card>
 
@@ -88,6 +91,14 @@ export default function DocumentVault() {
       </div>
 
       <Card>
+        <div className="flex flex-wrap gap-3 mb-4">
+          <Select value={actionFilter} onChange={(e) => setActionFilter(e.target.value)} className="w-48">
+            <option value="">All actions</option>
+            <option value="file.upload">File upload</option>
+            <option value="auth.login.success">Login</option>
+          </Select>
+          <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="w-40" />
+        </div>
         <h3 className="font-semibold text-slate-900 mb-4">Audit Log</h3>
         <DataTable columns={auditColumns} data={auditLog} keyField="timestamp" />
       </Card>
