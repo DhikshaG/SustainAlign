@@ -56,8 +56,12 @@ SQLite file: `./data/sustainalign.db` (configurable via `DATABASE_PATH`).
 - `POST /api/files/upload` — multipart `file` + `category` (requires `files:upload`)
 - `GET /api/files`, `GET /api/files/:id`, `GET /api/files/:id/download`
 - `GET /api/notifications`, `PATCH /api/notifications/:id/read`, `PATCH /api/notifications/read-all`
-- `GET /api/activity` — tenant activity log (`activity:read`)
+- `GET /api/activity`, `GET /api/activity/export` — tenant audit log with filters
 - `GET /api/admin/activity` — cross-tenant audit (`admin:audit:read`)
+- `GET /api/search?q=` — universal FTS search across NGOs, projects, reports, locations, SDGs
+- `GET /api/tags`, `PUT /api/entities/:type/:id/tags` — taxonomy and entity tagging
+- `GET /api/workflows/inbox`, `POST /api/workflows/instances/:id/transition` — approval workflow
+- `POST /api/ngo/reports` — submit demo report (starts CSR → Finance → Compliance chain)
 - `POST /api/admin/ngo-verification/:tenantId/approve|reject` — demo verify flow
 
 Seeded accounts include `field_officer@greenearth.org` (NGO field officer, projects + beneficiaries only).
