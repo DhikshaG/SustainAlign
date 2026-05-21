@@ -12,6 +12,7 @@ import {
 import { newId } from '../../lib/ids.js'
 import { logMutation } from '../activity-log/index.js'
 import { indexDocument } from '../search/index.js'
+import { createInstance } from '../workflow/index.js'
 
 function httpError(message, status) {
   const err = new Error(message)
@@ -286,6 +287,18 @@ export function createProject({
       }).run()
     })
     recomputeAndSaveProgress(id)
+  }
+
+  if (!skipWorkflow && status === 'pending_approval') {
+    createInstance({
+      req,
+      definitionSlug: 'csr_project_approval',
+      tenantId: corporateTenantId,
+      entityType: 'project',
+      entityId: id,
+      submittedBy: userId,
+      title: name,
+    })
   }
 
   reindexProject(id)

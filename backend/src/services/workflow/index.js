@@ -10,28 +10,43 @@ import { newId } from '../../lib/ids.js'
 import { logMutation } from '../activity-log/index.js'
 import { createNotification, notifyRole } from '../notifications/index.js'
 import { indexDocument } from '../search/index.js'
+import { setProjectStatusFromWorkflow } from '../projects/index.js'
 
 const TERMINAL = new Set(['approved', 'rejected'])
 
 export function seedWorkflowDefinitions() {
-  const existing = db.select().from(workflowDefinitions)
-    .where(eq(workflowDefinitions.slug, 'ngo_report_approval'))
-    .get()
-  if (existing) return existing
-
-  const id = newId()
-  const steps = [
-    { role: 'csr_head', permission: 'workflow:review', label: 'CSR Head review' },
-    { role: 'finance', permission: 'workflow:review', label: 'Finance approval' },
-    { role: 'compliance', permission: 'workflow:review', label: 'Compliance verification' },
+  const defs = [
+    {
+      slug: 'ngo_report_approval',
+      name: 'NGO Report Approval',
+      steps: [
+        { role: 'csr_head', permission: 'workflow:review', label: 'CSR Head review' },
+        { role: 'finance', permission: 'workflow:review', label: 'Finance approval' },
+        { role: 'compliance', permission: 'workflow:review', label: 'Compliance verification' },
+      ],
+    },
+    {
+      slug: 'csr_project_approval',
+      name: 'CSR Project Approval',
+      steps: [
+        { role: 'csr_head', permission: 'workflow:review', label: 'CSR Head review' },
+        { role: 'finance', permission: 'workflow:review', label: 'Finance approval' },
+      ],
+    },
   ]
-  db.insert(workflowDefinitions).values({
-    id,
-    slug: 'ngo_report_approval',
-    name: 'NGO Report Approval',
-    steps: JSON.stringify(steps),
-  }).run()
-  return { id, slug: 'ngo_report_approval', steps }
+
+  for (const def of defs) {
+    const existing = db.select().from(workflowDefinitions)
+      .where(eq(workflowDefinitions.slug, def.slug))
+      .get()
+    if (existing) continue
+    db.insert(workflowDefinitions).values({
+      id: newId(),
+      slug: def.slug,
+      name: def.name,
+      steps: JSON.stringify(def.steps),
+    }).run()
+  }
 }
 
 export function getDefinition(slug) {
@@ -81,17 +96,19 @@ export function createInstance({ req, definitionSlug, tenantId, entityType, enti
 
   indexDocument({
     tenantId,
-    entityType: 'report',
+    entityType: entityType === 'project' ? 'project' : 'report',
     entityId,
-    title: title || `Report ${entityId}`,
+    title: title || `${entityType} ${entityId}`,
     body: `Workflow ${def.name}`,
-    keywords: ['report', 'workflow', 'pending'],
+    keywords: [entityType, 'workflow', 'pending'],
   })
 
   const firstStep = def.steps[0]
+  const notifyType = entityType === 'project' ? 'report.pending' : 'report.pending'
+  const notifyTitle = entityType === 'project' ? 'Project pending your review' : 'Report pending your review'
   notifyRole(tenantId, firstStep.role, {
-    type: 'report.pending',
-    title: 'Report pending your review',
+    type: notifyType,
+    title: notifyTitle,
     body: `A new ${entityType} requires ${firstStep.label}.`,
     link: '/dashboard/approvals',
   }).catch(() => {})
@@ -216,13 +233,16 @@ export async function transition({ req, instanceId, action, comment }) {
   }
 
   if (TERMINAL.has(newStatus) || newStatus === 'needs_revision') {
+    if (inst.entityType === 'project') {
+      setProjectStatusFromWorkflow(inst.entityId, newStatus)
+    }
     await createNotification({
       userId: inst.submittedBy,
       tenantId: inst.tenantId,
       type: newStatus === 'approved' ? 'ngo.approved' : 'report.pending',
-      title: `Report ${newStatus.replace('_', ' ')}`,
+      title: `${inst.entityType === 'project' ? 'Project' : 'Report'} ${newStatus.replace('_', ' ')}`,
       body: comment || `Your submission was ${newStatus.replace('_', ' ')}.`,
-      link: '/ngo/finance',
+      link: inst.entityType === 'project' ? `/dashboard/projects/${inst.entityId}` : '/ngo/finance',
     })
   }
 

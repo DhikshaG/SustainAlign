@@ -1,8 +1,8 @@
 import { eq, like, or } from 'drizzle-orm'
 import { db, sqlite } from '../../db/index.js'
-import { searchDocuments, tenants } from '../../db/schema.js'
-import { projects } from '../../data/corporate-sample.js'
+import { searchDocuments, tenants, csrProjects } from '../../db/schema.js'
 import { reindexNgo, getProfileByTenantId } from '../ngo/index.js'
+import { reindexProject } from '../projects/index.js'
 
 const SDG_LABELS = {
   1: 'SDG 1 No Poverty',
@@ -99,15 +99,9 @@ export function reindexAll(tenantId = null) {
     }
   }
 
-  for (const p of projects) {
-    indexDocument({
-      tenantId,
-      entityType: 'project',
-      entityId: p.id,
-      title: p.name,
-      body: `${p.ngoName} ${p.theme} ${p.status}`,
-      keywords: [p.theme, p.ngoName, p.status],
-    })
+  const dbProjects = db.select().from(csrProjects).all()
+  for (const p of dbProjects) {
+    reindexProject(p.id)
   }
 
   indexDocument({

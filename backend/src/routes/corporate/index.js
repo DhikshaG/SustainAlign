@@ -16,8 +16,6 @@ import {
 } from '../../services/discovery/index.js'
 import {
   dashboardSummary,
-  getProject,
-  projects,
   complianceSummary,
   reportingOverview,
   fundAllocation,
@@ -26,6 +24,26 @@ import {
   communications,
   copilotSuggestions,
 } from '../../data/corporate-sample.js'
+import {
+  listProjects,
+  getProject,
+  createProject,
+  updateProject,
+  archiveProject,
+  updateProjectSpent,
+  addMilestone,
+  updateMilestone,
+  deleteMilestone,
+  addProjectUpdate,
+} from '../../services/projects/index.js'
+import {
+  createProjectSchema,
+  updateProjectSchema,
+  milestoneInputSchema,
+  updateMilestoneSchema,
+  createUpdateSchema,
+  updateSpentSchema,
+} from '../../schemas/projects.js'
 
 const CORPORATE_ROLES = ['super_admin', 'csr_head', 'esg_head', 'finance', 'compliance', 'volunteer', 'board']
 
@@ -85,12 +103,108 @@ router.get('/ngos/:slug', requirePermission(PERMISSIONS.DISCOVERY_READ), (req, r
   ok(res, ngo)
 })
 
-router.get('/projects', (_req, res) => ok(res, { projects }))
+router.get('/projects', requirePermission(PERMISSIONS.PROJECTS_READ), (req, res) => {
+  ok(res, listProjects({ corporateTenantId: req.user.tenantId, audience: 'corporate' }))
+})
 
-router.get('/projects/:id', (req, res) => {
-  const project = getProject(req.params.id)
-  if (!project) return res.status(404).json({ ok: false, message: 'Project not found' })
+router.post('/projects', requirePermission(PERMISSIONS.PROJECTS_WRITE), validate(createProjectSchema), (req, res, next) => {
+  try {
+    const project = createProject({
+      ...req.validated,
+      corporateTenantId: req.user.tenantId,
+      userId: req.user.sub,
+    }, req)
+    ok(res, project, 'Project created')
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.get('/projects/:id', requirePermission(PERMISSIONS.PROJECTS_READ), (req, res) => {
+  const project = getProject(req.params.id, { corporateTenantId: req.user.tenantId, audience: 'corporate' })
+  if (!project) return fail(res, 404, 'Project not found')
   ok(res, project)
+})
+
+router.patch('/projects/:id', requirePermission(PERMISSIONS.PROJECTS_WRITE), validate(updateProjectSchema), (req, res, next) => {
+  try {
+    const project = updateProject(req.params.id, req.validated, {
+      corporateTenantId: req.user.tenantId,
+      req,
+    })
+    ok(res, project, 'Project updated')
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.delete('/projects/:id', requirePermission(PERMISSIONS.PROJECTS_WRITE), (req, res, next) => {
+  try {
+    const project = archiveProject(req.params.id, { corporateTenantId: req.user.tenantId, req })
+    ok(res, project, 'Project archived')
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/projects/:id/milestones', requirePermission(PERMISSIONS.PROJECTS_WRITE), validate(milestoneInputSchema), (req, res, next) => {
+  try {
+    const milestone = addMilestone(req.params.id, req.validated, {
+      corporateTenantId: req.user.tenantId,
+      req,
+    })
+    ok(res, milestone, 'Milestone added')
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.patch('/projects/:id/milestones/:mid', requirePermission(PERMISSIONS.PROJECTS_WRITE), validate(updateMilestoneSchema), (req, res, next) => {
+  try {
+    const milestone = updateMilestone(req.params.id, req.params.mid, req.validated, {
+      corporateTenantId: req.user.tenantId,
+      req,
+    })
+    ok(res, milestone, 'Milestone updated')
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.delete('/projects/:id/milestones/:mid', requirePermission(PERMISSIONS.PROJECTS_WRITE), (req, res, next) => {
+  try {
+    const result = deleteMilestone(req.params.id, req.params.mid, {
+      corporateTenantId: req.user.tenantId,
+      req,
+    })
+    ok(res, result, 'Milestone deleted')
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/projects/:id/updates', requirePermission(PERMISSIONS.PROJECTS_WRITE), validate(createUpdateSchema), (req, res, next) => {
+  try {
+    const update = addProjectUpdate(req.params.id, {
+      userId: req.user.sub,
+      body: req.validated.body,
+    }, { corporateTenantId: req.user.tenantId, req })
+    ok(res, update, 'Update posted')
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.patch('/projects/:id/spent', requirePermission(PERMISSIONS.FUNDS_READ), validate(updateSpentSchema), (req, res, next) => {
+  try {
+    const project = updateProjectSpent(req.params.id, req.validated.spentInr, {
+      corporateTenantId: req.user.tenantId,
+      req,
+    })
+    ok(res, project, 'Spent updated')
+  } catch (err) {
+    next(err)
+  }
 })
 
 router.get('/compliance/summary', requirePermission(PERMISSIONS.COMPLIANCE_READ), (_req, res) => ok(res, complianceSummary))

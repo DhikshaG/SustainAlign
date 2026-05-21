@@ -6,13 +6,22 @@ import { validate } from '../../middleware/validate.js'
 import { ok, fail } from '../../lib/response.js'
 import { PERMISSIONS } from '../../lib/permissions.js'
 import { env } from '../../config/env.js'
+import { NGO_ROLES } from '../../lib/permissions.js'
 import {
   dashboardSummary,
-  projects,
-  getProject,
   financeSummary,
   beneficiaries,
 } from '../../data/ngo-sample.js'
+import {
+  listProjects,
+  getProject,
+  updateMilestone,
+  addProjectUpdate,
+} from '../../services/projects/index.js'
+import {
+  updateMilestoneSchema,
+  createUpdateSchema,
+} from '../../schemas/projects.js'
 import {
   getProfileByTenantId,
   updateProfile,
@@ -53,14 +62,42 @@ function requireNgoTenant(req, res, next) {
   next()
 }
 
-router.use(authenticate, requireRole('ngo_admin'), requireNgoTenant)
+router.use(authenticate, requireRole(...NGO_ROLES), requireNgoTenant)
 
 router.get('/dashboard/summary', (_req, res) => ok(res, dashboardSummary))
-router.get('/projects', (_req, res) => ok(res, { projects }))
-router.get('/projects/:id', (req, res) => {
-  const project = getProject(req.params.id)
+
+router.get('/projects', requirePermission(PERMISSIONS.PROJECTS_READ), (req, res) => {
+  ok(res, listProjects({ ngoTenantId: req.user.tenantId, audience: 'ngo' }))
+})
+
+router.get('/projects/:id', requirePermission(PERMISSIONS.PROJECTS_READ), (req, res) => {
+  const project = getProject(req.params.id, { ngoTenantId: req.user.tenantId, audience: 'ngo' })
   if (!project) return fail(res, 404, 'Project not found')
   ok(res, project)
+})
+
+router.patch('/projects/:id/milestones/:mid', requirePermission(PERMISSIONS.PROJECTS_WRITE), validate(updateMilestoneSchema), (req, res, next) => {
+  try {
+    const milestone = updateMilestone(req.params.id, req.params.mid, req.validated, {
+      ngoTenantId: req.user.tenantId,
+      req,
+    })
+    ok(res, milestone, 'Milestone updated')
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/projects/:id/updates', requirePermission(PERMISSIONS.PROJECTS_WRITE), validate(createUpdateSchema), (req, res, next) => {
+  try {
+    const update = addProjectUpdate(req.params.id, {
+      userId: req.user.sub,
+      body: req.validated.body,
+    }, { ngoTenantId: req.user.tenantId, req })
+    ok(res, update, 'Update posted')
+  } catch (err) {
+    next(err)
+  }
 })
 router.get('/finance/summary', (_req, res) => ok(res, financeSummary))
 router.get('/beneficiaries', (_req, res) => ok(res, beneficiaries))
