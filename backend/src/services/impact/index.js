@@ -25,6 +25,7 @@ import {
   getSdgProgress,
   getMediaFeed,
 } from './analytics.js'
+import { THEME_TO_SDG } from '../esg/taxonomy.js'
 
 function httpError(message, status) {
   const err = new Error(message)
@@ -42,16 +43,6 @@ function assertProjectAccess(projectId, { corporateTenantId, ngoTenantId }) {
     throw httpError('Project not found', 404)
   }
   return row
-}
-
-const THEME_TO_SDG = {
-  Healthcare: { sdg: 3, label: 'Good Health' },
-  Education: { sdg: 4, label: 'Quality Education' },
-  Environment: { sdg: 13, label: 'Climate Action' },
-  Livelihood: { sdg: 8, label: 'Decent Work' },
-  'Rural Development': { sdg: 1, label: 'No Poverty' },
-  'Clean Water': { sdg: 6, label: 'Clean Water' },
-  'Women Empowerment': { sdg: 5, label: 'Gender Equality' },
 }
 
 export function getLatestBeneficiaries(projectId) {

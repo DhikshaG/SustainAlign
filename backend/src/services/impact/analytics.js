@@ -10,16 +10,7 @@ import {
   projectMilestones,
   files,
 } from '../../db/schema.js'
-
-const THEME_TO_SDG = {
-  Healthcare: { sdg: 3, label: 'Good Health' },
-  Education: { sdg: 4, label: 'Quality Education' },
-  Environment: { sdg: 13, label: 'Climate Action' },
-  Livelihood: { sdg: 8, label: 'Decent Work' },
-  'Rural Development': { sdg: 1, label: 'No Poverty' },
-  'Clean Water': { sdg: 6, label: 'Clean Water' },
-  'Women Empowerment': { sdg: 5, label: 'Gender Equality' },
-}
+import { THEME_TO_SDG } from '../esg/taxonomy.js'
 
 const MONTH_LABELS = ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan']
 

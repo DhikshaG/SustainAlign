@@ -15,6 +15,7 @@ import { listReports } from '../reports/index.js'
 import { listProfiles } from '../ngo/index.js'
 import { search } from '../search/index.js'
 import { chatWithSystem, isAiEnabled, checkOllamaHealth, isOllamaModelAvailable } from './ollama.js'
+import { getUnifiedEsgDashboard } from '../esg/index.js'
 
 const SYSTEM_GROUNDED = `You are SustainAlign CSR copilot. Answer ONLY using the JSON context provided.
 If the context lacks information, reply with exactly: insufficient_data
@@ -80,6 +81,7 @@ export function getCopilotSuggestions(tenantId) {
   suggestions.push(
     { id: suggestions.length + 1, prompt: 'Summarize our CSR impact this quarter', category: 'impact' },
     { id: suggestions.length + 1, prompt: 'How should I allocate unspent CSR funds by district?', category: 'funds' },
+    { id: suggestions.length + 1, prompt: 'Summarize our ESG performance across environmental, social, and governance pillars', category: 'esg' },
     { id: suggestions.length + 1, prompt: 'Generate a board-ready CSR report', category: 'reporting' },
     { id: suggestions.length + 1, prompt: 'Which NGOs are performing best?', category: 'projects' },
   )
@@ -314,4 +316,40 @@ export async function generateAllocationRationale(tenantId, intelligenceSummary)
     `Context:\n${JSON.stringify(intelligenceSummary)}`,
   )
   return { rationale, offline: false }
+}
+
+export async function generateEsgSummary(tenantId, unifiedDto) {
+  const payload = unifiedDto || getUnifiedEsgDashboard(tenantId)
+
+  const context = {
+    pillars: {
+      environmental: { score: payload.pillars?.environmental?.score, highlights: payload.pillars?.environmental?.highlights },
+      social: { score: payload.pillars?.social?.score, highlights: payload.pillars?.social?.highlights },
+      governance: { score: payload.pillars?.governance?.score, highlights: payload.pillars?.governance?.highlights },
+    },
+    sdgAlignment: (payload.sdgAlignment || []).slice(0, 6),
+    brsrGaps: (payload.brsr || []).filter((b) => b.status === 'no_data').map((b) => b.title),
+    csrSummary: payload.csrSummary,
+  }
+
+  if (!isAiEnabled()) {
+    return { summary: 'AI disabled. Enable Ollama for ESG summaries.', offline: true }
+  }
+
+  const online = await checkOllamaHealth()
+  const modelReady = online && (await isOllamaModelAvailable())
+  if (!modelReady) {
+    return {
+      summary: online
+        ? 'Ollama model not found. Run: ollama pull llama3.1:1b'
+        : 'Ollama offline. Start Ollama to generate ESG summaries.',
+      offline: true,
+    }
+  }
+
+  const summary = await chatWithSystem(
+    'Write a 1-paragraph ESG executive summary for a corporate dashboard. Cover environmental, social, and governance pillars. Use only provided data. Mention SDG alignment and BRSR gaps where relevant.',
+    `Context:\n${JSON.stringify(context)}`,
+  )
+  return { summary, offline: false }
 }

@@ -5,16 +5,7 @@ import { getFundAllocation, getComplianceSummary } from '../compliance/index.js'
 import { getDistrictImpact, getSdgProgress } from '../impact/analytics.js'
 import { aggregateForTenant } from '../impact/index.js'
 import { runNgoMatchSync } from '../matching/index.js'
-
-const THEME_TO_SDG = {
-  Healthcare: { sdg: 3, label: 'SDG 3' },
-  Education: { sdg: 4, label: 'SDG 4' },
-  Environment: { sdg: 13, label: 'SDG 13' },
-  Livelihood: { sdg: 8, label: 'SDG 8' },
-  'Rural Development': { sdg: 1, label: 'SDG 1' },
-  'Clean Water': { sdg: 6, label: 'SDG 6' },
-  'Women Empowerment': { sdg: 5, label: 'SDG 5' },
-}
+import { THEME_TO_SDG } from '../esg/taxonomy.js'
 
 const SCENARIO_WEIGHTS = {
   baseline: {
@@ -137,7 +128,7 @@ export function scoreDistrictNeeds(context, { sdgFocus = [] } = {}) {
     const needScore = Math.round((spendGap * 0.45 + benGap * 0.35 + ngoBoost) * 100)
 
     const topSdg = sdgThemes[0]
-    const sdgGap = topSdg ? `${topSdg.label}` : (THEME_TO_SDG.Education?.label || 'SDG 4')
+    const sdgGap = topSdg ? `SDG ${topSdg.sdg}: ${topSdg.label}` : 'SDG 4: Quality Education'
 
     return {
       district: d.district,
