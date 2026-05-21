@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Download, FileText, RefreshCw } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Download, FileText, RefreshCw, Sparkles } from 'lucide-react'
 import { PageHeader } from '../../components/corporate/PageHeader'
 import { StatCard } from '../../components/corporate/StatCard'
 import { DataTable } from '../../components/corporate/DataTable'
@@ -15,6 +16,7 @@ import { generateReport, fetchReports } from '../../lib/reporting'
 import { fyToPeriod } from '../../lib/compliance'
 import { api } from '../../lib/api'
 import { useImpactPolling } from '../../hooks/useImpactPolling'
+import { CORPORATE_ROUTES } from '../../lib/routes'
 
 function downloadCsv(filename, rows) {
   const csv = rows.map((r) => r.join(',')).join('\n')
@@ -108,6 +110,9 @@ export default function ReportingAnalytics() {
         description="Impact dashboards, SDG mapping, and downloadable CSR reports."
         actions={
           <div className="flex flex-wrap items-center gap-2">
+            <Button as={Link} to={CORPORATE_ROUTES.reportGenerator} variant="primary" size="sm">
+              <Sparkles className="h-4 w-4" /> Report Generator
+            </Button>
             {lastUpdatedLabel && (
               <span className="text-xs text-slate-500 flex items-center gap-1 mr-2">
                 <RefreshCw className={`h-3 w-3 ${liveLoading ? 'animate-spin' : ''}`} />

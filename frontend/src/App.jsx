@@ -46,6 +46,7 @@ import ProjectsIndex from './routes/corporate/ProjectsIndex'
 import ProjectDetail from './routes/corporate/ProjectDetail'
 import ComplianceDashboard from './routes/corporate/ComplianceDashboard'
 import ReportingAnalytics from './routes/corporate/ReportingAnalytics'
+import ReportGenerator from './routes/corporate/ReportGenerator'
 import AiCopilot from './routes/corporate/AiCopilot'
 import FundAllocation from './routes/corporate/FundAllocation'
 import VolunteerManagement from './routes/corporate/VolunteerManagement'
@@ -123,6 +124,7 @@ export default function App() {
             <Route path="projects/:id" element={<ProjectDetail />} />
             <Route path="compliance" element={<ComplianceDashboard />} />
             <Route path="reporting" element={<ReportingAnalytics />} />
+            <Route path="reports/generate" element={<ReportGenerator />} />
             <Route path="copilot" element={<AiCopilot />} />
             <Route path="funds" element={<FundAllocation />} />
             <Route path="volunteers" element={<VolunteerManagement />} />

@@ -1,9 +1,11 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Sparkles, Send } from 'lucide-react'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
 import { sendCopilotMessage } from '../../lib/copilot'
 import { generateNarrative } from '../../lib/reporting'
+import { CORPORATE_ROUTES } from '../../lib/routes'
 
 const QUICK_PROMPTS = [
   'Explain my unspent CSR obligation and what I should do',
@@ -64,6 +66,9 @@ export function ComplianceAssistant() {
       </div>
       <Button variant="secondary" size="sm" className="mb-3" onClick={draftBoardParagraph} disabled={loading}>
         Draft board summary paragraph
+      </Button>
+      <Button as={Link} to={CORPORATE_ROUTES.reportGenerator} variant="ghost" size="sm" className="mb-3 w-full">
+        Open full Report Generator (PDF / DOCX / PPTX) →
       </Button>
       {narrative && (
         <p className="text-sm text-slate-700 bg-slate-50 rounded-lg p-3 mb-3 italic">{narrative}</p>

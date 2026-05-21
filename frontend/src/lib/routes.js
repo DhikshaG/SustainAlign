@@ -34,6 +34,7 @@ export const CORPORATE_ROUTES = {
   projectDetail: (id) => `/dashboard/projects/${id}`,
   compliance: '/dashboard/compliance',
   reporting: '/dashboard/reporting',
+  reportGenerator: '/dashboard/reports/generate',
   copilot: '/dashboard/copilot',
   funds: '/dashboard/funds',
   volunteers: '/dashboard/volunteers',

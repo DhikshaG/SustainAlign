@@ -61,6 +61,12 @@ export const corporateNavSections = [
         roles: ['super_admin', 'csr_head', 'esg_head', 'finance', 'compliance', 'board'],
       },
       {
+        label: 'Report Generator',
+        href: CORPORATE_ROUTES.reportGenerator,
+        icon: FileText,
+        roles: ['super_admin', 'csr_head', 'esg_head', 'finance', 'compliance', 'board'],
+      },
+      {
         label: 'Fund Allocation',
         href: CORPORATE_ROUTES.funds,
         icon: Wallet,
