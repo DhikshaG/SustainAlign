@@ -1,29 +1,43 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { MapPin } from 'lucide-react'
+import { MapPin, Download, FileText, Image, Film } from 'lucide-react'
 import { PageHeader } from '../../components/corporate/PageHeader'
 import { ProgressBar } from '../../components/corporate/ProgressBar'
+import { MediaGallery } from '../../components/corporate/MediaGallery'
 import { FileUploadZone } from '../../components/uploads/FileUploadZone'
 import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Alert } from '../../components/ui/Alert'
 import { Input } from '../../components/ui/Input'
+import { FormField } from '../../components/ui/FormField'
 import { projectStatuses } from '../../data/corporate/projects'
 import { CORPORATE_ROUTES } from '../../lib/routes'
 import { formatINR } from '../../data/corporate/dashboard'
 import { fetchProject, postProjectUpdate } from '../../lib/projects'
+import { addBeneficiaryLog, attachUpdateFiles } from '../../lib/impact'
 import { postProjectUpdateSchema } from '../../lib/validation/schemas'
+import { api } from '../../lib/api'
 import NotFound from '../public/NotFound'
+
+function mimeIcon(mime) {
+  if (mime?.startsWith('image/')) return Image
+  if (mime?.startsWith('video/')) return Film
+  return FileText
+}
 
 export default function ProjectDetail() {
   const { id } = useParams()
   const [project, setProject] = useState(null)
   const [loadedId, setLoadedId] = useState(null)
   const [error, setError] = useState(null)
+  const [toast, setToast] = useState(null)
   const [updateText, setUpdateText] = useState('')
+  const [updateFileIds, setUpdateFileIds] = useState([])
   const [updateError, setUpdateError] = useState(null)
   const [posting, setPosting] = useState(false)
+  const [benForm, setBenForm] = useState({ directCount: '', indirectCount: '', note: '' })
+  const [benSaving, setBenSaving] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -45,6 +59,17 @@ export default function ProjectDetail() {
     return () => { active = false }
   }, [id])
 
+  function showToast(msg) {
+    setToast(msg)
+    setTimeout(() => setToast(null), 3000)
+  }
+
+  async function refreshProject() {
+    const data = await fetchProject(id)
+    setProject(data)
+    setLoadedId(id)
+  }
+
   const loading = loadedId !== id && !error
 
   if (loading && !project) return <p className="text-sm text-slate-500 p-6">Loading project…</p>
@@ -55,7 +80,7 @@ export default function ProjectDetail() {
           <Alert variant="error">{error}</Alert>
           <Button variant="ghost" className="mt-2" onClick={() => {
             setLoadedId(null)
-            fetchProject(id).then((data) => { setProject(data); setLoadedId(id); setError(null) }).catch((err) => setError(err.message))
+            refreshProject().catch((err) => setError(err.message))
           }}>Retry</Button>
         </div>
       )
@@ -83,10 +108,14 @@ export default function ProjectDetail() {
     }
     setPosting(true)
     try {
-      await postProjectUpdate(id, parsed.data.body)
+      const update = await postProjectUpdate(id, parsed.data.body)
+      if (updateFileIds.length && update?.id) {
+        await attachUpdateFiles(id, update.id, updateFileIds, 'corporate')
+      }
       setUpdateText('')
-      const refreshed = await fetchProject(id)
-      setProject(refreshed)
+      setUpdateFileIds([])
+      await refreshProject()
+      showToast('Update posted')
     } catch (err) {
       setUpdateError(err.message || 'Failed to post update')
     } finally {
@@ -94,8 +123,44 @@ export default function ProjectDetail() {
     }
   }
 
+  async function handleLogBeneficiaries(e) {
+    e.preventDefault()
+    const directCount = parseInt(benForm.directCount, 10)
+    const indirectCount = parseInt(benForm.indirectCount, 10) || 0
+    if (Number.isNaN(directCount) || directCount < 0) return
+    setBenSaving(true)
+    try {
+      await addBeneficiaryLog(id, { directCount, indirectCount, note: benForm.note || undefined }, 'corporate')
+      setBenForm({ directCount: '', indirectCount: '', note: '' })
+      await refreshProject()
+      showToast('Beneficiaries logged')
+    } catch (err) {
+      showToast(err.message || 'Failed to log beneficiaries')
+    } finally {
+      setBenSaving(false)
+    }
+  }
+
+  async function downloadFile(item) {
+    if (!item.downloadUrl) return
+    try {
+      const blob = await api.download(item.downloadUrl)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = item.name || 'download'
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      showToast('Download failed')
+    }
+  }
+
   return (
     <>
+      {toast && (
+        <div className="fixed bottom-4 right-4 z-50 rounded-lg bg-slate-900 text-white px-4 py-3 text-sm shadow-lg">{toast}</div>
+      )}
       <PageHeader
         title={project.name}
         breadcrumbs={[
@@ -157,11 +222,16 @@ export default function ProjectDetail() {
           {updates.length === 0 ? (
             <p className="text-sm text-slate-500 mb-4">No updates yet.</p>
           ) : (
-            <ul className="space-y-3 mb-4">
+            <ul className="space-y-4 mb-4">
               {updates.map((u) => (
                 <li key={u.id || u.date} className="border-l-2 border-primary-200 pl-3">
                   <p className="text-xs text-slate-500">{u.date} · {u.author}</p>
                   <p className="text-sm text-slate-700 mt-0.5">{u.text || u.body}</p>
+                  {(u.images?.length > 0) && (
+                    <div className="mt-2">
+                      <MediaGallery items={u.images} />
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
@@ -169,30 +239,56 @@ export default function ProjectDetail() {
           <form onSubmit={handlePostUpdate} className="space-y-2 border-t border-slate-100 pt-4">
             {updateError && <Alert variant="error">{updateError}</Alert>}
             <Input placeholder="Post a progress note…" value={updateText} onChange={(e) => setUpdateText(e.target.value)} />
+            <FileUploadZone
+              category="project_update"
+              entityType="project"
+              entityId={id}
+              label="Attach photos to update"
+              accept={['image/png', 'image/jpeg', 'image/webp']}
+              onUploaded={(file) => {
+                if (file?.id) setUpdateFileIds((ids) => [...ids, file.id])
+              }}
+            />
+            {updateFileIds.length > 0 && (
+              <p className="text-xs text-slate-500">{updateFileIds.length} file(s) ready to attach</p>
+            )}
             <Button type="submit" size="sm" disabled={posting}>{posting ? 'Posting…' : 'Post Update'}</Button>
           </form>
         </Card>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid lg:grid-cols-2 gap-6 mb-6">
         <Card>
-          <h3 className="font-semibold text-slate-900 mb-3">Evidence Upload</h3>
+          <h3 className="font-semibold text-slate-900 mb-3">Evidence & Media</h3>
           <FileUploadZone
             category="project_evidence"
             entityType="project"
             entityId={id}
             label="Photos, reports, receipts"
-            onUploaded={async () => {
-              const refreshed = await fetchProject(id)
-              setProject(refreshed)
-            }}
+            onUploaded={refreshProject}
           />
           {evidence.length > 0 && (
-            <ul className="mt-4 space-y-2 text-sm">
-              {evidence.map((e) => (
-                <li key={e.id} className="text-slate-600">{e.name} · {e.date}</li>
-              ))}
-            </ul>
+            <>
+              <MediaGallery items={evidence} className="mt-4" />
+              <ul className="mt-4 space-y-2 text-sm">
+                {evidence.map((e) => {
+                  const Icon = mimeIcon(e.mime)
+                  return (
+                    <li key={e.id} className="flex items-center justify-between py-1">
+                      <span className="flex items-center gap-2 text-slate-600 truncate">
+                        <Icon className="h-4 w-4 shrink-0" />
+                        {e.name} · {e.date}
+                      </span>
+                      {e.downloadUrl && (
+                        <Button variant="ghost" size="sm" onClick={() => downloadFile(e)}>
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </li>
+                  )
+                })}
+              </ul>
+            </>
           )}
         </Card>
 
@@ -210,6 +306,17 @@ export default function ProjectDetail() {
           {geoUpdates.length > 0 && (
             <p className="text-xs text-slate-500 mt-2">Latest geo: {geoUpdates[0].district ? `${geoUpdates[0].district}, ` : ''}{geoUpdates[0].state}</p>
           )}
+
+          <form onSubmit={handleLogBeneficiaries} className="mt-4 pt-4 border-t border-slate-100 space-y-3">
+            <p className="text-sm font-medium text-slate-900">Log Beneficiaries</p>
+            <FormField label="Direct">
+              <Input type="number" min="0" value={benForm.directCount} onChange={(e) => setBenForm((f) => ({ ...f, directCount: e.target.value }))} />
+            </FormField>
+            <FormField label="Indirect">
+              <Input type="number" min="0" value={benForm.indirectCount} onChange={(e) => setBenForm((f) => ({ ...f, indirectCount: e.target.value }))} />
+            </FormField>
+            <Button type="submit" size="sm" disabled={benSaving}>{benSaving ? 'Saving…' : 'Log'}</Button>
+          </form>
         </Card>
       </div>
     </>

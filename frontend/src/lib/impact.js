@@ -20,8 +20,9 @@ export async function generateImpactSummary() {
   return res.data
 }
 
-export async function addProjectKpi(projectId, payload) {
-  const res = await api.post(`/api/corporate/projects/${projectId}/kpis`, payload)
+export async function addProjectKpi(projectId, payload, audience = 'corporate') {
+  const base = audience === 'ngo' ? '/api/ngo' : '/api/corporate'
+  const res = await api.post(`${base}/projects/${projectId}/kpis`, payload)
   return res.data
 }
 
@@ -45,5 +46,10 @@ export async function fetchNgoBeneficiaryLogs() {
 export async function attachUpdateFiles(projectId, updateId, fileIds, audience = 'corporate') {
   const base = audience === 'ngo' ? '/api/ngo' : '/api/corporate'
   const res = await api.post(`${base}/projects/${projectId}/updates/${updateId}/files`, { fileIds })
+  return res.data
+}
+
+export async function fetchNgoDashboardSummary() {
+  const res = await api.get('/api/ngo/dashboard/summary')
   return res.data
 }

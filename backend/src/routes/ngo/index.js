@@ -8,7 +8,6 @@ import { PERMISSIONS } from '../../lib/permissions.js'
 import { env } from '../../config/env.js'
 import { NGO_ROLES } from '../../lib/permissions.js'
 import {
-  dashboardSummary,
   financeSummary,
 } from '../../data/ngo-sample.js'
 import { getNgoDashboardSummary } from '../../services/impact/analytics.js'
