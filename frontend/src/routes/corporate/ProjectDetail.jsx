@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { MapPin, Upload } from 'lucide-react'
+import { MapPin } from 'lucide-react'
 import { PageHeader } from '../../components/corporate/PageHeader'
 import { ProgressBar } from '../../components/corporate/ProgressBar'
 import { FileUploadZone } from '../../components/uploads/FileUploadZone'
@@ -19,34 +19,44 @@ import NotFound from '../public/NotFound'
 export default function ProjectDetail() {
   const { id } = useParams()
   const [project, setProject] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [loadedId, setLoadedId] = useState(null)
   const [error, setError] = useState(null)
   const [updateText, setUpdateText] = useState('')
   const [updateError, setUpdateError] = useState(null)
   const [posting, setPosting] = useState(false)
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      setProject(await fetchProject(id))
-    } catch (err) {
-      setError(err.message || 'Failed to load project')
-      setProject(null)
-    } finally {
-      setLoading(false)
-    }
+  useEffect(() => {
+    let active = true
+    fetchProject(id)
+      .then((data) => {
+        if (active) {
+          setProject(data)
+          setLoadedId(id)
+          setError(null)
+        }
+      })
+      .catch((err) => {
+        if (active) {
+          setError(err.message || 'Failed to load project')
+          setProject(null)
+          setLoadedId(id)
+        }
+      })
+    return () => { active = false }
   }, [id])
 
-  useEffect(() => { load() }, [load])
+  const loading = loadedId !== id && !error
 
-  if (loading) return <p className="text-sm text-slate-500 p-6">Loading project…</p>
+  if (loading && !project) return <p className="text-sm text-slate-500 p-6">Loading project…</p>
   if (error || !project) {
     if (error) {
       return (
         <div className="p-6">
           <Alert variant="error">{error}</Alert>
-          <Button variant="ghost" className="mt-2" onClick={load}>Retry</Button>
+          <Button variant="ghost" className="mt-2" onClick={() => {
+            setLoadedId(null)
+            fetchProject(id).then((data) => { setProject(data); setLoadedId(id); setError(null) }).catch((err) => setError(err.message))
+          }}>Retry</Button>
         </div>
       )
     }
@@ -72,7 +82,8 @@ export default function ProjectDetail() {
     try {
       await postProjectUpdate(id, parsed.data.body)
       setUpdateText('')
-      await load()
+      const refreshed = await fetchProject(id)
+      setProject(refreshed)
     } catch (err) {
       setUpdateError(err.message || 'Failed to post update')
     } finally {
@@ -168,7 +179,10 @@ export default function ProjectDetail() {
             entityType="project"
             entityId={id}
             label="Photos, reports, receipts"
-            onUploaded={() => load()}
+            onUploaded={async () => {
+              const refreshed = await fetchProject(id)
+              setProject(refreshed)
+            }}
           />
           {evidence.length > 0 && (
             <ul className="mt-4 space-y-2 text-sm">

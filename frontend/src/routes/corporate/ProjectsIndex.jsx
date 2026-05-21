@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Plus } from 'lucide-react'
 import { PageHeader } from '../../components/corporate/PageHeader'
@@ -39,35 +39,25 @@ export default function ProjectsIndex() {
   const [projects, setProjects] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [showCreate, setShowCreate] = useState(false)
+  const [showCreate, setShowCreate] = useState(() => searchParams.get('create') === '1')
   const [step, setStep] = useState(1)
-  const [form, setForm] = useState(EMPTY_FORM)
+  const [form, setForm] = useState(() => ({
+    ...EMPTY_FORM,
+    ngoSlug: searchParams.get('ngoSlug') || '',
+  }))
   const [formError, setFormError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const [toast, setToast] = useState(null)
   const [ngos, setNgos] = useState([])
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      setProjects(await fetchProjects())
-    } catch (err) {
-      setError(err.message || 'Failed to load projects')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => { load() }, [load])
-
   useEffect(() => {
-    if (searchParams.get('create') === '1') {
-      setShowCreate(true)
-      const slug = searchParams.get('ngoSlug')
-      if (slug) setForm((f) => ({ ...f, ngoSlug: slug }))
-    }
-  }, [searchParams])
+    let active = true
+    fetchProjects()
+      .then((rows) => { if (active) { setProjects(rows); setError(null) } })
+      .catch((err) => { if (active) setError(err.message || 'Failed to load projects') })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [])
 
   useEffect(() => {
     if (!showCreate) return
@@ -123,13 +113,21 @@ export default function ProjectsIndex() {
       closeCreate()
       setToast(`Project created — pending approval (${project.id})`)
       setTimeout(() => setToast(null), 4000)
-      await load()
+      setProjects(await fetchProjects())
       navigate(CORPORATE_ROUTES.projectDetail(project.id))
     } catch (err) {
       setFormError(err.message || 'Failed to create project')
     } finally {
       setSubmitting(false)
     }
+  }
+
+  function retryLoad() {
+    setLoading(true)
+    fetchProjects()
+      .then(setProjects)
+      .catch((err) => setError(err.message || 'Failed to load projects'))
+      .finally(() => setLoading(false))
   }
 
   return (
@@ -151,7 +149,7 @@ export default function ProjectsIndex() {
       {error && (
         <Alert variant="error" className="mb-4">
           {error}
-          <Button variant="ghost" size="sm" className="ml-2" onClick={load}>Retry</Button>
+          <Button variant="ghost" size="sm" className="ml-2" onClick={retryLoad}>Retry</Button>
         </Alert>
       )}
 

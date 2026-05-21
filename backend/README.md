@@ -21,6 +21,7 @@ npm run db:migrate    # apply migrations (Step 0: files, notifications, activity
 npm run db:seed       # dev accounts + 10 NGO profiles (password printed to stdout)
 npm run db:verify-ngo # verify NGO seed data after db:seed
 npm run db:verify-discovery # verify Step 2 discovery filters and actions
+npm run db:verify-projects  # verify Step 3 project management
 ```
 
 SQLite file: `./data/sustainalign.db` (configurable via `DATABASE_PATH`).
@@ -113,6 +114,54 @@ npm run db:verify-discovery
 | GET | `/api/corporate/ngos/:slug` | Full NGO profile |
 
 Compare NGOs uses browser `sessionStorage` (no server persistence). AI recommendations are not part of V1.
+
+## Step 3 — Project Management V1
+
+DB-backed CSR projects for corporate ↔ NGO partnerships: create with NGO assignment and budget, milestones, progress updates, evidence uploads, and approval workflow on create.
+
+```bash
+npm run db:migrate
+npm run db:seed
+npm run db:verify-projects
+```
+
+### Project lifecycle
+
+| Status | Meaning |
+|--------|---------|
+| `pending_approval` | Created; CSR Head → Finance workflow in progress |
+| `active` | Approved; NGO can update milestones and post updates |
+| `on_hold` / `completed` / `archived` / `rejected` | Manual or workflow terminal states |
+
+Progress % is computed as the average of milestone progress (completed = 100).
+
+### Corporate project endpoints
+
+| Method | Path | Permission | Description |
+|--------|------|------------|-------------|
+| GET | `/api/corporate/projects` | `projects:read` | List tenant projects |
+| POST | `/api/corporate/projects` | `projects:write` | Create project (starts workflow) |
+| GET | `/api/corporate/projects/:id` | `projects:read` | Full detail + milestones + updates + files |
+| PATCH | `/api/corporate/projects/:id` | `projects:write` | Update project fields |
+| DELETE | `/api/corporate/projects/:id` | `projects:write` | Archive project |
+| POST | `/api/corporate/projects/:id/milestones` | `projects:write` | Add milestone |
+| PATCH | `/api/corporate/projects/:id/milestones/:mid` | `projects:write` | Update milestone |
+| DELETE | `/api/corporate/projects/:id/milestones/:mid` | `projects:write` | Delete milestone |
+| POST | `/api/corporate/projects/:id/updates` | `projects:write` | Post progress update |
+| PATCH | `/api/corporate/projects/:id/spent` | `funds:read` | Update spent_inr |
+
+### NGO project endpoints
+
+| Method | Path | Permission |
+|--------|------|------------|
+| GET | `/api/ngo/projects` | `projects:read` |
+| GET | `/api/ngo/projects/:id` | `projects:read` |
+| PATCH | `/api/ngo/projects/:id/milestones/:mid` | `projects:write` |
+| POST | `/api/ngo/projects/:id/updates` | `projects:write` |
+
+Create project body: `name`, `scheduleVii`, `startDate`, `endDate`, `ngoSlug`, `budgetInr`, `location`, optional `description`, `theme`, `milestones[]`.
+
+Dashboard, funds allocation, and reporting pages still use static sample data until Step 4+.
 
 ## Auth endpoints
 

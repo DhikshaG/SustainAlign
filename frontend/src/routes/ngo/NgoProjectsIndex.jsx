@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PageHeader } from '../../components/corporate/PageHeader'
 import { DataTable } from '../../components/corporate/DataTable'
@@ -17,19 +17,14 @@ export default function NgoProjectsIndex() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      setProjects(await fetchNgoProjects())
-    } catch (err) {
-      setError(err.message || 'Failed to load projects')
-    } finally {
-      setLoading(false)
-    }
+  useEffect(() => {
+    let active = true
+    fetchNgoProjects()
+      .then((rows) => { if (active) { setProjects(rows); setError(null) } })
+      .catch((err) => { if (active) setError(err.message || 'Failed to load projects') })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
   }, [])
-
-  useEffect(() => { load() }, [load])
 
   const columns = [
     { key: 'name', label: 'Project', sortable: true, render: (r) => <span className="font-medium text-slate-900">{r.name}</span> },
@@ -48,7 +43,10 @@ export default function NgoProjectsIndex() {
       {error && (
         <Alert variant="error" className="mb-4">
           {error}
-          <Button variant="ghost" size="sm" className="ml-2" onClick={load}>Retry</Button>
+          <Button variant="ghost" size="sm" className="ml-2" onClick={() => {
+            setLoading(true)
+            fetchNgoProjects().then(setProjects).catch((err) => setError(err.message)).finally(() => setLoading(false))
+          }}>Retry</Button>
         </Alert>
       )}
       {loading ? (

@@ -7,6 +7,7 @@ import { createNotification } from '../services/notifications/index.js'
 import { reindexAll } from '../services/search/index.js'
 import { seedTags } from '../services/tags/index.js'
 import { seedWorkflowDefinitions } from '../services/workflow/index.js'
+import { seedProjects } from '../services/projects/seed.js'
 import { seedNgos } from '../services/ngo/seed.js'
 
 const SEED_PASSWORD = 'Demo@12345'
@@ -157,6 +158,10 @@ export async function runSeed() {
   console.log('\n=== Seeding NGO profiles ===\n')
   const ngoResult = seedNgos()
   console.log(`  ${ngoResult.total} NGOs (${ngoResult.created} new tenants, ${ngoResult.updated} updated)`)
+
+  console.log('\n=== Seeding CSR projects ===\n')
+  const projectResult = seedProjects()
+  console.log(`  ${projectResult.created} projects seeded (${projectResult.skipped} skipped)`)
 
   console.log('\n=== Indexing search documents ===\n')
   reindexAll()
