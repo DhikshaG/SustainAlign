@@ -45,6 +45,13 @@
       "breakpoints": true
     },
     {
+      "idx": 6,
+      "version": "6",
+      "when": 1779900000000,
+      "tag": "0006_ngo_profiles",
+      "breakpoints": true
+    },
+    {
       "idx": 7,
       "version": "6",
       "when": 1780000000000,

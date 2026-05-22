@@ -9,6 +9,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "node scripts/seed.js",
+    "db:reset": "node scripts/reset-db.js",
+    "db:verify-e2e": "node scripts/e2e-verify.js",
     "db:verify-ngo": "node scripts/ngo-verify.js",
     "db:verify-discovery": "node scripts/discovery-verify.js",
     "db:verify-projects": "node scripts/projects-verify.js",

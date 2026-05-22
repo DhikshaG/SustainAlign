@@ -12,6 +12,7 @@ import { seedImpact } from '../services/impact/seed.js'
 import { seedReports } from '../services/reports/seed.js'
 import { seedComplianceProfile } from '../services/compliance/index.js'
 import { seedNgos } from '../services/ngo/seed.js'
+import { seedE2e } from '../services/seed/e2e.js'
 
 const SEED_PASSWORD = 'Demo@12345'
 
@@ -22,6 +23,48 @@ const accounts = [
     type: 'corporate',
     role: 'super_admin',
     slug: 'acme-corp',
+  },
+  {
+    email: 'csr.head@acme.com',
+    name: 'Priya Mehta',
+    type: 'corporate',
+    role: 'csr_head',
+    linkTenant: 'admin@acme.com',
+  },
+  {
+    email: 'finance@acme.com',
+    name: 'Rajesh Kapoor',
+    type: 'corporate',
+    role: 'finance',
+    linkTenant: 'admin@acme.com',
+  },
+  {
+    email: 'compliance@acme.com',
+    name: 'Anita Desai',
+    type: 'corporate',
+    role: 'compliance',
+    linkTenant: 'admin@acme.com',
+  },
+  {
+    email: 'esg@acme.com',
+    name: 'Vikram Singh',
+    type: 'corporate',
+    role: 'esg_head',
+    linkTenant: 'admin@acme.com',
+  },
+  {
+    email: 'volunteer@acme.com',
+    name: 'Meera Joshi',
+    type: 'corporate',
+    role: 'volunteer',
+    linkTenant: 'admin@acme.com',
+  },
+  {
+    email: 'board@acme.com',
+    name: 'Dr. Suresh Iyer',
+    type: 'corporate',
+    role: 'board',
+    linkTenant: 'admin@acme.com',
   },
   {
     email: 'admin@greenearth.org',
@@ -54,10 +97,11 @@ const NOTIFICATION_SEEDS = [
   { type: 'milestone.delayed', title: 'Milestone behind schedule', body: 'Tree plantation milestone is 5 days overdue.', link: '/dashboard/projects' },
 ]
 
-export async function runSeed() {
+export async function runSeed({ fresh = false } = {}) {
   const passwordHash = await hashPassword(SEED_PASSWORD)
   const now = new Date()
   const tenantByEmail = {}
+  const userByEmail = {}
 
   console.log('\n=== Seeding SustainAlign dev accounts ===\n')
 
@@ -67,6 +111,7 @@ export async function runSeed() {
       console.log(`  skip  ${acct.email} (exists)`)
       const membership = db.select().from(memberships).where(eq(memberships.userId, existing.id)).get()
       if (membership) tenantByEmail[acct.email] = membership.tenantId
+      userByEmail[acct.email] = existing.id
       continue
     }
 
@@ -127,6 +172,7 @@ export async function runSeed() {
     }
 
     tenantByEmail[acct.email] = tenantId
+    userByEmail[acct.email] = userId
     console.log(`  added ${acct.email} (${acct.role})`)
   }
 
@@ -188,4 +234,10 @@ export async function runSeed() {
   console.log('\n=== Seeding workflows ===\n')
   seedWorkflowDefinitions()
   console.log('  workflow definitions seeded')
+
+  if (fresh) {
+    await seedE2e({ tenantByEmail, userByEmail })
+  } else {
+    console.log('\n  Tip: run `npm run db:reset` for the full E2E demo dataset.\n')
+  }
 }

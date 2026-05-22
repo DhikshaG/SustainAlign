@@ -5,3 +5,5 @@ graphify-out
 .graphify_ast_step.py
 .graphify_ast.json
 .cursor/
+promo/
+.playwright-mcp/
