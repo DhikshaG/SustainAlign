@@ -67,7 +67,11 @@ const TAXONOMY = [
 
 const ENTITY_TAG_SEEDS = {
   'green-earth-foundation': ['climate', 'sdg-13', 'maharashtra', 'rural'],
-  'edu-rise-india': ['education', 'sdg-4', 'karnataka', 'urban'],
+  'pratham-education-foundation': ['education', 'sdg-4', 'pan-india', 'urban'],
+  'sankara-eye-foundation': ['healthcare', 'sdg-3', 'tamil-nadu', 'rural'],
+  'goonj': ['rural-development', 'sdg-1', 'delhi-ncr', 'rural'],
+  'giveindia-foundation': ['education', 'sdg-10', 'maharashtra', 'urban'],
+  'nanhi-kali': ['education', 'sdg-5', 'pan-india', 'rural'],
 }
 
 export function seedTags() {

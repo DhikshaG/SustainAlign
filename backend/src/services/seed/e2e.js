@@ -131,11 +131,11 @@ export async function seedE2e({ tenantByEmail }) {
 
   // --- Discovery saves + inquiry ---
   saveNgo(acmeAdmin.id, 'green-earth-foundation', mockReq(acmeAdmin))
-  saveNgo(acmeAdmin.id, 'edu-rise-india', mockReq(acmeAdmin))
+  saveNgo(acmeAdmin.id, 'pratham-education-foundation', mockReq(acmeAdmin))
   createNgoInquiry({
     userId: (csrHead || acmeAdmin).id,
     corporateTenantId: acmeTenantId,
-    slug: 'health-for-all-trust',
+    slug: 'sankara-eye-foundation',
     subject: 'Mobile clinic partnership inquiry',
     message: 'We are exploring healthcare CSR initiatives in Tamil Nadu for FY26.',
   }, mockReq(csrHead || acmeAdmin))
