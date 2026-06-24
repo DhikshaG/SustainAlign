@@ -1,4 +1,4 @@
-import { createHash, randomBytes, randomUUID } from 'node:crypto'
+import { createHash, randomBytes, randomInt, randomUUID } from 'node:crypto'
 import { SignJWT, jwtVerify } from 'jose'
 import { env } from '../config/env.js'
 
@@ -50,7 +50,7 @@ export function hashToken(token) {
 }
 
 export function generateOtp() {
-  return String(Math.floor(100000 + Math.random() * 900000))
+  return String(randomInt(100000, 1000000))
 }
 
 export function generateResetToken() {
