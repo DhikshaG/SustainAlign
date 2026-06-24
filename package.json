@@ -13,9 +13,31 @@
     "dev:frontend": "npm run dev --workspace frontend",
     "build": "npm run build --workspace frontend",
     "test": "npm run test --workspaces --if-present",
-    "lint": "npm run lint --workspaces --if-present"
+    "test:coverage": "npm run test:coverage --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "prepare": "husky"
   },
   "engines": {
     "node": ">=20"
+  },
+  "lint-staged": {
+    "backend/src/**/*.js": [
+      "eslint --fix",
+      "prettier --write --ignore-unknown"
+    ],
+    "frontend/src/**/*.{js,jsx}": [
+      "eslint --fix",
+      "prettier --write --ignore-unknown"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write --ignore-unknown"
+    ]
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.8.0",
+    "@commitlint/config-conventional": "^19.8.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.2",
+    "prettier": "^3.5.3"
   }
 }
