@@ -1,23 +1,17 @@
 import { Router } from 'express'
-import multer from 'multer'
 import fs from 'node:fs'
 import { authenticate } from '../../middleware/authenticate.js'
 import { requirePermission } from '../../middleware/permissions.js'
 import { validate } from '../../middleware/validate.js'
+import { genericUpload } from '../../middleware/upload.js'
 import { ok, fail } from '../../lib/response.js'
 import { PERMISSIONS } from '../../lib/permissions.js'
-import { env } from '../../config/env.js'
 import { getStorage } from '../../lib/storage/index.js'
 import { getFileById, listFiles, storeFile, logFileDownload } from '../../services/files/index.js'
 import { z } from 'zod'
 import { db } from '../../db/index.js'
 import { tenants } from '../../db/schema.js'
 import { eq } from 'drizzle-orm'
-
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: env.MAX_FILE_SIZE_MB * 1024 * 1024 },
-})
 
 const listSchema = z.object({
   category: z.string().optional(),
@@ -31,7 +25,7 @@ router.post(
   '/upload',
   authenticate,
   requirePermission(PERMISSIONS.FILES_UPLOAD),
-  upload.single('file'),
+  genericUpload.single('file'),
   async (req, res, next) => {
     try {
       if (!req.file) return fail(res, 400, 'No file provided')

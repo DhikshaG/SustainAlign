@@ -1,22 +1,13 @@
 import { Router } from 'express'
-import multer from 'multer'
 import { validate } from '../middleware/validate.js'
 import { authenticate, reqMeta } from '../middleware/authenticate.js'
 import { requirePermission } from '../middleware/permissions.js'
 import { PERMISSIONS } from '../lib/permissions.js'
 import { authRateLimit } from '../middleware/rate-limit-auth.js'
+import { ngoVerificationUpload } from '../middleware/upload.js'
 import { ok, created } from '../lib/response.js'
 import { ngoRegisterSchema, ngoLoginSchema } from '../schemas/auth.corporate.js'
 import { ngoRegister, loginUser, saveNgoDocuments } from '../services/auth/index.js'
-
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 },
-  fileFilter(_req, file, cb) {
-    const allowed = ['application/pdf', 'image/png', 'image/jpeg']
-    cb(null, allowed.includes(file.mimetype))
-  },
-})
 
 const router = Router()
 
@@ -36,7 +27,7 @@ router.post('/login', validate(ngoLoginSchema), async (req, res, next) => {
   } catch (err) { next(err) }
 })
 
-router.post('/verification', authenticate, requirePermission(PERMISSIONS.NGO_DOCUMENTS_UPLOAD), upload.fields([
+router.post('/verification', authenticate, requirePermission(PERMISSIONS.NGO_DOCUMENTS_UPLOAD), ngoVerificationUpload.fields([
   { name: 'registration', maxCount: 1 },
   { name: '12a', maxCount: 1 },
   { name: '80g', maxCount: 1 },
