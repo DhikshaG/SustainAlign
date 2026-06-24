@@ -4,6 +4,7 @@ import { requirePermission } from '../../middleware/permissions.js'
 import { validate } from '../../middleware/validate.js'
 import { PERMISSIONS, getPermissionMatrix } from '../../lib/permissions.js'
 import { ok, fail } from '../../lib/response.js'
+import { safeFilename } from '../../lib/sanitize.js'
 import { listProfiles, getProfileBySlug } from '../../services/ngo/index.js'
 import { discoveryQuerySchema } from '../../schemas/ngo.js'
 import { contactNgoSchema } from '../../schemas/discovery.js'
@@ -605,7 +606,7 @@ router.post('/audit/export', requirePermission(PERMISSIONS.ACTIVITY_EXPORT), val
   try {
     const { buffer, fileName } = await buildAuditPackage(req.user.tenantId, req.validated, req)
     res.setHeader('Content-Type', 'application/zip')
-    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`)
+    res.setHeader('Content-Disposition', `attachment; filename="${safeFilename(fileName)}"`)
     res.send(buffer)
   } catch (err) {
     next(err)
