@@ -1,0 +1,112 @@
+# SustainAlign — Production Readiness Plan
+
+> Six phases to take SustainAlign from prototype to production.
+
+---
+
+## Phase 1 — CI/CD Pipeline
+
+**Goal**: Every code change is automatically linted, built, tested, and deployable.
+
+| # | Task | Deliverable |
+|---|------|-------------|
+| 1.1 | GitHub Actions CI | `.github/workflows/ci.yml` — lint, build, test on PR/push to main |
+| 1.2 | GitHub Actions CD | `.github/workflows/deploy.yml` — SSH + docker compose deploy to any VM |
+| 1.3 | Pre-commit hooks | `husky` + `lint-staged` — eslint + prettier on commit |
+| 1.4 | Commit convention | `commitlint` enforcing conventional commits |
+| 1.5 | Deploy script | `scripts/deploy.sh` — one-command VM deploy (pull → build → migrate → restart) |
+| 1.6 | Docker compose prod | `docker-compose.prod.yml` — SSL/reverse-proxy variant |
+| 1.7 | Test framework | Vitest configured for backend + frontend with smoke tests |
+| 1.8 | Makefile targets | `make ci`, `make test`, `make deploy` targets |
+
+---
+
+## Phase 2 — Test Foundation
+
+**Goal**: Comprehensive test coverage to prevent regressions.
+
+| # | Task | Deliverable |
+|---|------|-------------|
+| 2.1 | Backend unit tests | Vitest — service-layer tests per domain |
+| 2.2 | Backend integration tests | Supertest — endpoint-level tests with in-memory SQLite |
+| 2.3 | Frontend component tests | Vitest + Testing Library — component + hook tests |
+| 2.4 | Frontend page tests | Smoke tests for all lazy-loaded routes |
+| 2.5 | CI gate | Tests must pass before merge; coverage thresholds |
+
+---
+
+## Phase 3 — Observability & Monitoring
+
+**Goal**: Know what's happening in production at all times.
+
+| # | Task | Deliverable |
+|---|------|-------------|
+| 3.1 | Structured logging | Replace `console.log/error` with Pino (JSON logs) |
+| 3.2 | Error tracking | Sentry integration (backend + frontend) |
+| 3.3 | Health endpoint | Enhance `/api/health` with deep dependency checks |
+| 3.4 | Metrics | Prometheus metrics (request rate, latency, errors, DB) |
+| 3.5 | Dashboards | Grafana dashboard JSON (request volume, error rate, uptime) |
+| 3.6 | Log aggregation | Docker log shipping to Loki or cloud logger |
+
+---
+
+## Phase 4 — Deployability & Infrastructure
+
+**Goal**: Deploy to any VM with minimal friction; survive failures.
+
+| # | Task | Deliverable |
+|---|------|-------------|
+| 4.1 | One-command deploy | Production `deploy.sh` script |
+| 4.2 | Ansible provisioning | Playbook to bootstrap any Ubuntu VM (Node, Docker, certs) |
+| 4.3 | Terraform modules | Infra-as-code for DO / AWS / Hetzner (optional) |
+| 4.4 | Nginx hardening | Rate limiting, WAF rules, HSTS, CSP tuning |
+| 4.5 | SSL automation | Let's Encrypt via certbot in docker-compose |
+| 4.6 | Automated backups | cron: SQLite dump + uploads tarball → S3/Backblaze B2 |
+| 4.7 | API versioning | Route prefix `/api/v1/` for all endpoints |
+| 4.8 | Graceful degradation | Feature flags for AI/Ollama, email, optional services |
+
+---
+
+## Phase 5 — Postgres Migration
+
+**Goal**: Scale beyond single-instance SQLite.
+
+| # | Task | Deliverable |
+|---|------|-------------|
+| 5.1 | Drizzle Postgres driver | Swap `better-sqlite3` → `@neondatabase/serverless` or `pg` |
+| 5.2 | Migration script | Export SQLite data → Postgres dump + import |
+| 5.3 | Connection pooling | PgBouncer or built-in `pg.Pool` |
+| 5.4 | Env toggle | `DATABASE_URL` switching between SQLite / Postgres |
+| 5.5 | Zero-downtime | Blue-green deploy pattern for DB switch |
+
+---
+
+## Phase 6 — API Documentation
+
+**Goal**: Self-documenting API for frontend devs and third-party integrators.
+
+| # | Task | Deliverable |
+|---|------|-------------|
+| 6.1 | OpenAPI 3.0 spec | Auto-generated from Zod schemas via `@asteasolutions/zod-to-openapi` |
+| 6.2 | Swagger UI | Serve interactive docs at `/api/docs` |
+| 6.3 | Postman collection | Export from OpenAPI spec for manual testing |
+| 6.4 | API changelog | Versioned changelog linked to releases |
+
+---
+
+## Phase 7 — Security Hardening
+
+**Goal**: Defense-in-depth for production workloads.
+
+| # | Task | Deliverable |
+|---|------|-------------|
+| 7.1 | Dependency scanning | Dependabot + `npm audit` in CI |
+| 7.2 | Secret scanning | GitGuardian / Gitleaks in CI |
+| 7.3 | Container scanning | Trivy scan of Docker images in CI |
+| 7.4 | Rate limit audit | Review and tune all tiered limits |
+| 7.5 | Pen test plan | Documented test scenarios per OWASP Top 10 |
+
+---
+
+Status: **Phase 1 in progress**
+Last updated: 2026-06-24
