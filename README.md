@@ -318,9 +318,15 @@ This codebase is being hardened in phases. Current status:
 
 ### Deploy notes
 
+**Docker (recommended):**
+```bash
+cp backend/.env.example backend/.env  # edit with production secrets
+docker compose up --build -d
+```
+
+**Manual:**
 - Frontend: `npm run build` → serve `frontend/dist/` behind a static host with SPA fallback.
 - Backend: `npm start` behind a reverse proxy; set `CORS_ORIGIN` and `APP_URL` to the deployed frontend URL; run `npm run db:migrate` as a deploy step.
-- Containerization, CI/CD, and the S3 storage provider arrive in Phase 5.
 
 ---
 
