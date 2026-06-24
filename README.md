@@ -283,6 +283,18 @@ All demo accounts use the password **`Demo@12345`**. Full list in [`docs/DEMO.md
 - **AI:** optional Retrieval-Augmented Generation via Ollama (configurable, off-capable). Vector docs stored in DB.
 - **Compliance scheduler:** runs in-process; self-heals on boot.
 
+### Security
+
+- **Auth:** argon2 password hashing, JWT access + rotating refresh tokens with reuse detection
+- **Rate limiting:** tiered limits (auth: 10/min, API: 200/min, uploads: 20/min, AI: 15/min in production)
+- **Input validation:** Zod schemas on all request bodies and query parameters
+- **File uploads:** MIME whitelist, path traversal protection, size limits
+- **Headers:** Helmet.js with CSP, HSTS, and X-Frame-Options
+- **OTP:** cryptographically secure (`crypto.randomInt`)
+- **Downloads:** Content-Disposition header injection prevention via filename sanitization
+- **Graceful shutdown:** SIGTERM/SIGINT handlers for clean server teardown
+- **Health check:** deep DB connectivity verification at `/api/health`
+
 ### Roles & navigation
 
 | Portal | Roles | Key areas |
