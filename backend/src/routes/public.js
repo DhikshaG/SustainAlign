@@ -55,6 +55,4 @@ router.get('/case-studies/:slug', (req, res) => {
 
 router.get('/jobs', (_req, res) => ok(res, jobs))
 
-router.get('/health', (_req, res) => ok(res, { status: 'healthy' }))
-
 export default router

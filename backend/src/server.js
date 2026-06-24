@@ -6,6 +6,7 @@ import { requestLogger } from './middleware/request-logger.js'
 import { errorHandler, notFound } from './middleware/error-handler.js'
 import { apiRateLimit } from './middleware/rate-limit-auth.js'
 import apiRoutes from './routes/index.js'
+import { sqlite } from './db/index.js'
 
 export function createApp() {
   const app = express()
@@ -16,10 +17,18 @@ export function createApp() {
   app.use(express.json({ limit: '1mb' }))
   app.use(requestLogger())
 
+  app.get('/api/health', (_req, res) => {
+    try {
+      sqlite.prepare('SELECT 1').get()
+      res.json({ ok: true, status: 'healthy' })
+    } catch {
+      res.status(503).json({ ok: false, status: 'unhealthy' })
+    }
+  })
+
   app.use('/api', apiRateLimit)
   app.use('/api', apiRoutes)
 
-  // Unmatched /api routes → clean 404 (JSON, not HTML)
   app.use('/api', notFound)
   app.use(errorHandler)
 
