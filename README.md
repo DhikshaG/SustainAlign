@@ -307,11 +307,12 @@ Every variable is documented in those files. **Production requires** real values
 This codebase is being hardened in phases. Current status:
 
 - ✅ Phase 1 — Foundation (docs, env, repo hygiene, error handling)
-- 🚧 Phase 2 — Security hardening (rate limits, cookie auth, CSP, upload validation)
-- ⏳ Phase 3 — Operational resilience (health checks, graceful shutdown, structured logging)
-- ⏳ Phase 4 — Test foundation (Vitest backend + frontend)
-- ⏳ Phase 5 — Deployment (Docker, CI/CD, S3 storage)
-- ⏳ Phase 6 — Launch polish (API versioning, OpenAPI, runbook)
+- ✅ Phase 2 — Security hardening (rate limits, CSP, upload validation, OTP crypto, header injection fix)
+- ✅ Phase 3 — Operational resilience (health checks, graceful shutdown, request IDs, CORS caching)
+- ✅ Phase 4 — Frontend perf (lazy loading, code splitting, meta tags, noscript)
+- ✅ Phase 5 — Deployment (Docker, docker-compose, nginx)
+- ⏳ Phase 6 — Test foundation (Vitest backend + frontend)
+- ⏳ Phase 7 — Launch polish (API versioning, OpenAPI, runbook, CI/CD)
 
 **Database:** SQLite (WAL mode) is used. For an early-pilot launch this is sufficient with automated backups and a single-instance deploy. A Postgres migration is documented as a future milestone for horizontal scaling.
 
