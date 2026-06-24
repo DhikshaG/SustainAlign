@@ -7,6 +7,7 @@ import { genericUpload } from '../../middleware/upload.js'
 import { ok, fail } from '../../lib/response.js'
 import { PERMISSIONS } from '../../lib/permissions.js'
 import { getStorage } from '../../lib/storage/index.js'
+import { safeFilename } from '../../lib/sanitize.js'
 import { getFileById, listFiles, storeFile, logFileDownload } from '../../services/files/index.js'
 import { z } from 'zod'
 import { db } from '../../db/index.js'
@@ -85,7 +86,7 @@ router.get('/:id/download', authenticate, requirePermission(PERMISSIONS.FILES_DO
     const storage = getStorage()
     const filePath = storage.resolvePath(row.storageKey)
     res.setHeader('Content-Type', row.mime)
-    res.setHeader('Content-Disposition', `attachment; filename="${row.originalName}"`)
+    res.setHeader('Content-Disposition', `attachment; filename="${safeFilename(row.originalName)}"`)
     fs.createReadStream(filePath).pipe(res)
   } catch (err) {
     next(err)
