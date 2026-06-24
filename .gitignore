@@ -1,3 +1,55 @@
+# ─── Dependencies ─────────────────────────────────────────────
+node_modules/
+**/node_modules/
+
+# ─── Build output ──────────────────────────────────────────────
+dist/
+build/
+**/dist/
+.vite/
+*.tsbuildinfo
+
+# ─── Environment (keep *.example only) ─────────────────────────
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# ─── Runtime data — SQLite DB + uploaded files ─────────────────
+backend/data/
+backend/uploads/
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+
+# ─── Logs ──────────────────────────────────────────────────────
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ─── Editor / OS ───────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ─── Drizzle local artifacts ───────────────────────────────────
+backend/drizzle/meta/_journal.json.bak
+
+# ─── Tooling caches ────────────────────────────────────────────
+.cache/
+.coverage/
+coverage/
+*.lcov
+
+# ─── Project-specific ignores (pre-existing) ───────────────────
 *.o
 .graphify_detect.json
 .graphify_python

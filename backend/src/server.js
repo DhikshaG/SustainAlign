@@ -3,7 +3,7 @@ import cors from 'cors'
 import helmet from 'helmet'
 import { env } from './config/env.js'
 import { requestLogger } from './middleware/request-logger.js'
-import { errorHandler } from './middleware/error-handler.js'
+import { errorHandler, notFound } from './middleware/error-handler.js'
 import apiRoutes from './routes/index.js'
 
 export function createApp() {
@@ -17,6 +17,8 @@ export function createApp() {
 
   app.use('/api', apiRoutes)
 
+  // Unmatched /api routes → clean 404 (JSON, not HTML)
+  app.use('/api', notFound)
   app.use(errorHandler)
 
   return app
