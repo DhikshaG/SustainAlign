@@ -7,6 +7,7 @@ export function requestLogger() {
       const start = Date.now()
       res.on('finish', () => {
         console.log(JSON.stringify({
+          requestId: req.id,
           method: req.method,
           path: req.path,
           status: res.statusCode,
