@@ -1,0 +1,35 @@
+name: CD
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          known_hosts: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+
+      - name: Deploy via SSH
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "
+            cd ${{ secrets.DEPLOY_PATH }} &&
+            git fetch origin main &&
+            git reset --hard origin/main &&
+            cp backend/.env.prod backend/.env 2>/dev/null || true &&
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d &&
+            docker system prune -f
+          "
+
+      - name: Health check
+        run: |
+          sleep 15
+          curl -f http://${{ secrets.DEPLOY_HOST }}:3001/api/health || exit 1
