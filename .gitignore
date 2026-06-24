@@ -48,6 +48,13 @@ backend/drizzle/meta/_journal.json.bak
 .coverage/
 coverage/
 *.lcov
+htmlcov/
+
+# ─── Test artifacts ──────────────────────────────────────────
+backend/coverage/
+frontend/coverage/
+*.test.db
+backend/data/test.db
 
 # ─── Project-specific ignores (pre-existing) ───────────────────
 *.o
