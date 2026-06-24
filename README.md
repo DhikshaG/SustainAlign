@@ -14,6 +14,8 @@
 [![Tailwind](https://img.shields.io/badge/Tailwind-4-38BDF8?logo=tailwindcss&logoColor=white)](#)
 [![Recharts](https://img.shields.io/badge/Recharts-3-FF6B6B?logo=react&logoColor=white)](#)
 [![Express](https://img.shields.io/badge/Express-5-000000?logo=express&logoColor=white)](#)
+[![CI](https://github.com/bhuwanb23/sustainalign/actions/workflows/ci.yml/badge.svg)](https://github.com/bhuwanb23/sustainalign/actions/workflows/ci.yml)
+[![CD](https://github.com/bhuwanb23/sustainalign/actions/workflows/deploy.yml/badge.svg)](https://github.com/bhuwanb23/sustainalign/actions/workflows/deploy.yml)
 
 </div>
 
@@ -328,12 +330,38 @@ This codebase is being hardened in phases. Current status:
 
 **Database:** SQLite (WAL mode) is used. For an early-pilot launch this is sufficient with automated backups and a single-instance deploy. A Postgres migration is documented as a future milestone for horizontal scaling.
 
+### CI/CD Pipeline
+
+Every push to `main` is automatically linted, built, tested, and ready to deploy.
+
+| Pipeline | Trigger | What it does |
+|----------|---------|-------------|
+| **CI** (`.github/workflows/ci.yml`) | Push / PR to `main` | `npm ci` → `lint` → `build` → `test` |
+| **CD** (`.github/workflows/deploy.yml`) | Push to `main` | SSH into VM → `git pull` → `docker compose up --build -d` → health check |
+
+**Pre-commit hooks** (via husky):
+- `lint-staged` — lints and formats staged files
+- `commitlint` — enforces [conventional commits](https://www.conventionalcommits.org/)
+
+**Makefile shortcuts:**
+```bash
+make ci        # lint + build + test (same as CI pipeline)
+make test      # run all tests
+make deploy    # one-command deploy (requires SSH setup)
+```
+
 ### Deploy notes
 
 **Docker (recommended):**
 ```bash
 cp backend/.env.example backend/.env  # edit with production secrets
 docker compose up --build -d
+```
+
+**Production Docker (with logging + SSL templates):**
+```bash
+cp backend/.env.example backend/.env  # edit with production secrets
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
 ```
 
 **Manual:**
