@@ -50,6 +50,9 @@ coverage/
 *.lcov
 htmlcov/
 
+# ─── Husky auto-generated internals ───────────────────────────
+.husky/_/
+
 # ─── Test artifacts ──────────────────────────────────────────
 backend/coverage/
 frontend/coverage/
