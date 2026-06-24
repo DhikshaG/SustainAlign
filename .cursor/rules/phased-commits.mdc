@@ -1,0 +1,15 @@
+---
+description: Git commit after each phase when executing multi-phase implementation plans
+alwaysApply: true
+---
+
+# Phased commits
+
+When implementing a multi-phase plan (Step 1, Step 2, etc.):
+
+1. Split work into logical phases (schema → API → frontend → verify).
+2. **Create a git commit after each phase completes** — do not batch unrelated phases.
+3. Use messages like `Step N Phase M: <short summary>`.
+4. On Windows/PowerShell use `git commit -m "message"` (heredoc is unreliable).
+5. Only commit when explicitly executing a phased plan; do not commit unrelated WIP.
+6. Run verification (lint/build/tests) before committing when the phase includes them.

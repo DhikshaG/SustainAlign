@@ -10,10 +10,10 @@
 [![Status](https://img.shields.io/badge/Status-Active-2ea44f)](#)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)](#)
-[![Vite](https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white)](#)
+[![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)](#)
 [![Tailwind](https://img.shields.io/badge/Tailwind-4-38BDF8?logo=tailwindcss&logoColor=white)](#)
-[![Highcharts](https://img.shields.io/badge/Highcharts-12-2E5EAA)](#)
-[![Flask](https://img.shields.io/badge/Flask-3-000000?logo=flask&logoColor=white)](#)
+[![Recharts](https://img.shields.io/badge/Recharts-3-FF6B6B?logo=react&logoColor=white)](#)
+[![Express](https://img.shields.io/badge/Express-5-000000?logo=express&logoColor=white)](#)
 
 </div>
 
@@ -163,10 +163,10 @@ SustainAlign is an AI-powered CSR-focused platform designed to connect NGO proje
 
 ## ✨ Platform Highlights
 - 🎨 **Elegant UI**: React 19 + Tailwind v4 with soft gradients, rounded cards, and subtle motion
-- 📈 **Insightful Charts**: Highcharts dashboards (allocation, trends, ESG, SDG); transparent cards for dark-on-light clarity
+- 📈 **Insightful Charts**: Recharts dashboards (allocation, trends, ESG, SDG); transparent cards for dark-on-light clarity
 - 🧭 **App Shell**: Role-aware TopNav and modular routes (Discovery, Alignment, Decision, Monitoring, Reporting)
 - 🔐 **Auth-ready**: Login / Signup / Forgot / Profile Setup + JWT parsing helper
-- ⚙️ **API-first backend**: Flask 3, SQLAlchemy, CORS; clean blueprints per domain
+- ⚙️ **API-first backend**: Express 5, Drizzle ORM, Zod validation; clean routes per domain
 - 🧩 **Extensible**: Componentized pages (cards, tables, charts) + sensible aliases (`@pages`, `@components`)
 
 ---
@@ -174,911 +174,171 @@ SustainAlign is an AI-powered CSR-focused platform designed to connect NGO proje
 ## 🔗 Quick Links
 - Frontend guide: `frontend/README.md`
 - Backend guide: `backend/README.md`
-- IBM WatsonX Integration: `backend/ibm_watson/README.md`
-- IBM WatsonX Commands: `backend/ibm_watson/WATSONX_COMMANDS.md`
 - Docker Setup: `DOCKER_README.md`
 - Prototypes: `html/` (e.g. `html/dashboard.html`)
 
-## 🚀 Quick Start Commands
+## 🛠️ Engineering & Setup
 
-### Frontend
-```bash
-cd frontend
-npm install
-npm run dev
-# http://localhost:5173
+### Repository layout
+
 ```
-
-### Backend
-```bash
-cd backend
-venv\Scripts\activate  # Windows
-source venv/bin/activate  # Linux/Mac
-pip install -r requirements.txt
-cp config/env_example.txt .env
-python scripts/seed_database.py
-python app.py
-# http://localhost:5000
-```
-
-### IBM WatsonX Orchestrate
-```bash
-cd backend/ibm_watson
-pip install ibm-watsonx-orchestrate
-orchestrate env activate local
-orchestrate server start -e ../.env
-orchestrate tools import -k python -f tools/project_analyzer.py
-orchestrate tools import -k python -f tools/impact_calculator.py
-orchestrate tools import -k python -f tools/risk_assessor.py
-orchestrate tools import -k python -f tools/budget_optimizer.py
-orchestrate agents import -f agents/csr_matching_agent.yaml
-orchestrate agents import -f agents/project_evaluation_agent.yaml
-orchestrate agents import -f agents/decision_support_agent.yaml
-orchestrate agents import -f agents/impact_assessment_agent.yaml
-orchestrate chat start
-# http://localhost:3000/chat-lite
-```
-
----
-
-## 🏗️ Architecture
-
-```mermaid
-flowchart LR
-  %% Frontend
-  subgraph FE[Frontend · React 19 + Vite]
-    FE_TopNav["Role-aware TopNav<br/>Corporate/NGO/Admin Navigation"]
-    FE_Layouts["AppLayout<br/>Global Shell & Sidebar"]
-    FE_Routes["Page Routes<br/>Discovery · Alignment · Decision<br/>Monitoring · Reporting · Profile<br/>Marketplace · Settings · Support"]
-    FE_Components["UI Components<br/>Cards · Tables · Forms · Charts<br/>Modals · Navigation · Layouts"]
-    FE_Pages["Page Components<br/>Dashboard · Project Cards<br/>AI Matching · Workflows<br/>Impact Charts · Reports"]
-    FE_Hooks["Custom Hooks<br/>useDashboardData · useAiMatching<br/>useProjectSearch · useAuditTrail"]
-    FE_Lib["Utility Libraries<br/>api.js · auth.js · projectApi.js<br/>ui.js · constants"]
-    FE_Auth["JWT Utils<br/>getToken() · parseJwt()<br/>isAuthenticated()"]
-  end
-
-  %% Backend
-  subgraph BE[Backend · Flask 3]
-    BE_App["App Factory<br/>CORS · Config · Health<br/>Blueprint Registration"]
-    subgraph BP[API Blueprints]
-      BP_Auth[auth<br/>Login · Signup · JWT]
-      BP_Projects[projects<br/>CRUD · AI Matching<br/>Approvals · Impact]
-      BP_Profile[profile<br/>Company · NGO · CSR History]
-      BP_Reports[reports<br/>Generator · Audit Trail<br/>Compliance]
-      BP_Views["views<br/>Admin HTML Templates"]
-    end
-    subgraph Models[SQLAlchemy Models]
-      M_User["User · UserRole<br/>Authentication & Permissions"]
-      M_Company["Company · Branch · CSRContact<br/>Budget · FocusArea · NGOPref"]
-      M_Project["Project · Milestone<br/>Application · ImpactReport<br/>ApprovalRequest · ApprovalStep"]
-      M_NGO["NGOProfile · NGOImpactEvent<br/>NGODocument · NGOTransparencyReport"]
-      M_Match["AIMatch<br/>Company-Project Alignment"]
-      M_Monitoring["ImpactMetricSnapshot<br/>ImpactTimeSeries · ImpactRegionStat"]
-      M_Reporting["ReportJob · ReportArtifact<br/>DecisionRationale · RationaleNote"]
-    end
-  end
-
-  %% Data Stores
-  DB[(Relational Database<br/>SQLite by default<br/>PostgreSQL ready)]
-
-  %% Frontend Connections
-  FE_TopNav --> FE_Layouts
-  FE_Layouts --> FE_Routes
-  FE_Routes --> FE_Pages
-  FE_Pages --> FE_Components
-  FE_Components --> FE_Hooks
-  FE_Hooks --> FE_Lib
-  FE_Lib --> FE_Auth
-
-  %% API Communication
-  FE_Lib -->|HTTP Requests| BE_App
-  FE_Auth -->|Bearer JWT| BE_App
-
-  %% Backend Internal
-  BE_App --> BP_Auth
-  BE_App --> BP_Projects
-  BE_App --> BP_Profile
-  BE_App --> BP_Reports
-  BE_App --> BP_Views
-
-  %% Blueprint to Model Relationships
-  BP_Auth <-->|ORM| M_User
-  BP_Profile <-->|ORM| M_Company
-  BP_Projects <-->|ORM| M_Project
-  BP_Projects <-->|ORM| M_NGO
-  BP_Projects <-->|ORM| M_Match
-  BP_Reports <-->|ORM| M_Monitoring
-  BP_Reports <-->|ORM| M_Reporting
-  BP_Views <-->|ORM| M_User
-
-  %% Models to Database
-  Models --> DB
-
-  %% Notable API Flows
-  classDef note fill:#ecfdf5,stroke:#10b981,color:#065f46
-  subgraph Flows["Key API Endpoints & Flows"]
-    F1["Project Discovery<br/>GET /api/projects<br/>Public access, filtering"]:::note
-    F2["AI Matching Engine<br/>GET /api/ai-matches<br/>Company-project alignment"]:::note
-    F3["NGO Directory<br/>GET /api/ngos<br/>Authenticated access"]:::note
-    F4["Approval Workflow<br/>POST/PUT /api/approvals<br/>Project approval process"]:::note
-    F5["Impact Monitoring<br/>GET /api/impact/*<br/>Real-time metrics"]:::note
-    F6["Report Generation<br/>POST /api/reports<br/>Compliance & ESG"]:::note
-  end
-
-  FE_Lib --> F1
-  FE_Lib --> F2
-  FE_Lib --> F3
-  FE_Lib --> F4
-  FE_Lib --> F5
-  FE_Lib --> F6
-
-  %% Data Flow Indicators
-  classDef flow fill:#dbeafe,stroke:#3b82f6,color:#1e40af
-  subgraph DataFlow["Data Flow Patterns"]
-    DF1["User Auth<br/>JWT → Role-based Access"]:::flow
-    DF2["Project Discovery<br/>Search → Filter → AI Rank"]:::flow
-    DF3["Approval Process<br/>Submit → Review → Approve"]:::flow
-    DF4["Impact Tracking<br/>Collect → Analyze → Report"]:::flow
-  end
-
-  FE_Auth --> DF1
-  F1 --> DF2
-  F4 --> DF3
-  F5 --> DF4
-```
-
-### Roles & Navigation
-- **Admin**: Full Dashboard + Monitoring/Reporting suite
-- **Corporate**: Discovery, Alignment, Impact Dashboard; Company Profile (form + showcase)
-- **NGO**: Marketplace and Company Showcase view
-
----
-
-## 🧭 Project Structure
-```text
 sustainalign/
-├─ backend/                  # Flask API + admin HTML views
-│  ├─ app.py                 # App factory, CORS, health, blueprints
-│  ├─ models/                # SQLAlchemy models (users, companies, projects, ai matching, ...)
-│  ├─ routes/                # auth, projects, profile, reports, views
-│  ├─ templates/             # Minimal admin HTML (Tailwind)
-│  ├─ ibm_watson/            # IBM WatsonX Orchestrate AI agents & tools
-│  │  ├─ agents/             # AI agent YAML configurations
-│  │  ├─ tools/              # AI tool implementations & configs
-│  │  ├─ deploy_agents.py    # Agent deployment script
-│  │  ├─ test_integration.py # Integration testing
-│  │  └─ demo_integration.py # Capability demonstrations
-│  └─ requirements.txt       # Flask, CORS, SQLAlchemy, PyJWT, etc.
+├── backend/    Node.js + Express 5 (ESM), Drizzle ORM → SQLite, Zod validation
+│   ├── src/
+│   │   ├── routes/        API route groups (auth, corporate, ngo, admin, files, ...)
+│   │   ├── services/      Business logic (auth, projects, discovery, matching, esg, ...)
+│   │   ├── schemas/       Zod request/response schemas
+│   │   ├── middleware/    authenticate, permissions, rate-limit, audit, error-handler
+│   │   ├── db/            Drizzle schema + migrations
+│   │   ├── lib/           password (argon2), tokens (JWT/jose), storage, permissions
+│   │   └── config/env.js  Zod-validated environment config
+│   ├── drizzle/           SQL migrations (16 to date)
+│   ├── scripts/           db:reset, db:verify-*, seed
+│   └── data/              SQLite DB (gitignored — created on first run)
 │
-├─ frontend/                 # React + Vite SPA
-│  ├─ src/
-│  │  ├─ layouts/AppLayout.jsx      # Global shell (TopNav + content)
-│  │  ├─ components/TopNav.jsx      # Universal navigation
-│  │  ├─ lib/api.js                 # apiPost helper
-│  │  ├─ pages/
-│  │  │  ├─ auth/                   # Auth screens (AuthLayout + pages)
-│  │  │  ├─ dashboard/              # Admin dashboard (widgets + charts)
-│  │  │  ├─ discovery/ alignment/ decision/ monitoring/ reporting/
-│  │  │  ├─ marketplace/ settings/ profile/ support/
-│  │  ├─ App.jsx                    # All routes
-│  │  └─ main.jsx                   # App bootstrap + Router
-│  └─ vite.config.js                # Tailwind v4 plugin + path aliases
+├── frontend/   React 19 + Vite 8 + React Router 7 + Tailwind 4 + Recharts
+│   ├── src/
+│   │   ├── routes/        public/ corporate/ ngo/ admin/ auth/ pages
+│   │   ├── components/    layout, copilot, crm, audit, workflow, ...
+│   │   ├── lib/           api.js, auth.js, permissions, per-domain api wrappers
+│   │   └── data/          nav, sample data, settings
+│   └── (Vite config in package)
 │
-├─ docs/                     # Project documentation and images
-│  └─ images/                # Visual assets and screenshots
-│     ├─ problem_statement.png      # Problem visualization
-│     ├─ solution_features.png      # Solution overview
-│     ├─ target_users.png          # User personas
-│     ├─ lifecycle.png             # CSR project lifecycle
-│     ├─ users_connections.png     # Platform ecosystem
-│     ├─ before%20vs%20after*.jpg      # Transformation comparison
-│     ├─ India%20Impact%20areas*.png   # Regional focus areas
-│     ├─ logo.png                  # SustainAlign branding
-│     └─ Poster%20-%20Sustain%20Align.png # Project overview poster
-│
-└─ html/                     # Static prototypes (reference designs)
+└── docs/       DEMO.md (demo accounts & QA), Client Pitch Strategy
 ```
 
----
+This is an **npm workspaces** monorepo (see root `package.json`).
 
-## 🚀 Quickstart
+### Prerequisites
 
-### 🐳 Docker (Recommended)
+- **Node.js ≥ 20** (developed on Node 22/24)
+- **npm ≥ 10**
+- Windows note: if SQLite native bindings fail, run `npm rebuild better-sqlite3` inside `backend/`.
 
-**Prerequisites**: Docker Desktop installed and running
+### Quick start (local development)
 
 ```bash
-# 1. Clone and setup
-git clone <repository-url>
-cd sustainalign
-
-# 2. Configure environment
-cp config/env_example.txt .env
-# Edit .env with your credentials
-
-# 3. Start everything with Docker
-# Windows:
-start-docker.bat
-
-# Linux/Mac:
-docker-compose up --build -d
-```
-
-**Access Points**:
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:5000
-- **WatsonX Chat**: http://localhost:3001/chat-lite
-
-Since IBM watson also uses docker, it might cause some error, so if the docker conatiners don't work then try the manual setupo of rthis project
-
-### 🛠️ Manual Setup
-
-#### Frontend (Vite + React)
-```bash
-cd frontend
+# from the repo root — installs both workspaces
 npm install
+
+# 1. configure environment
+cp backend/.env.example  backend/.env
+cp frontend/.env.example frontend/.env
+
+# 2. prepare the database (migrate + full demo seed)
+cd backend
+npm run db:reset        # drop → migrate → seed (incl. demo enrichment)
+npm run db:verify-e2e   # post-seed assertions (20+ checks)
+
+# 3. run the API  → http://localhost:3001
 npm run dev
-# http://localhost:5173
+
+# 4. in another terminal, run the frontend  → http://localhost:5173
+cd ../..
+npm run dev:frontend
 ```
 
-#### Backend (Flask + IBM WatsonX Orchestrate)
+The Vite dev server proxies `/api` to the backend on `:3001`.
+
+### Demo accounts
+
+All demo accounts use the password **`Demo@12345`**. Full list in [`docs/DEMO.md`](docs/DEMO.md).
+
+| Portal | Example login | Entry URL |
+|--------|---------------|-----------|
+| Corporate (Acme Corp) | `admin@acme.com` | `/login/corporate` |
+| NGO (Green Earth Foundation) | `admin@greenearth.org` | `/login/ngo` |
+| Platform admin | `platform@sustainalign.com` | `/login/corporate` → `/admin` |
+
+### Common scripts
+
+**Root**
+
+| Script | Action |
+|--------|--------|
+| `npm run dev:backend` | Start backend API in watch mode |
+| `npm run dev:frontend` | Start frontend Vite dev server |
+| `npm run build` | Production-build the frontend |
+| `npm test` | Run tests in all workspaces that define them |
+| `npm run lint` | Run linters in all workspaces that define them |
+
+**Backend (`cd backend`)** — see `backend/package.json` for the full list. Highlights:
+
+| Script | Action |
+|--------|--------|
+| `npm run dev` / `npm start` | Watch / production server |
+| `npm run db:generate` | Generate a Drizzle migration from schema changes |
+| `npm run db:migrate` | Apply pending migrations |
+| `npm run db:reset` | Drop → migrate → full demo seed |
+| `npm run db:seed` | Seed base data (no demo enrichment) |
+| `npm run db:verify-e2e` | End-to-end post-seed verification |
+| `npm run db:verify-*` | Per-domain verifiers (ngo, discovery, projects, impact, reports, compliance, ai, matching, allocation, esg, crm, audit, volunteers, rag) |
+| `npm run db:studio` | Open Drizzle Studio |
+
+### Architecture notes
+
+- **Multi-tenant:** `tenants` (corporate / ngo) + `memberships` link users to tenants; every entity carries a `tenantId` for isolation.
+- **Auth:** argon2 password hashing, JWT access + rotating refresh tokens (with reuse detection), optional MFA, password reset, team invitations. Permission-based RBAC (`backend/src/lib/permissions.js`) with denied-access audit logging.
+- **Storage:** file uploads go through an abstract `getStorage()` provider (`backend/src/lib/storage/`). Local disk is the dev default; an S3-compatible provider is the production target.
+- **AI:** optional Retrieval-Augmented Generation via Ollama (configurable, off-capable). Vector docs stored in DB.
+- **Compliance scheduler:** runs in-process; self-heals on boot.
+
+### Security
+
+- **Auth:** argon2 password hashing, JWT access + rotating refresh tokens with reuse detection
+- **Rate limiting:** tiered limits (auth: 10/min, API: 200/min, uploads: 20/min, AI: 15/min in production)
+- **Input validation:** Zod schemas on all request bodies and query parameters
+- **File uploads:** MIME whitelist, path traversal protection, size limits
+- **Headers:** Helmet.js with CSP, HSTS, and X-Frame-Options
+- **OTP:** cryptographically secure (`crypto.randomInt`)
+- **Downloads:** Content-Disposition header injection prevention via filename sanitization
+- **Graceful shutdown:** SIGTERM/SIGINT handlers for clean server teardown
+- **Health check:** deep DB connectivity verification at `/api/health`
+
+### Roles & navigation
+
+| Portal | Roles | Key areas |
+|--------|-------|-----------|
+| Corporate | super_admin, csr_head, finance, compliance, esg_head, volunteer, board | discovery, projects, funds, compliance, reporting, copilot, volunteers, audit-trail |
+| NGO | ngo_admin, field_officer | profile, projects, partnership-requests, beneficiaries, finance |
+| Admin | platform_super_admin | overview, ngo-verification, fraud, analytics, support, compliance, ai-monitoring, content |
+
+### Configuration
+
+Copy the example env files and edit as needed:
+
 ```bash
-cd backend
-python -m venv .venv
-
-# Windows PowerShell
-. .venv/Scripts/Activate.ps1
-# macOS/Linux
-source .venv/bin/activate
-
-pip install -r requirements.txt
-
-# 1) Create your environment file (do NOT commit .env)
-cp config/env_example.txt .env   # or copy config/env_example.txt .env on Windows
-
-# 2) Open .env and set your values:
-#    OPENROUTER_API_KEY=your-openrouter-key
-#    WO_DEVELOPER_EDITION_SOURCE=orchestrate
-#    WO_API_KEY=your-watson-orchestrate-api-key
-#    WO_INSTANCE=https://api.ap-south-1.dl.watson-orchestrate.ibm.com/instances/your-instance-id
-
-# 3) IBM WatsonX Orchestrate Setup (Optional but Recommended)
-cd ibm_watson
-
-# Install IBM WatsonX Orchestrate ADK
-pip install ibm-watsonx-orchestrate
-
-# Set up WatsonX Orchestrate environment
-orchestrate env activate local
-
-# Start WatsonX Orchestrate server (Docker required)
-orchestrate server start -e ../.env
-
-# Wait for server to fully start (check Docker containers)
-docker ps
-
-# Deploy AI agents and tools
-python deploy_agents.py
-
-# Test the integration
-python test_integration.py
-
-# Demo the capabilities
-python demo_integration.py
-
-cd ..
-
-# 4) Seed sample data (optional but recommended)
-python scripts/seed_database.py
-
-# 5) Run the server
-python app.py
-# http://localhost:5000
+cp backend/.env.example  backend/.env
+cp frontend/.env.example frontend/.env
 ```
 
-#### 🤖 IBM WatsonX Orchestrate Integration
+Every variable is documented in those files. **Production requires** real values for `JWT_SECRET` and `JWT_REFRESH_SECRET` (each ≥ 32 chars, distinct) — the app refuses to boot otherwise.
 
-**AI Agents Available**:
-- **🔍 CSR Matching Agent**: Intelligent project-company alignment
-- **📊 Project Evaluation Agent**: Risk assessment and feasibility analysis  
-- **🧠 Decision Support Agent**: AI-powered recommendations with rationale
-- **📈 Impact Assessment Agent**: Real-time impact tracking and metrics
+### Production readiness
 
-**AI Tools Available**:
-- **Project Analyzer**: Analyzes project alignment and feasibility
-- **Impact Calculator**: Calculates comprehensive impact metrics
-- **Risk Assessor**: Assesses project risks and mitigation strategies
-- **Budget Optimizer**: Optimizes budget allocation across projects
+This codebase is being hardened in phases. Current status:
 
-**Web Interface**: `http://localhost:3000/chat-lite` (when WatsonX server is running)
+- ✅ Phase 1 — Foundation (docs, env, repo hygiene, error handling)
+- ✅ Phase 2 — Security hardening (rate limits, CSP, upload validation, OTP crypto, header injection fix)
+- ✅ Phase 3 — Operational resilience (health checks, graceful shutdown, request IDs, CORS caching)
+- ✅ Phase 4 — Frontend perf (lazy loading, code splitting, meta tags, noscript)
+- ✅ Phase 5 — Deployment (Docker, docker-compose, nginx)
+- ⏳ Phase 6 — Test foundation (Vitest backend + frontend)
+- ⏳ Phase 7 — Launch polish (API versioning, OpenAPI, runbook, CI/CD)
 
-#### Complete IBM WatsonX Orchestrate Setup Guide
+**Database:** SQLite (WAL mode) is used. For an early-pilot launch this is sufficient with automated backups and a single-instance deploy. A Postgres migration is documented as a future milestone for horizontal scaling.
 
-**Prerequisites**:
-- Docker installed and running
-- IBM WatsonX Orchestrate API key
-- Python 3.8+ with virtual environment
+### Deploy notes
 
-**Step 1: Install IBM WatsonX Orchestrate ADK**
+**Docker (recommended):**
 ```bash
-# Activate virtual environment
-cd backend
-venv\Scripts\activate  # Windows
-source venv/bin/activate  # Linux/Mac
-
-# Install WatsonX Orchestrate
-pip install ibm-watsonx-orchestrate
+cp backend/.env.example backend/.env  # edit with production secrets
+docker compose up --build -d
 ```
 
-**Step 2: Configure Environment**
-```bash
-# Copy environment template
-cp config/env_example.txt .env
-
-# Edit .env with your credentials
-# Add these variables:
-WO_DEVELOPER_EDITION_SOURCE=orchestrate
-WO_API_KEY=your-watsonx-orchestrate-api-key
-WO_INSTANCE=https://api.ap-south-1.dl.watson-orchestrate.ibm.com/instances/your-instance-id
-WATSON_API_KEY=your-watson-api-key
-WATSON_SERVICE_URL=https://api.ap-south-1.dl.watson-orchestrate.ibm.com
-```
-
-**Step 3: Start WatsonX Orchestrate Server**
-```bash
-# Navigate to WatsonX directory
-cd ibm_watson
-
-# Activate local environment
-orchestrate env activate local
-
-# Start server (requires Docker)
-orchestrate server start -e ../.env
-
-# Wait for server to fully start (check Docker containers)
-docker ps
-```
-
-**Step 4: Deploy AI Tools**
-```bash
-# Import all tools (run these commands in ibm_watson directory)
-orchestrate tools import -k python -f tools/project_analyzer.py
-orchestrate tools import -k python -f tools/impact_calculator.py
-orchestrate tools import -k python -f tools/risk_assessor.py
-orchestrate tools import -k python -f tools/budget_optimizer.py
-
-# Verify tools are deployed
-orchestrate tools list
-```
-
-**Step 5: Deploy AI Agents**
-```bash
-# Import all agents (run these commands in ibm_watson directory)
-orchestrate agents import -f agents/csr_matching_agent.yaml
-orchestrate agents import -f agents/project_evaluation_agent.yaml
-orchestrate agents import -f agents/decision_support_agent.yaml
-orchestrate agents import -f agents/impact_assessment_agent.yaml
-
-# Verify agents are deployed
-orchestrate agents list
-```
-
-**Step 6: Start Chat Interface**
-```bash
-# Start interactive chat interface
-orchestrate chat start
-
-# This opens web interface at: http://localhost:3000/chat-lite
-```
-
-#### Essential WatsonX Commands
-
-**Server Management**
-```bash
-# Check server status
-orchestrate server status
-
-# View server logs
-orchestrate server logs
-
-# Stop server
-orchestrate server stop
-
-# Restart server
-orchestrate server restart
-```
-
-**Environment Management**
-```bash
-# List environments
-orchestrate env list
-
-# Activate environment
-orchestrate env activate local
-
-# Deactivate environment
-orchestrate env deactivate
-```
-
-**Tools Management**
-```bash
-# List all tools
-orchestrate tools list
-
-# Import single tool
-orchestrate tools import -k python -f tools/tool_name.py
-
-# Remove tool
-orchestrate tools remove tool_name
-
-# Get tool details
-orchestrate tools get tool_name
-```
-
-**Agents Management**
-```bash
-# List all agents
-orchestrate agents list
-
-# Import single agent
-orchestrate agents import -f agents/agent_name.yaml
-
-# Remove agent
-orchestrate agents remove agent_name
-
-# Get agent details
-orchestrate agents get agent_name
-```
-
-**Chat & Interaction**
-```bash
-# Start chat interface
-orchestrate chat start
-
-# Start chat with specific agent
-orchestrate chat start --agent agent_name
-
-# List available agents for chat
-orchestrate chat agents
-```
-
-**Health & Debugging**
-```bash
-# Check system health
-orchestrate health
-
-# Check Docker containers
-docker ps
-
-# View container logs
-docker logs container_name
-
-# Check API connectivity
-curl http://localhost:4321/health
-```
-
-#### Troubleshooting
-
-**Common Issues & Solutions**
-
-1. **Docker not running**
-   ```bash
-   # Start Docker Desktop
-   # Check Docker status
-   docker --version
-   docker ps
-   ```
-
-2. **Server won't start**
-   ```bash
-   # Check environment variables
-   cat .env
-   
-   # Restart Docker
-   # Try again
-   orchestrate server start -e ../.env
-   ```
-
-3. **Tools/Agents not importing**
-   ```bash
-   # Check file paths
-   ls tools/
-   ls agents/
-   
-   # Verify YAML syntax
-   # Check Python tool decorators
-   ```
-
-4. **Chat interface not loading**
-   ```bash
-   # Check if server is running
-   orchestrate server status
-   
-   # Check port 3000
-   netstat -an | findstr :3000
-   
-   # Restart chat
-   orchestrate chat start
-   ```
-
-#### Web Interface Usage
-
-**Access Points**
-- **Chat Interface**: http://localhost:3000/chat-lite
-- **Admin Dashboard**: http://localhost:3000/admin
-- **API Documentation**: http://localhost:3000/docs
-
-**Using AI Agents**
-1. Open chat interface
-2. Select agent from dropdown
-3. Type your query or request
-4. Agent will use appropriate tools
-5. Review responses and recommendations
-
-**Example Queries**
-- "Analyze this project for CSR alignment"
-- "Calculate impact metrics for education project"
-- "Assess risks for environmental initiative"
-- "Optimize budget allocation across projects"
-Health check: `GET /api/health` → `{ "status": "ok" }`
-
-Notes on AI setup
-- Default model: `deepseek/deepseek-chat-v3.1:free` (configured in `backend/ai_models/ai_model.py`).
-- Environment file template: `backend/env_example.txt` (copy to `.env`).
-- `.env` is ignored by git (see `backend/.gitignore`). Never commit keys.
-- If OpenRouter returns a non-200 (e.g. 401/404), the backend automatically falls back to intelligent mock rationales and the UI shows a warning banner.
-- If you repeatedly see very similar recommendations, that can be correct for identical input data. To vary results you can:
-  - Click "Generate New Analysis" then "Refresh Data" on the Rationale page
-  - Change filters/company (e.g. use company_id 2–5) or projects
-  - Adjust temperature/model in `ai_model.py`
-
-#### 🤖 IBM WatsonX Orchestrate Setup
-- **Docker Required**: WatsonX Orchestrate runs in Docker containers
-- **Free Trial**: Sign up at [watsonx.ai](https://watsonx.ai) for free trial credentials
-- **Web Interface**: Access AI agents at `http://localhost:3000/chat-lite`
-- **Agent Deployment**: Use `python deploy_agents.py` to deploy all AI agents
-- **Integration Testing**: Run `python test_integration.py` to verify setup
-- **Troubleshooting**: Check `orchestrate server logs` for server status
-
-### Sample Accounts
-
-**For Development & Testing Only**
-
-The platform comes with pre-configured sample accounts for testing different user roles. Run `python scripts/seed_database.py` and the seeded credentials will be printed to stdout (corporate, NGO, admin).
-
-> ⚠️ **Security Note**: Sample credentials are NEVER committed to version control. They are generated/printed by the seed script. Change passwords (and rotate the seed script's defaults) before any deployment.
----
-
-## 🖼️ Key Screens and Routes
-| Area | Routes | AI Agent |
-|---|---|---|
-| **Auth** | `/login`, `/signup`, `/forgot-password`, `/profile-setup` | - |
-| **Dashboard** | `/dashboard` (admin) | - |
-| **Discovery** | `/discovery/search`, `/discovery/cards` | **Agent 1** |
-| **Alignment** | `/alignment/matching`, `/alignment/comparison-matrix`, `/alignment/risk` | **Agent 2 & 3** |
-| **Monitoring** | `/monitoring/impact`, `/monitoring/tracker`, `/monitoring/alerts` | **Agent 5** |
-| **Reporting** | `/reporting/generator`, `/reporting/audit-trail` | **Agent 6** |
-| **Marketplace** | `/marketplace/ngo`, `/marketplace/matching`, `/marketplace/collaboration` | - |
-| **Settings** | `/settings/users`, `/settings/agents`, `/settings/apis`, `/settings/integrations` | - |
-| **Profile** | `/profile/company-details`, `/profile/csr-history`, `/profile/sdg-selector` | - |
-| **Support** | `/support/chat`, `/support/faq`, `/support/feedback` | - |
-
-> Prototypes in `html/` mirror many routes (open in browser for quick reference).
-
----
-
-## 🎛️ Frontend Architecture & Features
-
-### 🎨 Modern Tech Stack
-<div style="display: flex; gap: 10px; margin: 15px 0; flex-wrap: wrap;">
-  <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white" alt="React 19" />
-  <img src="https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white" alt="Vite 7" />
-  <img src="https://img.shields.io/badge/Tailwind-4-38BDF8?logo=tailwindcss&logoColor=white" alt="Tailwind 4" />
-  <img src="https://img.shields.io/badge/Highcharts-12-2E5EAA" alt="Highcharts 12" />
-</div>
-
-**Core Technologies**:
-- **⚡ React 19**: Latest features with concurrent rendering and suspense
-- **🚀 Vite**: Lightning-fast build tool with hot module replacement
-- **🎨 Tailwind v4**: Utility-first CSS with advanced design system
-- **📊 Highcharts**: Professional-grade data visualization
-- **🔧 TypeScript**: Type-safe development experience
-
-### 🏗️ Project Structure
-```
-frontend/
-├─ src/
-│  ├─ components/           # Reusable UI components
-│  │  ├─ TopNav.jsx        # Role-aware navigation
-│  │  ├─ AnimatedBackground.jsx  # Dynamic backgrounds
-│  │  └─ RouteGuard.jsx    # Authentication protection
-│  ├─ layouts/
-│  │  └─ AppLayout.jsx     # Global shell & sidebar
-│  ├─ pages/               # Feature-based page components
-│  │  ├─ dashboard/        # Admin dashboard with widgets
-│  │  ├─ discovery/        # Project search & filtering
-│  │  ├─ alignment/        # AI matching & comparison
-│  │  ├─ monitoring/       # Impact tracking & alerts
-│  │  └─ reporting/        # Compliance & ESG reports
-│  ├─ lib/                 # Utility libraries
-│  │  ├─ api.js           # HTTP client with interceptors
-│  │  ├─ auth.js          # JWT authentication helpers
-│  │  └─ ui.js            # UI utility functions
-│  └─ hooks/              # Custom React hooks
-└─ vite.config.js         # Build configuration
-```
-
-### 🎯 Key Features
-
-#### 🎨 **Design System**
-- **Color Palette**: Sustainable green theme with accessibility compliance
-- **Typography**: Modern font stack with proper hierarchy
-- **Spacing**: Consistent 8px grid system
-- **Animations**: Subtle micro-interactions and transitions
-- **Responsive**: Mobile-first design approach
-
-#### 📊 **Data Visualization**
-- **Real-time Charts**: Live updating dashboards
-- **Interactive Elements**: Hover states and drill-down capabilities
-- **Export Options**: PDF, Excel, and image exports
-- **Custom Themes**: Dark/light mode support
-
-#### 🔐 **Authentication & Security**
-- **JWT Tokens**: Secure API communication
-- **Role-based Access**: Corporate, NGO, and Admin views
-- **Route Protection**: Automatic redirects for unauthorized access
-- **Session Management**: Persistent login states
-
-### 🚀 Development Commands
-```bash
-# Development
-npm run dev          # Start development server (http://localhost:5173)
-npm run build        # Production build → dist/
-npm run preview      # Preview production build
-npm run lint         # ESLint code quality check
-npm run test         # Run test suite
-
-# Package Management
-npm install          # Install dependencies
-npm update           # Update packages
-npm audit            # Security audit
-```
-
-### 📱 Admin Dashboard Components
-
-<div style="background: linear-gradient(135deg,rgb(58, 159, 227) 0%,rgba(7, 250, 165, 0.9) 100%); padding: 20px; border-radius: 12px; margin: 20px 0; border: 1px solid #e2e8f0; color:black";>
-
-#### 🎯 **KPI Dashboard**
-- **Budget Overview**: Allocation vs utilization with visual indicators
-- **Project Metrics**: Active projects, completion rates, impact scores
-- **Compliance Status**: Real-time compliance tracking with alerts
-- **ESG Performance**: Environmental, Social, Governance metrics
-
-#### 📈 **Analytics Widgets**
-- **Budget Trends**: 12-month spending patterns and forecasts
-- **Impact Heatmap**: Geographic distribution of CSR activities
-- **SDG Alignment**: Sustainable Development Goals progress tracking
-- **Risk Assessment**: AI-powered risk scoring and recommendations
-
-#### 🤖 **AI Insights Panel**
-- **Smart Recommendations**: Top 3 project suggestions with rationale
-- **Predictive Analytics**: Future spending and impact forecasts
-- **Anomaly Detection**: Unusual patterns and compliance alerts
-- **Optimization Tips**: AI-generated improvement suggestions
-
-</div>
-
----
-
-## 🔧 Backend Architecture & API
-
-### 🏗️ Technology Stack
-<div style="display: flex; gap: 10px; margin: 15px 0; flex-wrap: wrap;">
-  <img src="https://img.shields.io/badge/Flask-3-000000?logo=flask&logoColor=white" alt="Flask 3" />
-  <img src="https://img.shields.io/badge/SQLAlchemy-2.0-000000?logo=sqlalchemy&logoColor=white" alt="SQLAlchemy 2.0" />
-  <img src="https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white" alt="Python 3.11" />
-  <img src="https://img.shields.io/badge/JWT-000000?logo=jsonwebtokens&logoColor=white" alt="JWT" />
-</div>
-
-**Core Framework**:
-- **🐍 Flask 3**: Modern Python web framework with async support
-- **🗄️ SQLAlchemy 2.0**: Advanced ORM with type safety
-- **🔐 JWT**: Secure authentication and authorization
-- **🌐 CORS**: Cross-origin resource sharing for frontend integration
-- **📊 SQLite/PostgreSQL**: Flexible database options
-
-### 🏛️ Architecture Overview
-
-<div style="background: linear-gradient(135deg,rgb(58, 159, 227) 0%,rgba(7, 250, 165, 0.9) 100%); padding: 20px; border-radius: 12px; margin: 20px 0; border: 1px solid #e2e8f0; color:black";>
-
-#### 🔐 **Authentication Layer**
-- **JWT Token Management**: Secure token generation and validation
-- **Role-based Access Control**: Admin, Corporate, and NGO permissions
-- **Session Management**: Persistent user sessions with refresh tokens
-- **Security Headers**: CSRF protection and secure cookie handling
-
-#### 🗄️ **Data Layer**
-- **SQLAlchemy ORM**: Type-safe database operations
-- **Migration System**: Automated schema versioning and updates
-- **Connection Pooling**: Optimized database performance
-- **Audit Trail**: Complete change tracking and logging
-
-#### 🤖 **AI Integration**
-- **OpenRouter API**: Multi-model AI service integration
-- **IBM WatsonX Orchestrate**: Advanced AI agent ecosystem
-- **Matching Engine**: Intelligent project-company alignment
-- **Risk Assessment**: AI-powered credibility scoring
-- **Recommendation System**: Personalized project suggestions
-
-#### 🧠 **IBM WatsonX Orchestrate AI Agents**
-- **CSR Matching Agent**: Analyzes company profiles and project data for optimal alignment
-- **Project Evaluation Agent**: Assesses project feasibility, risks, and impact potential
-- **Decision Support Agent**: Provides AI-powered recommendations with detailed rationale
-- **Impact Assessment Agent**: Tracks and measures real-time project impact metrics
-
-</div>
-
-### 📊 Data Model Architecture
-
-#### 👥 **User Management**
-```python
-User (id, email, role, company_id)
-├─ UserRole (permissions, access_level)
-└─ Company (details, branches, contacts)
-```
-
-#### 🏢 **Corporate Profile**
-```python
-Company (id, name, industry, budget)
-├─ CompanyBranch (location, contact_info)
-├─ CSRContact (personnel, roles)
-├─ Budget (allocation, utilization)
-├─ FocusArea (SDG_goals, priorities)
-└─ NGOPreference (partnership_history)
-```
-
-#### 📋 **Project Management**
-```python
-Project (id, title, description, ngo_id)
-├─ ProjectMilestone (timeline, deliverables)
-├─ ProjectApplication (status, funding)
-├─ ProjectImpactReport (metrics, outcomes)
-└─ ApprovalRequest (workflow, decisions)
-```
-
-#### 🤖 **AI & Analytics**
-```python
-AIMatch (company_id, project_id, score)
-├─ DecisionRationale (ai_reasoning, factors)
-├─ ImpactMetricSnapshot (real_time_data)
-└─ RiskAssessment (credibility, compliance)
-```
-
-### 🔌 API Endpoints
-
-<div style="background: linear-gradient(135deg,rgb(58, 159, 227) 0%,rgba(7, 250, 165, 0.9) 100%); padding: 20px; border-radius: 12px; margin: 20px 0; border: 1px solid #e2e8f0; color:black";>
-
-#### 🔐 **Authentication**
-```http
-POST /api/auth/login          # User authentication
-POST /api/auth/signup         # User registration
-POST /api/auth/refresh        # Token refresh
-GET  /api/auth/profile        # User profile data
-```
-
-#### 📋 **Project Management**
-```http
-GET    /api/projects          # List/filter projects (public)
-POST   /api/projects          # Create new project
-PUT    /api/projects/:id      # Update project
-DELETE /api/projects/:id      # Delete project
-GET    /api/projects/:id      # Get project details
-```
-
-#### 🤖 **AI Matching**
-```http
-GET  /api/ai-matching/available-projects    # AI-filtered projects
-POST /api/ai-matching/generate-rationale    # AI recommendations
-GET  /api/ai-matching/rationales/:company   # Company rationales
-PUT  /api/ai-matching/rationales/:id        # Update rationale
-```
-
-#### 📊 **Monitoring & Reporting**
-```http
-GET /api/impact/metrics       # Real-time impact data
-GET /api/reports/generate     # Compliance report generation
-GET /api/audit-trail          # Complete audit history
-POST /api/alerts/configure    # Alert configuration
-```
-
-</div>
-
-### ⚙️ Configuration & Environment
-
-#### 🔧 **Environment Variables**
-```bash
-# Security
-SECRET_KEY=your-secret-key-here
-JWT_SECRET_KEY=your-jwt-secret
-
-# Database
-DATABASE_URL=sqlite:///sustainalign.db
-# or DATABASE_URL=postgresql://user:pass@localhost/db
-
-# CORS
-CORS_ORIGIN=http://localhost:5173
-
-# AI Services
-OPENROUTER_API_KEY=your-openrouter-key
-
-# IBM WatsonX Orchestrate (Optional)
-WO_DEVELOPER_EDITION_SOURCE=orchestrate
-WO_API_KEY=your-watson-orchestrate-api-key
-WO_INSTANCE=https://api.ap-south-1.dl.watson-orchestrate.ibm.com/instances/your-instance-id
-
-# Server
-PORT=5000
-FLASK_ENV=development
-```
-
-#### 🚀 **Deployment Options**
-- **Development**: SQLite with hot reload
-- **Production**: PostgreSQL with WSGI server
-- **Docker**: Containerized deployment ready
-- **Cloud**: AWS, GCP, or Azure compatible
-
----
-
-## 📋 Example Walkthrough: Infosys CSR Management
-
-![CSR Project Lifecycle](docs/images/lifecycle.png)
-
-### 1. Profile Setup
-- **Budget**: ₹50 Cr
-- **Focus Areas**: Education (SDG 4), Climate (SDG 13)
-- **Past Reports**: Upload previous CSR activities
-
-### 2. Project Discovery (Agent 1)
-AI fetches projects from NGOs:
-- **GreenFuture NGO**: "Plant 1M trees in rural Karnataka"
-- **EduBridge NGO**: "Digital literacy in rural schools"
-
-### 3. Alignment & Evaluation (Agent 2 & 3)
-AI scoring results:
-- **GreenFuture Trees**: 92% aligned (SDG 13, climate focus)
-- **EduBridge Education**: 87% aligned (SDG 4, education focus)
-
-### 4. Decision Support (Agent 4)
-Infosys Board sees AI's top 3 projects with "Why" explanations and approves 2 projects.
-
-### 5. Monitoring & Tracking (Agent 5)
-Real-time updates:
-- **300K trees planted** (progress tracking)
-- **5,000 students educated**
-- **₹20 Cr utilized**
-- **Alerts**: "Tree project delayed by 1 month due to rains"
-
-### 6. Reporting (Agent 6)
-End of year → Auto-generated CSR compliance report for government submission with full audit trail.
-
----
-
-## 🧪 Smoke Test
-```bash
-# Frontend
-cd frontend && npm run dev
-# Backend
-cd backend && python app.py
-# In browser
-http://localhost:5173
-http://localhost:5000/api/health
-```
-
----
-
-## 📦 Deploy Notes
-- Frontend: `npm run build` → serve `frontend/dist/` (enable SPA fallback)
-- Backend: run behind a WSGI server; set `CORS_ORIGIN` to deployed frontend URL
+**Manual:**
+- Frontend: `npm run build` → serve `frontend/dist/` behind a static host with SPA fallback.
+- Backend: `npm start` behind a reverse proxy; set `CORS_ORIGIN` and `APP_URL` to the deployed frontend URL; run `npm run db:migrate` as a deploy step.
 
 ---
 
@@ -1151,7 +411,7 @@ http://localhost:5000/api/health
 <div style="background: linear-gradient(135deg,rgb(58, 159, 227) 0%,rgba(7, 250, 165, 0.9) 100%); padding: 20px; border-radius: 12px; margin: 20px 0; border: 1px solid #e2e8f0; color:black";>
 
 ##### 📊 **Data Visualization**
-- **Charts**: Highcharts with custom themes
+- **Charts**: Recharts with custom themes
 - **Icons**: Lucide React icon library
 - **Loading States**: Skeleton screens and spinners
 - **Empty States**: Helpful illustrations and CTAs

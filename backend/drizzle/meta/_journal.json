@@ -1,0 +1,118 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1779292505041,
+      "tag": "0000_tranquil_azazel",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1779400000000,
+      "tag": "0001_step0_foundation",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1779500000000,
+      "tag": "0002_activity_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1779600000000,
+      "tag": "0003_search",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1779700000000,
+      "tag": "0004_tags",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1779800000000,
+      "tag": "0005_workflows",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1779900000000,
+      "tag": "0006_ngo_profiles",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1780000000000,
+      "tag": "0008_corporate_discovery_actions",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1780100000000,
+      "tag": "0009_csr_projects",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1780200000000,
+      "tag": "0010_project_impact",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1780300000000,
+      "tag": "0011_reports",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1780400000000,
+      "tag": "0012_compliance",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1780500000000,
+      "tag": "0013_ngo_crm",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1780600000000,
+      "tag": "0014_audit_transparency",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1780700000000,
+      "tag": "0015_volunteer_events",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "6",
+      "when": 1780800000000,
+      "tag": "0016_rag_vectors",
+      "breakpoints": true
+    }
+  ]
+}

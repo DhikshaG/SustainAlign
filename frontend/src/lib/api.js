@@ -1,28 +1,9 @@
-/**
- * Canonical authenticated fetch client.
- *
- * Features:
- *   - Auto-attaches Authorization: Bearer <access_token> when present.
- *   - On 401 it calls refreshAccessToken() once and retries the request.
- *     If refresh fails or the retry still 401s, the user is logged out
- *     locally and the caller receives an error.
- *   - Resolves relative paths against VITE_API_BASE_URL when set; otherwise
- *     leaves them as-is so Vite's dev proxy forwards them.
- *
- * Other lib/*Api.js modules should migrate to this client over time. While
- * they migrate, they can keep their own fetch calls; just ensure those send
- * the Authorization header (use getToken() from lib/auth.js).
- */
+import { getAccessToken, refreshAccessToken, clearTokens } from './auth'
 
-import {
-  buildAuthUrl,
-  clearToken,
-  getToken,
-  refreshAccessToken,
-} from './auth.js'
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
 
-class ApiError extends Error {
-  constructor(message, { status, data } = {}) {
+export class ApiError extends Error {
+  constructor(message, status, data) {
     super(message)
     this.name = 'ApiError'
     this.status = status
@@ -30,89 +11,74 @@ class ApiError extends Error {
   }
 }
 
-function withAuthHeader(init = {}) {
-  const token = getToken()
-  const headers = new Headers(init.headers || {})
-  if (token && !headers.has('Authorization')) {
-    headers.set('Authorization', `Bearer ${token}`)
-  }
-  if (init.body && !headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json')
-  }
-  return { ...init, headers }
-}
-
-async function readError(res) {
+async function parseResponse(res) {
+  const text = await res.text()
+  let data
   try {
-    return await res.json()
+    data = text ? JSON.parse(text) : null
   } catch {
-    return null
+    data = { message: text }
   }
-}
-
-/**
- * Low-level authenticated fetch. Handles token refresh on 401.
- *
- * @param {string} path  - URL or path (resolved via buildAuthUrl)
- * @param {RequestInit} init
- * @returns {Promise<Response>}
- */
-export async function authedFetch(path, init = {}) {
-  const url = path.startsWith('http') ? path : buildAuthUrl(path)
-
-  let res = await fetch(url, withAuthHeader(init))
-  if (res.status !== 401) return res
-
-  const newAccess = await refreshAccessToken()
-  if (!newAccess) {
-    clearToken()
-    return res
-  }
-
-  res = await fetch(url, withAuthHeader(init))
-  if (res.status === 401) {
-    clearToken()
-  }
-  return res
-}
-
-async function request(method, path, body) {
-  const init = { method }
-  if (body !== undefined) {
-    init.body = JSON.stringify(body)
-  }
-  const res = await authedFetch(path, init)
   if (!res.ok) {
-    const data = await readError(res)
-    const message = (data && (data.error || data.message)) || `Request failed (${res.status})`
-    throw new ApiError(message, { status: res.status, data })
+    throw new ApiError(
+      data?.message || data?.error || `Request failed (${res.status})`,
+      res.status,
+      data,
+    )
   }
-  if (res.status === 204) return null
-  try {
-    return await res.json()
-  } catch {
-    return null
+  return data
+}
+
+export async function apiFetch(path, options = {}, retried = false) {
+  const url = path.startsWith('http') ? path : `${BASE_URL}${path}`
+  const headers = { ...options.headers }
+  const token = getAccessToken()
+  if (token) headers.Authorization = `Bearer ${token}`
+
+  if (options.body && !(options.body instanceof FormData)) {
+    headers['Content-Type'] = headers['Content-Type'] || 'application/json'
+    options.body = JSON.stringify(options.body)
   }
+
+  const res = await fetch(url, { ...options, headers })
+
+  if (res.status === 401 && !retried && getAccessToken()) {
+    try {
+      await refreshAccessToken()
+      return apiFetch(path, options, true)
+    } catch {
+      clearTokens()
+      if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+        window.location.href = '/login/corporate'
+      }
+      throw new ApiError('Session expired', 401, null)
+    }
+  }
+
+  return parseResponse(res)
 }
 
-export function apiGet(path) {
-  return request('GET', path)
+export async function apiDownload(path) {
+  const url = path.startsWith('http') ? path : `${BASE_URL}${path}`
+  const headers = {}
+  const token = getAccessToken()
+  if (token) headers.Authorization = `Bearer ${token}`
+  const res = await fetch(url, { headers })
+  if (res.status === 401 && getAccessToken()) {
+    await refreshAccessToken()
+    return apiDownload(path)
+  }
+  if (!res.ok) {
+    throw new ApiError(`Download failed (${res.status})`, res.status, null)
+  }
+  return res.blob()
 }
 
-export function apiPost(path, body) {
-  return request('POST', path, body)
+export const api = {
+  get: (path) => apiFetch(path),
+  post: (path, body) => apiFetch(path, { method: 'POST', body }),
+  put: (path, body) => apiFetch(path, { method: 'PUT', body }),
+  patch: (path, body) => apiFetch(path, { method: 'PATCH', body }),
+  delete: (path) => apiFetch(path, { method: 'DELETE' }),
+  download: apiDownload,
 }
-
-export function apiPut(path, body) {
-  return request('PUT', path, body)
-}
-
-export function apiPatch(path, body) {
-  return request('PATCH', path, body)
-}
-
-export function apiDelete(path) {
-  return request('DELETE', path)
-}
-
-export { ApiError }

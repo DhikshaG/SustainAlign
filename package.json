@@ -1,0 +1,21 @@
+{
+  "name": "sustainalign",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-powered CSR (Section 135) management platform connecting corporates, NGOs, and platform admins.",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "echo \"Run 'npm run dev --workspace backend' and 'npm run dev --workspace frontend' in separate terminals.\"",
+    "dev:backend": "npm run dev --workspace backend",
+    "dev:frontend": "npm run dev --workspace frontend",
+    "build": "npm run build --workspace frontend",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

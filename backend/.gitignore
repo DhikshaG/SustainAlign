@@ -1,42 +1,5 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
-
-# Virtual environments
-.venv/
-venv/
-ENV/
-
-# Environment files
+node_modules/
 .env
-.env.*
-
-# Databases / instance data
-*.db
-*.sqlite
-*.sqlite3
-instance/
-
-# Flask / logs
-*.pid
+data/
+uploads/
 *.log
-
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
-
-# Packaging / build
-build/
-dist/
-*.egg-info/
-
-# Editors/OS
-.vscode/
-.idea/
-.DS_Store
-Thumbs.db
-
-# Local cache
-.cache/
