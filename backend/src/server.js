@@ -10,7 +10,7 @@ import apiRoutes from './routes/index.js'
 export function createApp() {
   const app = express()
 
-  app.set('trust proxy', 1)
+  app.set('trust proxy', env.TRUST_PROXY)
   app.use(helmet())
   app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }))
   app.use(express.json({ limit: '1mb' }))

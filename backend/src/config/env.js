@@ -24,6 +24,7 @@ const envSchema = z.object({
   OLLAMA_EMBED_MODEL: z.string().default('nomic-embed-text'),
   AI_ENABLED: z.union([z.boolean(), z.string()]).default(true),
   COMPLIANCE_SYNC_INTERVAL_MINUTES: z.coerce.number().default(60),
+  TRUST_PROXY: z.coerce.number().default(1),
 })
 
 const parsed = envSchema.parse(process.env)
