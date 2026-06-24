@@ -10,10 +10,10 @@
 [![Status](https://img.shields.io/badge/Status-Active-2ea44f)](#)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)](#)
-[![Vite](https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white)](#)
+[![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)](#)
 [![Tailwind](https://img.shields.io/badge/Tailwind-4-38BDF8?logo=tailwindcss&logoColor=white)](#)
-[![Highcharts](https://img.shields.io/badge/Highcharts-12-2E5EAA)](#)
-[![Flask](https://img.shields.io/badge/Flask-3-000000?logo=flask&logoColor=white)](#)
+[![Recharts](https://img.shields.io/badge/Recharts-3-FF6B6B?logo=react&logoColor=white)](#)
+[![Express](https://img.shields.io/badge/Express-5-000000?logo=express&logoColor=white)](#)
 
 </div>
 
@@ -163,10 +163,10 @@ SustainAlign is an AI-powered CSR-focused platform designed to connect NGO proje
 
 ## ✨ Platform Highlights
 - 🎨 **Elegant UI**: React 19 + Tailwind v4 with soft gradients, rounded cards, and subtle motion
-- 📈 **Insightful Charts**: Highcharts dashboards (allocation, trends, ESG, SDG); transparent cards for dark-on-light clarity
+- 📈 **Insightful Charts**: Recharts dashboards (allocation, trends, ESG, SDG); transparent cards for dark-on-light clarity
 - 🧭 **App Shell**: Role-aware TopNav and modular routes (Discovery, Alignment, Decision, Monitoring, Reporting)
 - 🔐 **Auth-ready**: Login / Signup / Forgot / Profile Setup + JWT parsing helper
-- ⚙️ **API-first backend**: Flask 3, SQLAlchemy, CORS; clean blueprints per domain
+- ⚙️ **API-first backend**: Express 5, Drizzle ORM, Zod validation; clean routes per domain
 - 🧩 **Extensible**: Componentized pages (cards, tables, charts) + sensible aliases (`@pages`, `@components`)
 
 ---
@@ -174,14 +174,10 @@ SustainAlign is an AI-powered CSR-focused platform designed to connect NGO proje
 ## 🔗 Quick Links
 - Frontend guide: `frontend/README.md`
 - Backend guide: `backend/README.md`
-- IBM WatsonX Integration: `backend/ibm_watson/README.md`
-- IBM WatsonX Commands: `backend/ibm_watson/WATSONX_COMMANDS.md`
 - Docker Setup: `DOCKER_README.md`
 - Prototypes: `html/` (e.g. `html/dashboard.html`)
 
 ## 🛠️ Engineering & Setup
-
-> ℹ️ The current implementation is a **Node.js + Express** backend with a **React + Vite** frontend (Drizzle ORM → SQLite, Zod validation, JWT auth, Recharts). Earlier references to Flask / IBM WatsonX / Highcharts describe a previous prototype and are no longer accurate.
 
 ### Repository layout
 
@@ -396,7 +392,7 @@ This codebase is being hardened in phases. Current status:
 <div style="background: linear-gradient(135deg,rgb(58, 159, 227) 0%,rgba(7, 250, 165, 0.9) 100%); padding: 20px; border-radius: 12px; margin: 20px 0; border: 1px solid #e2e8f0; color:black";>
 
 ##### 📊 **Data Visualization**
-- **Charts**: Highcharts with custom themes
+- **Charts**: Recharts with custom themes
 - **Icons**: Lucide React icon library
 - **Loading States**: Skeleton screens and spinners
 - **Empty States**: Helpful illustrations and CTAs
