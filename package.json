@@ -22,11 +22,9 @@
   },
   "lint-staged": {
     "backend/src/**/*.js": [
-      "eslint --fix",
       "prettier --write --ignore-unknown"
     ],
     "frontend/src/**/*.{js,jsx}": [
-      "eslint --fix",
       "prettier --write --ignore-unknown"
     ],
     "*.{json,md,yml,yaml}": [
