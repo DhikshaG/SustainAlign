@@ -13,6 +13,7 @@ import { seedReports } from '../services/reports/seed.js'
 import { seedComplianceProfile } from '../services/compliance/index.js'
 import { seedNgos } from '../services/ngo/seed.js'
 import { seedE2e } from '../services/seed/e2e.js'
+import { env } from '../config/env.js'
 
 const SEED_PASSWORD = 'Demo@12345'
 
@@ -98,6 +99,9 @@ const NOTIFICATION_SEEDS = [
 ]
 
 export async function runSeed({ fresh = false } = {}) {
+  if (env.NODE_ENV === 'production') {
+    throw new Error('Cannot run seed script in production')
+  }
   const passwordHash = await hashPassword(SEED_PASSWORD)
   const now = new Date()
   const tenantByEmail = {}
