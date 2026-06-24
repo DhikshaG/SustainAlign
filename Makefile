@@ -1,4 +1,4 @@
-.PHONY: dev dev-backend dev-frontend build lint test docker-up docker-down db-reset db-migrate
+.PHONY: dev dev-backend dev-frontend build lint test test-coverage docker-up docker-up-prod docker-down db-reset db-migrate db-studio deploy ci
 
 dev:
 	@echo "Run 'make dev-backend' and 'make dev-frontend' in separate terminals."
@@ -18,8 +18,16 @@ lint:
 test:
 	npm run test
 
+test-coverage:
+	npm run test:coverage
+
+ci: lint build test
+
 docker-up:
 	docker compose up --build -d
+
+docker-up-prod:
+	docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
 
 docker-down:
 	docker compose down
@@ -32,3 +40,6 @@ db-migrate:
 
 db-studio:
 	cd backend && npm run db:studio
+
+deploy:
+	bash scripts/deploy.sh
