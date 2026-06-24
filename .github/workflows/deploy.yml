@@ -17,15 +17,24 @@ on:
         type: boolean
         default: false
 
+permissions:
+  contents: read
+
 concurrency:
-  group: ${{ github.workflow }}-${{ inputs.environment || 'production' }}
+  group: ${{ github.workflow }}-${{
+    (github.event_name == 'workflow_dispatch' && inputs.environment) ||
+    'production' }}
   cancel-in-progress: true
 
 jobs:
   deploy:
-    name: Deploy to ${{ inputs.environment || 'production' }}
+    name: Deploy to ${{
+      (github.event_name == 'workflow_dispatch' && inputs.environment) ||
+      'production' }}
     runs-on: ubuntu-latest
-    environment: ${{ inputs.environment || 'production' }}
+    environment: ${{
+      (github.event_name == 'workflow_dispatch' && inputs.environment) ||
+      'production' }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -34,10 +43,10 @@ jobs:
         id: check-secrets
         run: |
           if [ -z "${{ secrets.DEPLOY_HOST }}" ]; then
-            echo "secrets_configured=false" >> $GITHUB_OUTPUT
+            echo "secrets_configured=false" >> "$GITHUB_OUTPUT"
             echo "⚠️  Deploy secrets not configured — skipping deployment"
           else
-            echo "secrets_configured=true" >> $GITHUB_OUTPUT
+            echo "secrets_configured=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Install SSH key
@@ -54,12 +63,12 @@ jobs:
           if [ "${{ inputs.skip_migrations }}" = "true" ]; then
             MIGRATE_FLAG="--skip-migrate"
           fi
-
           ssh -o StrictHostKeyChecking=no \
             ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
-            "bash -s" < scripts/deploy.sh \
-            $MIGRATE_FLAG \
-            --remote
+            "bash -s" \
+            -- \
+            "$MIGRATE_FLAG" \
+            --remote "${{ secrets.DEPLOY_PATH }}"
 
       - name: Health check
         if: steps.check-secrets.outputs.secrets_configured == 'true'
@@ -79,6 +88,8 @@ jobs:
   notify-failure:
     name: Notify on deploy failure
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
     needs: [deploy]
     if: failure() && github.ref == 'refs/heads/main'
     steps:
@@ -87,12 +98,13 @@ jobs:
         with:
           script: |
             const runUrl = `${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
+            const env = `${{ (github.event_name == 'workflow_dispatch' && inputs.environment) || 'production' }}`;
             const message = `## 🚨 CD Deployment Failed
 
             **Branch:** \`${{ github.ref_name }}\`
             **Commit:** ${{ github.sha }}
             **Author:** ${{ github.triggering_actor }}
-            **Environment:** ${{ inputs.environment || 'production' }}
+            **Environment:** ${env}
             **Run:** [View logs](${runUrl})`;
             await github.rest.issues.create({
               owner: context.repo.owner,
