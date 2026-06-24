@@ -3,6 +3,7 @@ import cors from 'cors'
 import helmet from 'helmet'
 import { env } from './config/env.js'
 import { requestLogger } from './middleware/request-logger.js'
+import { requestId } from './middleware/request-id.js'
 import { errorHandler, notFound } from './middleware/error-handler.js'
 import { apiRateLimit } from './middleware/rate-limit-auth.js'
 import apiRoutes from './routes/index.js'
@@ -15,6 +16,7 @@ export function createApp() {
   app.use(helmet())
   app.use(cors({ origin: env.CORS_ORIGIN, credentials: true, maxAge: 86400 }))
   app.use(express.json({ limit: '1mb' }))
+  app.use(requestId())
   app.use(requestLogger())
 
   app.get('/api/health', (_req, res) => {
