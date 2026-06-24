@@ -12,7 +12,7 @@ export function createApp() {
 
   app.set('trust proxy', env.TRUST_PROXY)
   app.use(helmet())
-  app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }))
+  app.use(cors({ origin: env.CORS_ORIGIN, credentials: true, maxAge: 86400 }))
   app.use(express.json({ limit: '1mb' }))
   app.use(requestLogger())
 
