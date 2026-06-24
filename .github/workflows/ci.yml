@@ -2,9 +2,10 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
   pull_request:
-    branches: [main]
+    branches: [main, master]
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -12,6 +13,7 @@ concurrency:
 
 env:
   NODE_VERSION: 22
+  NODE_ENV: test
 
 jobs:
   lint:
@@ -23,39 +25,87 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-      - run: npm ci
-      - run: npm run lint --workspaces --if-present
-        env:
-          NODE_ENV: test
+      - name: Install dependencies
+        run: npm ci
+      - name: Lint frontend
+        run: npm run lint --workspace frontend
 
   build:
     name: Build
     runs-on: ubuntu-latest
+    needs: [lint]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-      - run: npm ci
-      - run: npm run build --workspace frontend
+      - name: Install dependencies
+        run: npm ci
+      - name: Build frontend
+        run: npm run build --workspace frontend
         env:
-          NODE_ENV: test
           VITE_API_BASE_URL: /api
 
-  test:
-    name: Test
+  test-backend:
+    name: Test (backend)
     runs-on: ubuntu-latest
+    needs: [lint]
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-      - run: npm ci
-      - run: npm test --workspaces --if-present
+      - name: Install dependencies
+        run: npm ci
+      - name: Run backend tests
+        run: npm test --workspace backend
         env:
-          NODE_ENV: test
           DATABASE_PATH: ./data/test.db
           JWT_SECRET: test-secret-that-is-at-least-32-characters-long
           JWT_REFRESH_SECRET: test-refresh-secret-at-least-32-characters
+
+  test-frontend:
+    name: Test (frontend)
+    runs-on: ubuntu-latest
+    needs: [lint]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Run frontend tests
+        run: npm test --workspace frontend
+
+  notify-failure:
+    name: Notify on failure
+    runs-on: ubuntu-latest
+    needs: [lint, build, test-backend, test-frontend]
+    if: failure() && github.ref == 'refs/heads/main'
+    steps:
+      - name: Create failure issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const runUrl = `${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
+            const message = `## 🚨 CI Pipeline Failed
+
+            **Branch:** \`${{ github.ref_name }}\`
+            **Commit:** ${{ github.sha }}
+            **Author:** ${{ github.triggering_actor }}
+            **Run:** [View logs](${runUrl})
+
+            Triggered by: ${{ github.event_name }}`;
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `[CI] Pipeline failure on ${context.refName}`,
+              body: message,
+              labels: ['ci-failure'],
+            });
