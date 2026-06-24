@@ -16,10 +16,16 @@ export default defineConfig({
     sourcemap: false,
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          charts: ['recharts'],
-          forms: ['react-hook-form', '@hookform/resolvers', 'zod'],
+        manualChunks(id) {
+          if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/') || id.includes('node_modules/react-router')) {
+            return 'vendor'
+          }
+          if (id.includes('node_modules/recharts')) {
+            return 'charts'
+          }
+          if (id.includes('node_modules/react-hook-form') || id.includes('node_modules/@hookform') || id.includes('node_modules/zod')) {
+            return 'forms'
+          }
         },
       },
     },
