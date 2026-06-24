@@ -30,7 +30,7 @@ const parsed = envSchema.parse(process.env)
 
 function validateProduction(env) {
   if (env.NODE_ENV !== 'production') return
-  const required = ['JWT_SECRET', 'JWT_REFRESH_SECRET', 'DATABASE_PATH']
+  const required = ['JWT_SECRET', 'JWT_REFRESH_SECRET', 'DATABASE_PATH', 'APP_URL']
   for (const key of required) {
     if (!process.env[key]) {
       throw new Error(`Missing required production env: ${key}`)
