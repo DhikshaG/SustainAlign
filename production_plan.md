@@ -108,5 +108,41 @@
 
 ---
 
-Status: **Phase 1 in progress**
+Status: **Phase 1 complete** ✅
 Last updated: 2026-06-24
+
+---
+
+## Phase 1 commit log
+
+```
+ 1. 8463356 docs: add production readiness plan
+ 2. 7a6b0bf chore: scaffold .github directory with workflows directory
+ 3. ec71748 build: add vitest configuration for backend tests
+ 4. 7899d3e test: add backend smoke test
+ 5. 2956a9a build: add test npm scripts and deps for backend
+ 6. 0c90728 build: add vitest configuration for frontend tests
+ 7. ee21278 test: add jest-dom matchers for frontend test setup
+ 8. c09ed6c test: add frontend smoke test (fixed in 41826ad)
+ 9. 22e9f0d build: add test npm scripts and deps for frontend
+10. df2b9c3 chore: add husky, lint-staged, commitlint, prettier to root
+11. 4cd961f chore: add commitlint config
+12. 5b5f38f chore: add husky pre-commit hook
+13. 4b78778 chore: add husky commit-msg hook
+14. d39a473 ci: add github actions cd workflow for vm deploy
+15. d9cc00f chore: add production deploy script
+16. 81bc19e ci: add production docker-compose override
+17. 06091aa chore: update Makefile with ci/cd targets
+18. 7d045cd chore: add prettier config
+19. 05d9b67 chore: update gitignore for coverage and test db
+20. f6832e2 docs: add ci/cd badges and deploy guide to readme
+    ── fixes after initial push ──
+21. 41826ad test: fix frontend smoke test to use sync imports
+22. 0f26024 chore: fix lint-staged config for workspace eslint
+23. f854cd6 chore: add .husky/_ to gitignore
+24. 91deefa ci: fix ci workflow — split lint, add notify
+25. 4177742 ci: fix cd workflow — env protection, secret validation
+26. f2ffe6f chore: fix deploy script — argparse, --remote flag
+27. ee3d81b ci: add permissions, workflow_dispatch, notify workflow
+28. c9fccb5 chore: sync package-lock.json after dep updates
+```
