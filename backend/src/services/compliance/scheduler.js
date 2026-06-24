@@ -26,3 +26,7 @@ export function startComplianceScheduler(intervalMinutes = 60) {
     console.log(`[compliance-sync] synced ${result.synced}/${result.total} tenants`)
   }, ms)
 }
+
+export function stopComplianceScheduler(handle) {
+  if (handle) clearInterval(handle)
+}
