@@ -1,0 +1,15 @@
+---
+all:
+  children:
+    production:
+      hosts:
+        sustainalign-prod:
+          ansible_host: PRODUCTION_SERVER_IP
+          ansible_user: deploy
+          ansible_ssh_private_key_file: ~/.ssh/sustainalign-prod
+    staging:
+      hosts:
+        sustainalign-staging:
+          ansible_host: STAGING_SERVER_IP
+          ansible_user: deploy
+          ansible_ssh_private_key_file: ~/.ssh/sustainalign-staging

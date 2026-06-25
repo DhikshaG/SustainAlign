@@ -1,0 +1,14 @@
+---
+- name: Provision SustainAlign server
+  hosts: all
+  become: yes
+  vars:
+    deploy_user: deploy
+    app_directory: /opt/sustainalign
+    node_version: '22.x'
+    docker_compose_version: '2.32.4'
+
+  roles:
+    - common
+    - security
+    - deploy
