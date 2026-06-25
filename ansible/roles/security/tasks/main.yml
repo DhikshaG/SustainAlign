@@ -1,0 +1,66 @@
+---
+- name: Configure UFW defaults
+  ufw:
+    direction: '{{ item.dir }}'
+    policy: '{{ item.policy }}'
+  loop:
+    - { dir: incoming, policy: deny }
+    - { dir: outgoing, policy: allow }
+
+- name: Allow UFW ports
+  ufw:
+    rule: allow
+    port: '{{ item }}'
+    proto: tcp
+  loop:
+    - '22'
+    - '80'
+    - '443'
+
+- name: Enable UFW
+  ufw:
+    state: enabled
+
+- name: Configure fail2ban local config
+  copy:
+    dest: /etc/fail2ban/jail.local
+    content: |
+      [DEFAULT]
+      bantime = 3600
+      findtime = 600
+      maxretry = 5
+
+      [sshd]
+      enabled = true
+      port = 22
+
+      [nginx-http-auth]
+      enabled = true
+      port = http,https
+    mode: '0644'
+  notify: restart fail2ban
+
+- name: Harden SSH config
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '{{ item.regexp }}'
+    line: '{{ item.line }}'
+    state: present
+  loop:
+    - { regexp: '^PasswordAuthentication', line: 'PasswordAuthentication no' }
+    - { regexp: '^PermitRootLogin', line: 'PermitRootLogin no' }
+    - { regexp: '^PubkeyAuthentication', line: 'PubkeyAuthentication yes' }
+    - { regexp: '^MaxAuthTries', line: 'MaxAuthTries 3' }
+    - { regexp: '^ClientAliveInterval', line: 'ClientAliveInterval 300' }
+    - { regexp: '^ClientAliveCountMax', line: 'ClientAliveCountMax 0' }
+  notify: restart sshd
+
+- name: Enable automatic security updates
+  copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Download-Upgradeable-Packages "1";
+      APT::Periodic::AutocleanInterval "7";
+      APT::Periodic::Unattended-Upgrade "1";
+    mode: '0644'

@@ -1,0 +1,58 @@
+---
+- name: Ensure app directory structure exists
+  file:
+    path: '{{ item }}'
+    state: directory
+    owner: '{{ deploy_user }}'
+    group: '{{ deploy_user }}'
+    mode: '0755'
+  loop:
+    - '{{ app_directory }}'
+    - '{{ app_directory }}/shared/data'
+    - '{{ app_directory }}/shared/uploads'
+    - '{{ app_directory }}/backups'
+
+- name: Clone or update repository
+  git:
+    repo: 'https://github.com/DhikshaG/SustainAlign.git'
+    dest: '{{ app_directory }}/repo'
+    version: main
+    force: yes
+  become_user: '{{ deploy_user }}'
+
+- name: Copy .env file
+  copy:
+    src: '{{ app_directory }}/.env.production'
+    dest: '{{ app_directory }}/repo/backend/.env'
+    owner: '{{ deploy_user }}'
+    group: '{{ deploy_user }}'
+    mode: '0600'
+  when: ansible_local.env is not defined
+
+- name: Build and start Docker containers
+  docker_compose:
+    project_src: '{{ app_directory }}/repo'
+    files:
+      - docker-compose.yml
+      - docker-compose.prod.yml
+    build: yes
+    restarted: yes
+    state: present
+
+- name: Run database migrations
+  command: docker compose exec -T backend npm run db:migrate
+  args:
+    chdir: '{{ app_directory }}/repo'
+  register: migrate_result
+  changed_when: "'Already up to date' not in migrate_result.stdout"
+  failed_when: false
+
+- name: Wait for health check
+  uri:
+    url: http://localhost:3001/api/health
+    status_code: 200
+    timeout: 60
+  register: health
+  until: health.status == 200
+  retries: 12
+  delay: 5
