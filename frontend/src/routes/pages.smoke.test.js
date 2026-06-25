@@ -35,7 +35,7 @@ describe('lazy-loaded route pages', () => {
       let mod
       try {
         mod = await import(path)
-      } catch (err) {
+      } catch {
         // Some routes may have internal dependencies that fail — that's ok for smoke
         return
       }

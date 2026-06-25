@@ -1,10 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 
-const TOKEN_KEY = 'token'
-const REFRESH_KEY = 'refresh_token'
-const USER_KEY = 'user'
-const MFA_SESSION_KEY = 'mfa_session_id'
-
 beforeEach(() => {
   localStorage.clear()
   sessionStorage.clear()

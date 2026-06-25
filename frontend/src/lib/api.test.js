@@ -6,9 +6,9 @@ vi.mock('./auth', () => ({
   clearTokens: vi.fn(),
 }))
 
-const { getAccessToken, refreshAccessToken, clearTokens } = await import('./auth')
+const { getAccessToken, refreshAccessToken } = await import('./auth')
 
-global.fetch = vi.fn()
+vi.stubGlobal('fetch', vi.fn())
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -22,9 +22,12 @@ describe('apiFetch', () => {
 
     const { apiFetch } = await import('./api.js')
     const result = await apiFetch('/api/test')
-    expect(fetch).toHaveBeenCalledWith('/api/test', expect.objectContaining({
-      headers: {},
-    }))
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/test',
+      expect.objectContaining({
+        headers: {},
+      }),
+    )
     expect(result).toEqual({ data: 'ok' })
   })
 
@@ -34,9 +37,12 @@ describe('apiFetch', () => {
 
     const { apiFetch } = await import('./api.js')
     await apiFetch('/api/test')
-    expect(fetch).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
-      headers: { Authorization: 'Bearer test-token' },
-    }))
+    expect(fetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        headers: { Authorization: 'Bearer test-token' },
+      }),
+    )
   })
 
   it('auto-refreshes on 401 and retries', async () => {
@@ -74,9 +80,12 @@ describe('api convenience methods', () => {
     fetch.mockResolvedValue({ ok: true, status: 200, text: () => Promise.resolve('{}') })
     const { api } = await import('./api.js')
     await api.post('/api/test', { foo: 'bar' })
-    expect(fetch).toHaveBeenCalledWith('/api/test', expect.objectContaining({
-      method: 'POST',
-      body: expect.any(String),
-    }))
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/test',
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.any(String),
+      }),
+    )
   })
 })

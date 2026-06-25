@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { QrCode, CheckCircle, Download } from 'lucide-react'
 import { PageHeader } from '../../components/corporate/PageHeader'
@@ -27,21 +27,20 @@ export default function VolunteerEventDetail() {
   const [selected, setSelected] = useState([])
   const [loadedId, setLoadedId] = useState(null)
 
-  function reload() {
-    return Promise.all([
-      fetchVolunteerEvent(id),
-      fetchVolunteerSignups(id),
-    ]).then(([ev, su]) => {
-      setEvent(ev)
-      setSignups(su)
-      setLoadedId(id)
-      setError(null)
-    }).catch((err) => setError(err.message || 'Failed to load event'))
-  }
+  const reload = useCallback(() => {
+    return Promise.all([fetchVolunteerEvent(id), fetchVolunteerSignups(id)])
+      .then(([ev, su]) => {
+        setEvent(ev)
+        setSignups(su)
+        setLoadedId(id)
+        setError(null)
+      })
+      .catch((err) => setError(err.message || 'Failed to load event'))
+  }, [id])
 
   useEffect(() => {
     reload()
-  }, [id])
+  }, [reload])
 
   async function loadQr() {
     try {
@@ -88,29 +87,35 @@ export default function VolunteerEventDetail() {
 
   const columns = [
     { key: 'name', label: 'Employee' },
-    { key: 'status', label: 'Status', render: (r) => <Badge variant={r.status === 'attended' ? 'verified' : 'default'}>{r.status}</Badge> },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (r) => <Badge variant={r.status === 'attended' ? 'verified' : 'default'}>{r.status}</Badge>,
+    },
     { key: 'checkedIn', label: 'Checked in', render: (r) => (r.checkedIn ? 'Yes' : 'No') },
     {
       key: 'select',
       label: '',
-      render: (r) => r.status === 'registered' && (
-        <input
-          type="checkbox"
-          checked={selected.includes(r.id)}
-          onChange={(e) => {
-            setSelected((prev) => e.target.checked ? [...prev, r.id] : prev.filter((x) => x !== r.id))
-          }}
-        />
-      ),
+      render: (r) =>
+        r.status === 'registered' && (
+          <input
+            type="checkbox"
+            checked={selected.includes(r.id)}
+            onChange={(e) => {
+              setSelected((prev) => (e.target.checked ? [...prev, r.id] : prev.filter((x) => x !== r.id)))
+            }}
+          />
+        ),
     },
     {
       key: 'cert',
       label: '',
-      render: (r) => r.status === 'attended' && (
-        <Button size="sm" variant="secondary" onClick={() => issueCert(r.id)}>
-          <Download className="h-3 w-3" /> {r.certificateId ? 'Cert' : 'Issue cert'}
-        </Button>
-      ),
+      render: (r) =>
+        r.status === 'attended' && (
+          <Button size="sm" variant="secondary" onClick={() => issueCert(r.id)}>
+            <Download className="h-3 w-3" /> {r.certificateId ? 'Cert' : 'Issue cert'}
+          </Button>
+        ),
     },
   ]
 
@@ -121,7 +126,9 @@ export default function VolunteerEventDetail() {
         description={`${event.location} · ${event.startsAt?.slice?.(0, 16)} · ${event.enrolled}/${event.slots} enrolled`}
         actions={
           <div className="flex gap-2">
-            <Button as={Link} to={CORPORATE_ROUTES.volunteers} variant="secondary">Back</Button>
+            <Button as={Link} to={CORPORATE_ROUTES.volunteers} variant="secondary">
+              Back
+            </Button>
             {event.status !== 'completed' && (
               <Button variant="secondary" onClick={completeEvent}>
                 <CheckCircle className="h-4 w-4" /> Mark completed
@@ -131,7 +138,11 @@ export default function VolunteerEventDetail() {
         }
       />
 
-      {error && <Alert variant="error" className="mb-4">{error}</Alert>}
+      {error && (
+        <Alert variant="error" className="mb-4">
+          {error}
+        </Alert>
+      )}
 
       <div className="grid lg:grid-cols-2 gap-6 mb-6">
         <Card>
@@ -151,9 +162,22 @@ export default function VolunteerEventDetail() {
         <Card>
           <h3 className="font-semibold text-slate-900 mb-3">Event details</h3>
           <dl className="text-sm space-y-2">
-            <div><dt className="text-slate-500">Status</dt><dd><Badge>{event.status}</Badge></dd></div>
-            <div><dt className="text-slate-500">Hours credit</dt><dd>{event.hoursCredit}h per volunteer</dd></div>
-            {event.description && <div><dt className="text-slate-500">Description</dt><dd>{event.description}</dd></div>}
+            <div>
+              <dt className="text-slate-500">Status</dt>
+              <dd>
+                <Badge>{event.status}</Badge>
+              </dd>
+            </div>
+            <div>
+              <dt className="text-slate-500">Hours credit</dt>
+              <dd>{event.hoursCredit}h per volunteer</dd>
+            </div>
+            {event.description && (
+              <div>
+                <dt className="text-slate-500">Description</dt>
+                <dd>{event.description}</dd>
+              </div>
+            )}
           </dl>
         </Card>
       </div>
@@ -162,7 +186,9 @@ export default function VolunteerEventDetail() {
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-semibold text-slate-900">Registrations & Attendance</h3>
           {selected.length > 0 && (
-            <Button size="sm" onClick={markAttendance}>Mark {selected.length} attended</Button>
+            <Button size="sm" onClick={markAttendance}>
+              Mark {selected.length} attended
+            </Button>
           )}
         </div>
         <DataTable columns={columns} data={signups} keyField="id" />
