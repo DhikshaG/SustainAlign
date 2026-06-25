@@ -1,8 +1,6 @@
 import { env } from '../config/env.js'
+import { logger } from '../lib/logger.js'
 
-// Operational (safe-to-expose) errors are 4xx and carry an explicit status.
-// Anything else is treated as an unexpected internal error: we never leak its
-// message or stack to the client in production.
 function isOperational(err) {
   return typeof err?.status === 'number' && err.status >= 400 && err.status < 500
 }
@@ -15,25 +13,21 @@ export function notFound(req, res) {
 export function errorHandler(err, req, res, _next) {
   const status = typeof err?.status === 'number' ? err.status : 500
 
-  // Always log server-side. In development, include the full object.
-  const requestId = req.id
-  if (env.NODE_ENV === 'production') {
-    // Structured, PII-light line. Stack traces stay server-side only.
-    console.error(JSON.stringify({
-      level: 'error',
-      requestId,
-      status,
-      method: req.method,
-      path: req.path,
-      message: err?.message,
-      name: err?.name,
-    }))
+  const logData = {
+    requestId: req.id,
+    status,
+    method: req.method,
+    path: req.path,
+    err,
+  }
+
+  if (req.log) {
+    req.log.error(logData, err?.message || 'Request failed')
   } else {
-    console.error(`[req ${requestId ?? '-'}] ${req.method} ${req.path} → ${status}`, err)
+    logger.error(logData, err?.message || 'Request failed')
   }
 
   if (isOperational(err)) {
-    // Client-facing errors (validation, auth, not-found thrown by handlers).
     return res.status(status).json({
       ok: false,
       message: err.message || 'Request failed',
@@ -41,12 +35,9 @@ export function errorHandler(err, req, res, _next) {
     })
   }
 
-  // Unexpected errors: never leak internals in production.
   return res.status(status).json({
     ok: false,
-    message: env.NODE_ENV === 'production'
-      ? 'Internal server error'
-      : (err.message || 'Internal server error'),
+    message: env.NODE_ENV === 'production' ? 'Internal server error' : err.message || 'Internal server error',
     errors: env.NODE_ENV === 'production' ? undefined : err.errors,
   })
 }
