@@ -13,6 +13,9 @@ import { initSentry, getSentryRequestHandler, getSentryErrorHandler } from './li
 
 const sentryEnabled = await initSentry()
 
+const API_V1 = '/api/v1'
+const API_LEGACY = '/api'
+
 export function createApp() {
   const app = express()
 
@@ -30,15 +33,19 @@ export function createApp() {
   app.use(createRequestLogger())
 
   if (isMetricsEnabled()) {
-    app.use('/api', metricsMiddleware)
+    app.use(metricsMiddleware)
+    app.get('/metrics', metricsRoute)
   }
 
-  app.use('/api', healthRoutes)
+  const mountRoutes = (prefix) => {
+    app.use(prefix, healthRoutes)
+    app.use(prefix, apiRateLimit)
+    app.use(prefix, apiRoutes)
+    app.use(prefix, notFound)
+  }
 
-  app.use('/api', apiRateLimit)
-  app.use('/api', apiRoutes)
-
-  app.use('/api', notFound)
+  mountRoutes(API_V1)
+  mountRoutes(API_LEGACY)
 
   const sentryErrHandler = getSentryErrorHandler()
   if (sentryErrHandler) {
