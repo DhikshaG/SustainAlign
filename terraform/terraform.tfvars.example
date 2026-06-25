@@ -1,0 +1,5 @@
+environment    = "staging"
+region         = "nyc3"
+droplet_size   = "s-2vcpu-4gb-intel"
+do_token       = "dop_v1_..."
+ssh_public_key = "ssh-ed25519 AAAA..."
