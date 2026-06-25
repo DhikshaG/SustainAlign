@@ -1,4 +1,4 @@
-.PHONY: dev dev-backend dev-frontend build lint test test-coverage docker-up docker-up-prod docker-down db-reset db-migrate db-studio deploy ci
+.PHONY: dev dev-backend dev-frontend build lint test test-coverage docker-up docker-up-prod docker-down db-reset db-migrate db-studio deploy rollback ci
 
 dev:
 	@echo "Run 'make dev-backend' and 'make dev-frontend' in separate terminals."
@@ -43,3 +43,15 @@ db-studio:
 
 deploy:
 	bash scripts/deploy.sh
+
+deploy-prod:
+	bash scripts/deploy.sh --env production
+
+deploy-staging:
+	bash scripts/deploy.sh --env staging
+
+rollback:
+	bash scripts/rollback.sh
+
+rollback-list:
+	bash scripts/rollback.sh --list
