@@ -25,6 +25,9 @@ const envSchema = z.object({
   AI_ENABLED: z.union([z.boolean(), z.string()]).default(true),
   COMPLIANCE_SYNC_INTERVAL_MINUTES: z.coerce.number().default(60),
   TRUST_PROXY: z.coerce.number().default(1),
+  LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
+  SENTRY_DSN: z.string().optional(),
+  PROMETHEUS_ENABLED: z.union([z.boolean(), z.string()]).default(false),
 })
 
 const parsed = envSchema.parse(process.env)
