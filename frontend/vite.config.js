@@ -13,7 +13,7 @@ export default defineConfig({
     },
   },
   build: {
-    sourcemap: false,
+    sourcemap: !!process.env.VITE_SENTRY_DSN,
     rollupOptions: {
       output: {
         manualChunks(id) {
