@@ -1,0 +1,86 @@
+{
+  "title": "SustainAlign Overview",
+  "uid": "sustainalign-overview",
+  "tags": ["sustainalign", "production"],
+  "timezone": "browser",
+  "panels": [
+    {
+      "title": "Request Rate (QPS)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "rate(sustainalign_http_requests_total[5m])",
+          "legendFormat": "{{method}} {{path}}"
+        }
+      ]
+    },
+    {
+      "title": "P50/P95/P99 Latency",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, rate(sustainalign_http_request_duration_seconds_bucket[5m]))",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(sustainalign_http_request_duration_seconds_bucket[5m]))",
+          "legendFormat": "p95"
+        },
+        {
+          "expr": "histogram_quantile(0.99, rate(sustainalign_http_request_duration_seconds_bucket[5m]))",
+          "legendFormat": "p99"
+        }
+      ]
+    },
+    {
+      "title": "Error Rate by Status",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+      "targets": [
+        { "expr": "rate(sustainalign_http_requests_total{status=~\"5..\"}[5m])", "legendFormat": "5xx" },
+        { "expr": "rate(sustainalign_http_requests_total{status=~\"4..\"}[5m])", "legendFormat": "4xx" }
+      ]
+    },
+    {
+      "title": "Active Tenants",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 4, "x": 0, "y": 8 },
+      "targets": [{ "expr": "sustainalign_active_tenants" }]
+    },
+    {
+      "title": "DB Query Duration (P50)",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 10, "x": 4, "y": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, rate(sustainalign_db_query_duration_seconds_bucket[5m]))",
+          "legendFormat": "{{operation}}"
+        }
+      ]
+    },
+    {
+      "title": "Uptime",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 4, "x": 14, "y": 8 },
+      "targets": [
+        {
+          "expr": "time() - process_start_time_seconds{job=\"sustainalign\"}",
+          "legendFormat": "uptime"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        }
+      }
+    },
+    {
+      "title": "Health Status",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 18, "y": 8 },
+      "targets": [{ "expr": "sustainalign_health_status" }]
+    }
+  ]
+}
