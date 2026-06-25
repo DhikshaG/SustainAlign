@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import multer from 'multer'
 import { authenticate, requireRole } from '../../middleware/authenticate.js'
 import { requirePermission } from '../../middleware/permissions.js'
 import { validate } from '../../middleware/validate.js'
