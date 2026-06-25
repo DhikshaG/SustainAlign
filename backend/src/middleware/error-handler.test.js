@@ -7,8 +7,12 @@ vi.mock('../config/env.js', () => ({
   },
 }))
 
+vi.mock('../lib/logger.js', () => ({
+  logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn() },
+}))
+
 function mockReq(path = '/api/test') {
-  return { method: 'GET', path, id: 'req-123', headers: {} }
+  return { method: 'GET', path, id: 'req-123', headers: {}, log: { error: vi.fn() } }
 }
 
 function mockRes() {
@@ -45,7 +49,11 @@ describe('error-handler', () => {
       const err = Object.assign(new Error('Validation failed'), { status: 400, errors: { field: ['required'] } })
       errorHandler(err, req, res)
       expect(res.status).toHaveBeenCalledWith(400)
-      expect(res.json).toHaveBeenCalledWith({ ok: false, message: 'Validation failed', errors: { field: ['required'] } })
+      expect(res.json).toHaveBeenCalledWith({
+        ok: false,
+        message: 'Validation failed',
+        errors: { field: ['required'] },
+      })
     })
 
     it('does not leak internal error details in production', async () => {
