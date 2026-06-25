@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer'
 import { env } from '../config/env.js'
+import { logger } from './logger.js'
 
 let transporter = null
 
@@ -21,7 +22,7 @@ export async function sendEmail({ to, subject, text, html }) {
   const from = env.SMTP_FROM || 'noreply@sustainalign.com'
 
   if (!tx || env.NODE_ENV === 'development') {
-    console.log(JSON.stringify({ event: 'email.dev', to, subject, text }))
+    logger.info({ event: 'email.dev', to, subject, textLength: text?.length })
     return { dev: true }
   }
 

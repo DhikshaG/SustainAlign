@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { validate } from '../middleware/validate.js'
 import { ok, created, fail } from '../lib/response.js'
+import { logger } from '../lib/logger.js'
 import { contactSchema, demoBookingSchema } from '../schemas/auth.corporate.js'
 import { blogPosts, caseStudies, jobs } from '../data/sample.js'
 import { listProfiles, getProfileBySlug } from '../services/ngo/index.js'
@@ -8,12 +9,12 @@ import { listProfiles, getProfileBySlug } from '../services/ngo/index.js'
 const router = Router()
 
 router.post('/contact', validate(contactSchema), (req, res) => {
-  console.log('[stub] contact:', req.validated.email)
+  logger.info({ email: req.validated.email }, 'contact form submission')
   return created(res, req.validated, 'Message received (stub)')
 })
 
 router.post('/demo-booking', validate(demoBookingSchema), (req, res) => {
-  console.log('[stub] demo booking:', req.validated.email)
+  logger.info({ email: req.validated.email }, 'demo booking request')
   return created(res, req.validated, 'Demo request received (stub)')
 })
 

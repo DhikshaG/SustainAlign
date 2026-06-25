@@ -1,7 +1,5 @@
+import { logger } from './logger.js'
+
 export function authLog(event, data = {}) {
-  console.log(JSON.stringify({
-    ts: new Date().toISOString(),
-    event,
-    ...data,
-  }))
+  logger.info({ event, ...data }, 'auth event')
 }

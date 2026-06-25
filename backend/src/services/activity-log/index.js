@@ -3,6 +3,7 @@ import { db } from '../../db/index.js'
 import { activityLogs, users } from '../../db/schema.js'
 import { newId } from '../../lib/ids.js'
 import { authLog } from '../../lib/auth-log.js'
+import { logger } from '../../lib/logger.js'
 import { reqMeta } from '../../middleware/authenticate.js'
 
 export async function logActivity({
@@ -41,7 +42,7 @@ export async function logActivity({
   try {
     db.insert(activityLogs).values(row).run()
   } catch (err) {
-    console.error('activity_log insert failed', err)
+    logger.error({ err }, 'activity_log insert failed')
   }
 
   authLog(action, { tenantId: tid, userId: uid, entityType, entityId, ...metadata })
@@ -113,7 +114,8 @@ export function formatActivityForExport(rows) {
   const userIds = [...new Set(rows.map((r) => r.userId).filter(Boolean))]
   const userMap = {}
   if (userIds.length) {
-    const found = db.select({ id: users.id, email: users.email, fullName: users.fullName })
+    const found = db
+      .select({ id: users.id, email: users.email, fullName: users.fullName })
       .from(users)
       .where(inArray(users.id, userIds))
       .all()

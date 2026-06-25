@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { db } from '../../db/index.js'
 import { tenants } from '../../db/schema.js'
+import { logger } from '../../lib/logger.js'
 import { syncComplianceForTenant } from './index.js'
 
 export function syncAllCorporateTenants() {
@@ -11,7 +12,7 @@ export function syncAllCorporateTenants() {
       syncComplianceForTenant(t.id)
       synced += 1
     } catch (err) {
-      console.error(`[compliance-sync] failed for ${t.id}:`, err.message)
+      logger.error({ tenantId: t.id, err }, 'compliance sync failed')
     }
   }
   return { synced, total: corporateTenants.length }
@@ -19,11 +20,11 @@ export function syncAllCorporateTenants() {
 
 export function startComplianceScheduler(intervalMinutes = 60) {
   const ms = Math.max(1, intervalMinutes) * 60 * 1000
-  console.log(`[compliance-sync] scheduler every ${intervalMinutes} min`)
+  logger.info({ intervalMinutes }, 'compliance scheduler started')
   syncAllCorporateTenants()
   return setInterval(() => {
     const result = syncAllCorporateTenants()
-    console.log(`[compliance-sync] synced ${result.synced}/${result.total} tenants`)
+    logger.info({ synced: result.synced, total: result.total }, 'compliance sync tick')
   }, ms)
 }
 
