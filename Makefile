@@ -55,3 +55,12 @@ rollback:
 
 rollback-list:
 	bash scripts/rollback.sh --list
+
+backup:
+	bash scripts/backup.sh
+
+restore:
+	bash scripts/restore.sh
+
+restore-list:
+	bash scripts/restore.sh --list
