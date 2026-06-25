@@ -19,6 +19,7 @@ import { ok } from '../lib/response.js'
 import { PERMISSIONS } from '../lib/permissions.js'
 import { auditQuerySchema } from '../schemas/audit.js'
 import { getAuditTrail } from '../services/audit/index.js'
+import { featureStatusRoute } from '../middleware/feature-flags.js'
 
 const router = Router()
 
@@ -37,9 +38,16 @@ router.use('/search', searchRoutes)
 router.use('/tags', tagsRouter)
 router.use('/entities', entityTagsRouter)
 router.use('/workflows', workflowRoutes)
-router.get('/audit-trail', authenticate, requirePermission(PERMISSIONS.ACTIVITY_READ), validate(auditQuerySchema, 'query'), (req, res) => {
-  ok(res, { trail: getAuditTrail(req.user.tenantId, req.validated) })
-})
+router.get(
+  '/audit-trail',
+  authenticate,
+  requirePermission(PERMISSIONS.ACTIVITY_READ),
+  validate(auditQuerySchema, 'query'),
+  (req, res) => {
+    ok(res, { trail: getAuditTrail(req.user.tenantId, req.validated) })
+  },
+)
+router.get('/features', featureStatusRoute)
 router.use('/', publicRoutes)
 
 export default router
