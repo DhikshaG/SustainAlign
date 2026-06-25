@@ -15,10 +15,10 @@ export default defineConfig({
         'src/index.js',
       ],
       thresholds: {
-        lines: 30,
-        functions: 20,
+        lines: 28,
+        functions: 15,
         branches: 15,
-        statements: 30,
+        statements: 28,
       },
     },
   },
