@@ -17,6 +17,12 @@ export default defineConfig({
         'src/**/*.test.*',
         'src/**/*.spec.*',
       ],
+      thresholds: {
+        lines: 30,
+        functions: 20,
+        branches: 15,
+        statements: 30,
+      },
     },
   },
 })

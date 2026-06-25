@@ -63,8 +63,8 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: Run backend tests
-        run: npm test --workspace backend
+      - name: Run backend tests with coverage
+        run: npm test --workspace backend -- --coverage
         env:
           DATABASE_PATH: ./data/test.db
           JWT_SECRET: test-secret-that-is-at-least-32-characters-long
@@ -83,8 +83,8 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: Run frontend tests
-        run: npm test --workspace frontend
+      - name: Run frontend tests with coverage
+        run: npm test --workspace frontend -- --coverage
 
   notify-failure:
     name: Notify on failure

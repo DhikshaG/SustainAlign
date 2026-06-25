@@ -21,7 +21,7 @@ test:
 test-coverage:
 	npm run test:coverage
 
-ci: lint build test
+ci: lint build test-coverage
 
 docker-up:
 	docker compose up --build -d

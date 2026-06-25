@@ -14,6 +14,12 @@ export default defineConfig({
         'src/db/seed.js',
         'src/index.js',
       ],
+      thresholds: {
+        lines: 30,
+        functions: 20,
+        branches: 15,
+        statements: 30,
+      },
     },
   },
 })
