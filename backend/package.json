@@ -34,7 +34,7 @@
     "docs:postman": "node scripts/gen-postman.mjs"
   },
   "dependencies": {
-    "@asteasolutions/zod-to-openapi": "^7.3.4",
+    "@asteasolutions/zod-to-openapi": "^8.5.0",
     "@node-rs/argon2": "^2.0.2",
     "@sentry/node": "^10.61.0",
     "better-sqlite3": "^12.10.0",
