@@ -3,8 +3,8 @@ set -euo pipefail
 
 # ──────────────────────────────────────────────────────────────
 # SustainAlign — automated backup script
-# Backs up SQLite database and uploads, encrypts with age, and
-# optionally pushes to S3-compatible storage (Backblaze B2, AWS S3).
+# Backs up SQLite/Postgres database and uploads, encrypts with
+# age, and optionally pushes to S3-compatible storage.
 #
 # Usage: bash scripts/backup.sh
 #   DRY_RUN=1 bash scripts/backup.sh   (dry run, no upload)
@@ -21,22 +21,30 @@ TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 BACKUP_NAME="sustainalign_${TIMESTAMP}"
 DRY_RUN="${DRY_RUN:-false}"
 RCLONE_REMOTE="${BACKUP_RCLONE_REMOTE:-}"
+DB_DIALECT="${DB_DIALECT:-sqlite}"
 
 mkdir -p "${BACKUP_DIR}"
 
 echo "==> Backup started: ${TIMESTAMP}"
 
-# ── 1. SQLite database dump ────────────────────────────────
-DB_PATH="${APP_DIR}/backend/data/sustainalign.db"
-DB_DUMP="${BACKUP_DIR}/${BACKUP_NAME}.sqlite"
-
-if [ -f "$DB_PATH" ]; then
-  echo "==> Backing up SQLite database..."
-  sqlite3 "$DB_PATH" ".backup '${DB_DUMP}'"
-  sqlite3 "$DB_PATH" ".dump" | gzip > "${DB_DUMP}.dump.gz"
+# ── 1. Database dump ───────────────────────────────────────
+if [ "$DB_DIALECT" = "pg" ]; then
+  DB_DUMP="${BACKUP_DIR}/${BACKUP_NAME}.pgdump"
+  PG_URL="${DATABASE_URL:-postgresql://postgres:postgres@localhost:5432/sustainalign}"
+  echo "==> Backing up Postgres database..."
+  pg_dump "${PG_URL}" --no-owner --no-acl -Fc > "${DB_DUMP}"
   echo "    database: ${DB_DUMP}"
 else
-  echo "    no database found, skipping"
+  DB_PATH="${APP_DIR}/backend/data/sustainalign.db"
+  DB_DUMP="${BACKUP_DIR}/${BACKUP_NAME}.sqlite"
+  if [ -f "$DB_PATH" ]; then
+    echo "==> Backing up SQLite database..."
+    sqlite3 "$DB_PATH" ".backup '${DB_DUMP}'"
+    sqlite3 "$DB_PATH" ".dump" | gzip > "${DB_DUMP}.dump.gz"
+    echo "    database: ${DB_DUMP}"
+  else
+    echo "    no database found, skipping"
+  fi
 fi
 
 # ── 2. Uploads directory ───────────────────────────────────

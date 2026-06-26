@@ -54,7 +54,6 @@ echo "==> Fetching latest code..."
 mkdir -p "${RELEASE_DIR}"
 git archive --format=tar --remote="$(git config --get remote.origin.url)" \
   "${DEPLOY_BRANCH}" 2>/dev/null | tar xf - -C "${RELEASE_DIR}" || {
-  # Fallback: clone shallow
   git clone --depth 1 --branch "${DEPLOY_BRANCH}" \
     "$(git config --get remote.origin.url)" "${RELEASE_DIR}"
 }
@@ -63,17 +62,24 @@ ln -sfn "${RELEASE_DIR}" "${APP_DIR}/current"
 
 cd "${APP_DIR}/current"
 
-# ── 2. Backup SQLite database ─────────────────────────────────
+# ── 2. Backup database ──────────────────────────────────────
+DB_DIALECT="${DB_DIALECT:-sqlite}"
 if [[ "$SKIP_BACKUP" != "true" ]]; then
-  echo "==> Backing up SQLite database..."
+  echo "==> Backing up database..."
   mkdir -p "${BACKUP_DIR}"
-  DB_PATH="${SHARED_DIR}/data/sustainalign.db"
-  if [ -f "$DB_PATH" ]; then
-    cp "$DB_PATH" "${BACKUP_DIR}/sustainalign_${TIMESTAMP}.db"
-    ls -t "${BACKUP_DIR}"/sustainalign_*.db | tail -n +8 | xargs -r rm
-    echo "    backup saved: ${BACKUP_DIR}/sustainalign_${TIMESTAMP}.db"
+  if [[ "$DB_DIALECT" == "pg" ]]; then
+    PG_URL="${DATABASE_URL:-postgresql://postgres:postgres@localhost:5432/sustainalign}"
+    pg_dump "${PG_URL}" --no-owner --no-acl -Fc > "${BACKUP_DIR}/sustainalign_${TIMESTAMP}.pgdump"
+    echo "    backup saved: ${BACKUP_DIR}/sustainalign_${TIMESTAMP}.pgdump"
   else
-    echo "    no database found, skipping backup"
+    DB_PATH="${SHARED_DIR}/data/sustainalign.db"
+    if [ -f "$DB_PATH" ]; then
+      cp "$DB_PATH" "${BACKUP_DIR}/sustainalign_${TIMESTAMP}.db"
+      ls -t "${BACKUP_DIR}"/sustainalign_*.db | tail -n +8 | xargs -r rm
+      echo "    backup saved: ${BACKUP_DIR}/sustainalign_${TIMESTAMP}.db"
+    else
+      echo "    no database found, skipping backup"
+    fi
   fi
 fi
 
@@ -89,6 +95,10 @@ fi
 
 # ── 4. Restart containers ────────────────────────────────────
 echo "==> Restarting containers..."
+if [[ "$DB_DIALECT" == "pg" ]]; then
+  docker compose -f docker-compose.yml -f docker-compose.prod.yml up --detach --remove-orphans postgres
+  sleep 5
+fi
 if [ -f docker-compose.prod.yml ]; then
   docker compose -f docker-compose.yml -f docker-compose.prod.yml up --detach --remove-orphans
 else

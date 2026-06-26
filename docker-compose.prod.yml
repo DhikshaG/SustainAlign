@@ -1,4 +1,18 @@
 services:
+  postgres:
+    environment:
+      POSTGRES_DB: sustainalign
+      POSTGRES_USER: ${PG_USER:-postgres}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:-postgres}
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    restart: always
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+
   backend:
     ports: !reset []
     environment:
@@ -98,7 +112,7 @@ services:
       - ./scripts:/app/scripts:ro
     entrypoint: |
       /bin/sh -c '
-        apk add --no-cache sqlite bash curl &&
+        apk add --no-cache sqlite bash curl postgresql16-client &&
         echo "0 3 * * * cd /app && bash /app/scripts/backup.sh >> /var/log/backup.log 2>&1" > /etc/crontabs/root &&
         crond -f -l 2
       '
@@ -107,6 +121,7 @@ services:
 volumes:
   sqlite-data:
   uploads:
+  pg-data:
   prometheus-data:
   loki-data:
   grafana-data:

@@ -3,6 +3,7 @@ set -euo pipefail
 
 # ──────────────────────────────────────────────────────────────
 # SustainAlign — restore from backup
+# Supports both SQLite (.sqlite) and Postgres (.pgdump) backups.
 # Usage:
 #   bash scripts/restore.sh                    # interactive (pick from list)
 #   bash scripts/restore.sh <backup_timestamp>  # restore specific backup
@@ -11,6 +12,7 @@ set -euo pipefail
 
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BACKUP_DIR="${APP_DIR}/backups"
+DB_DIALECT="${DB_DIALECT:-sqlite}"
 
 if [[ ! -d "$BACKUP_DIR" ]]; then
   echo "No backups directory found at ${BACKUP_DIR}"
@@ -19,9 +21,15 @@ fi
 
 list_backups() {
   echo "Available backups:"
-  for f in "$BACKUP_DIR"/sustainalign_*.sqlite; do
+  local ext
+  if [ "$DB_DIALECT" = "pg" ]; then
+    ext="pgdump"
+  else
+    ext="sqlite"
+  fi
+  for f in "$BACKUP_DIR"/sustainalign_*.${ext}; do
     [ -f "$f" ] || continue
-    NAME=$(basename "$f" .sqlite)
+    NAME=$(basename "$f" .${ext})
     SIZE=$(du -h "$f" | cut -f1)
     DATE=$(echo "$NAME" | sed 's/sustainalign_//' | sed 's/\(....\)\(..\)\(..\)_\(..\)\(..\)\(..\)/\1-\2-\3 \4:\5:\6/')
     echo "  $NAME  (${SIZE}, ${DATE})"
@@ -35,7 +43,9 @@ fi
 
 TARGET=""
 if [[ -n "${1:-}" ]]; then
-  TARGET="${BACKUP_DIR}/sustainalign_${1}.sqlite"
+  local ext
+  [ "$DB_DIALECT" = "pg" ] && ext="pgdump" || ext="sqlite"
+  TARGET="${BACKUP_DIR}/sustainalign_${1}.${ext}"
   if [[ ! -f "$TARGET" ]] && [[ -f "${BACKUP_DIR}/${1}" ]]; then
     TARGET="${BACKUP_DIR}/${1}"
   fi
@@ -49,7 +59,9 @@ else
   list_backups
   echo ""
   read -r -p "Enter backup timestamp to restore: " INPUT
-  TARGET="${BACKUP_DIR}/sustainalign_${INPUT}.sqlite"
+  local ext
+  [ "$DB_DIALECT" = "pg" ] && ext="pgdump" || ext="sqlite"
+  TARGET="${BACKUP_DIR}/sustainalign_${INPUT}.${ext}"
   if [[ ! -f "$TARGET" ]]; then
     echo "Backup not found"
     exit 1
@@ -70,13 +82,18 @@ if [[ "$TARGET" == *.age ]]; then
   TARGET="$DECRYPTED"
 fi
 
-# Restore database
-DB_PATH="${APP_DIR}/backend/data/sustainalign.db"
 echo "==> Stopping backend..."
 docker compose -f "${APP_DIR}/docker-compose.yml" stop backend 2>/dev/null || true
 
-echo "==> Restoring database..."
-cp "$TARGET" "$DB_PATH"
+if [ "$DB_DIALECT" = "pg" ]; then
+  echo "==> Restoring Postgres database..."
+  PG_URL="${DATABASE_URL:-postgresql://postgres:postgres@localhost:5432/sustainalign}"
+  pg_restore --clean --if-exists --no-owner --no-acl -d "${PG_URL}" "$TARGET"
+else
+  echo "==> Restoring SQLite database..."
+  DB_PATH="${APP_DIR}/backend/data/sustainalign.db"
+  cp "$TARGET" "$DB_PATH"
+fi
 
 echo "==> Starting backend..."
 docker compose -f "${APP_DIR}/docker-compose.yml" start backend 2>/dev/null || true
