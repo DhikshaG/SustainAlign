@@ -116,11 +116,7 @@ Last updated: 2026-06-26
 ## Phase 7 commit log
 
 ```
- 1. <TBD> feat(security): add Dependabot config for npm + Docker
- 2. <TBD> feat(security): add Gitleaks config + CI step
- 3. <TBD> feat(security): add Trivy IaC scan + npm audit to CI
- 4. <TBD> docs(security): add rate limit documentation
- 5. <TBD> feat(docs): add OWASP Top 10 + API pen test plan
+ 1. 63ff9c9 feat(security): phase 7 — security hardening (dependabot, gitleaks, trivy, npm audit, docs)
 ```
 
 ---
