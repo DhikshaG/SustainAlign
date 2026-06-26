@@ -1,6 +1,7 @@
 import registry from './registry.js'
 
 import './annotations/health.js'
+import './annotations/index-routes.js'
 import './annotations/public.js'
 import './annotations/auth.shared.js'
 import './annotations/auth.corporate.js'
