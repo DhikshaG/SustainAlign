@@ -3,7 +3,8 @@ import os from 'os'
 import { readFileSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
-import { sqlite } from '../db/index.js'
+import { sqlite, db } from '../db/index.js'
+import { env } from '../config/env.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 let pkgVersion = '0.0.0'
@@ -14,16 +15,26 @@ try {
 
 const router = Router()
 
-router.get('/health', (_req, res) => {
+router.get('/health', async (_req, res) => {
   const checks = {}
   let allOk = true
 
-  try {
-    sqlite.prepare('SELECT 1').get()
-    checks.db = { ok: true, status: 'connected' }
-  } catch (err) {
-    checks.db = { ok: false, status: 'disconnected', error: err.message }
-    allOk = false
+  if (env.DB_DIALECT === 'pg') {
+    try {
+      const result = await db.execute('SELECT 1')
+      checks.db = { ok: true, status: 'connected', dialect: 'pg' }
+    } catch (err) {
+      checks.db = { ok: false, status: 'disconnected', dialect: 'pg', error: err.message }
+      allOk = false
+    }
+  } else {
+    try {
+      sqlite.prepare('SELECT 1').get()
+      checks.db = { ok: true, status: 'connected', dialect: 'sqlite' }
+    } catch (err) {
+      checks.db = { ok: false, status: 'disconnected', dialect: 'sqlite', error: err.message }
+      allOk = false
+    }
   }
 
   try {
