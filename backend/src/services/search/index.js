@@ -3,6 +3,7 @@ import { db, sqlite } from '../../db/index.js'
 import { searchDocuments, tenants, csrProjects } from '../../db/schema.js'
 import { reindexNgo, getProfileByTenantId } from '../ngo/index.js'
 import { reindexProject } from '../projects/index.js'
+import { env } from '../../config/env.js'
 
 const SDG_LABELS = {
   1: 'SDG 1 No Poverty',
@@ -15,20 +16,19 @@ const SDG_LABELS = {
   15: 'SDG 15 Life on Land',
 }
 
+const isPg = env.DB_DIALECT === 'pg'
+
 function syncFts(doc) {
+  if (isPg) return
   sqlite.prepare('DELETE FROM search_documents_fts WHERE doc_id = ?').run(doc.id)
-  sqlite.prepare(`
+  sqlite
+    .prepare(
+      `
     INSERT INTO search_documents_fts (doc_id, tenant_id, entity_type, entity_id, title, body, keywords)
     VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    doc.id,
-    doc.tenantId,
-    doc.entityType,
-    doc.entityId,
-    doc.title,
-    doc.body || '',
-    doc.keywords || '',
-  )
+  `,
+    )
+    .run(doc.id, doc.tenantId, doc.entityType, doc.entityId, doc.title, doc.body || '', doc.keywords || '')
 }
 
 export function indexDocument({ tenantId = null, entityType, entityId, title, body = '', keywords = [] }) {
@@ -60,12 +60,16 @@ export function indexDocument({ tenantId = null, entityType, entityId, title, bo
 export function removeFromIndex(entityType, entityId) {
   const id = `${entityType}:${entityId}`
   db.delete(searchDocuments).where(eq(searchDocuments.id, id)).run()
-  sqlite.prepare('DELETE FROM search_documents_fts WHERE doc_id = ?').run(id)
+  if (!isPg) {
+    sqlite.prepare('DELETE FROM search_documents_fts WHERE doc_id = ?').run(id)
+  }
 }
 
 export function reindexAll(tenantId = null) {
   db.delete(searchDocuments).run()
-  sqlite.prepare('DELETE FROM search_documents_fts').run()
+  if (!isPg) {
+    sqlite.prepare('DELETE FROM search_documents_fts').run()
+  }
 
   const dbTenants = db.select().from(tenants).where(eq(tenants.type, 'ngo')).all()
   const regions = new Set()
@@ -132,12 +136,16 @@ function filterResults(results, { types, tenantId, limit }) {
 
 function likeSearch(term, { types, tenantId, limit }) {
   const pattern = `%${term}%`
-  const rows = db.select().from(searchDocuments)
-    .where(or(
-      like(searchDocuments.title, pattern),
-      like(searchDocuments.body, pattern),
-      like(searchDocuments.keywords, pattern),
-    ))
+  const rows = db
+    .select()
+    .from(searchDocuments)
+    .where(
+      or(
+        like(searchDocuments.title, pattern),
+        like(searchDocuments.body, pattern),
+        like(searchDocuments.keywords, pattern),
+      ),
+    )
     .limit(limit * 3)
     .all()
   return filterResults(rows, { types, tenantId, limit })
@@ -147,17 +155,30 @@ export function search({ q, types = [], tenantId = null, limit = 20 }) {
   if (!q?.trim()) return []
 
   const term = q.trim().replace(/[^\w\s-]/g, ' ')
-  const ftsQuery = term.split(/\s+/).filter(Boolean).map((w) => `"${w}"*`).join(' OR ')
+
+  if (isPg) {
+    return likeSearch(term, { types, tenantId, limit })
+  }
+
+  const ftsQuery = term
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => `"${w}"*`)
+    .join(' OR ')
 
   try {
-    const rows = sqlite.prepare(`
+    const rows = sqlite
+      .prepare(
+        `
       SELECT doc_id, tenant_id, entity_type, entity_id, title, body, keywords,
              bm25(search_documents_fts) AS rank
       FROM search_documents_fts
       WHERE search_documents_fts MATCH ?
       ORDER BY rank
       LIMIT ?
-    `).all(ftsQuery, limit * 3)
+    `,
+      )
+      .all(ftsQuery, limit * 3)
 
     const mapped = rows.map((r) => ({
       id: r.doc_id,
@@ -188,11 +209,17 @@ function formatResult(r) {
 
 function hrefFor(type, id) {
   switch (type) {
-    case 'ngo': return `/dashboard/discovery/${id}`
-    case 'project': return `/dashboard/projects/${id}`
-    case 'report': return '/dashboard/reporting'
-    case 'location': return `/dashboard/discovery?location=${encodeURIComponent(id)}`
-    case 'sdg': return `/dashboard/discovery?sdg=${id}`
-    default: return '/dashboard'
+    case 'ngo':
+      return `/dashboard/discovery/${id}`
+    case 'project':
+      return `/dashboard/projects/${id}`
+    case 'report':
+      return '/dashboard/reporting'
+    case 'location':
+      return `/dashboard/discovery?location=${encodeURIComponent(id)}`
+    case 'sdg':
+      return `/dashboard/discovery?sdg=${id}`
+    default:
+      return '/dashboard'
   }
 }
