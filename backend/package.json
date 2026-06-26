@@ -28,7 +28,10 @@
     "db:verify-audit": "node scripts/audit-verify.js",
     "db:verify-volunteers": "node scripts/volunteers-verify.js",
     "db:verify-rag": "node scripts/rag-verify.js",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "docs:generate": "node scripts/gen-spec.mjs",
+    "docs:open": "echo Open http://localhost:4000/api/docs",
+    "docs:postman": "node scripts/gen-postman.mjs"
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^7.3.4",
