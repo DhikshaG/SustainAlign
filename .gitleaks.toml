@@ -1,0 +1,44 @@
+title = "SustainAlign Gitleaks Configuration"
+
+[extend]
+# Use the default Gitleaks rules as a base
+useDefault = true
+
+[allowlist]
+description = "Allowlisted patterns for SustainAlign development"
+paths = [
+  # Test and seed files contain sample credentials
+  "(?i)backend/scripts/seed/.*",
+  "(?i)backend/src/routes/auth.*\\.test\\.js",
+  # Package lock is generated
+  "package-lock\\.json$",
+  # Documentation contains sample values
+  "(?i)README\\.md$",
+  "(?i)docs/.*",
+  "(?i)html/.*",
+  # Dependabot config
+  "(?i)\\.github/dependabot\\.yml",
+]
+
+regexes = [
+  # Test JWT secrets used in CI
+  (?i)test-secret-that-is-at-least-32-characters-long,
+  (?i)test-refresh-secret-at-least-32-characters,
+  # Seed data sample accounts
+  (?i)admin@techcorp\\.com,
+  (?i)admin123,
+  (?i)director@womenempowerment\\.org,
+  (?i)women123,
+  # Postgres test credentials
+  (?i)postgresql://postgres:postgres@localhost,
+]
+
+stopwords = [
+  "sample",
+  "example",
+  "test",
+  "dev",
+  "changeme",
+  "your-",
+  "placeholder",
+]
