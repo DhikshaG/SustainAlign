@@ -1,0 +1,21 @@
+import registry from './registry.js'
+import { registerCommonComponents } from './components.js'
+
+registerCommonComponents(registry)
+
+import './annotations/health.js'
+import './annotations/public.js'
+import './annotations/auth.shared.js'
+import './annotations/auth.corporate.js'
+import './annotations/auth.ngo.js'
+import './annotations/admin.js'
+import './annotations/corporate.js'
+import './annotations/ngo.js'
+import './annotations/workflows.js'
+import './annotations/tags.js'
+import './annotations/search.js'
+import './annotations/notifications.js'
+import './annotations/activity.js'
+import './annotations/files.js'
+
+export { generateSpec } from './registry.js'
