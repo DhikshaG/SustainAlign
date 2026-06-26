@@ -7,7 +7,6 @@ export function useFeatureFlags() {
 
   useEffect(() => {
     let mounted = true
-    setLoading(true)
     fetchFeatures()
       .then((data) => {
         if (mounted) {
