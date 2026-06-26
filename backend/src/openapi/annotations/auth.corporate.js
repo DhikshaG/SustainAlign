@@ -1,4 +1,12 @@
 import registry from '../registry.js'
+import { okSchema, createdSchema } from '../components.js'
+
+function ok200() {
+  return { 200: { description: 'OK', content: { 'application/json': { schema: okSchema } } } }
+}
+function created201() {
+  return { 201: { description: 'Created', content: { 'application/json': { schema: createdSchema } } } }
+}
 
 registry.registerPath({
   method: 'post',
@@ -20,14 +28,8 @@ registry.registerPath({
       },
     },
   },
-  responses: {
-    201: {
-      description: 'Account created',
-      content: { 'application/json': { schema: { $ref: '#/components/schemas/CreatedResponse' } } },
-    },
-  },
+  responses: created201(),
 })
-
 registry.registerPath({
   method: 'post',
   path: '/auth/corporate/login',
@@ -39,22 +41,13 @@ registry.registerPath({
         schema: {
           type: 'object',
           required: ['email', 'password'],
-          properties: {
-            email: { type: 'string', format: 'email' },
-            password: { type: 'string' },
-          },
+          properties: { email: { type: 'string', format: 'email' }, password: { type: 'string' } },
         },
       },
     },
   },
-  responses: {
-    200: {
-      description: 'Login successful',
-      content: { 'application/json': { schema: { $ref: '#/components/schemas/OkResponse' } } },
-    },
-  },
+  responses: ok200(),
 })
-
 registry.registerPath({
   method: 'post',
   path: '/auth/corporate/forgot-password',
@@ -63,22 +56,12 @@ registry.registerPath({
   requestBody: {
     content: {
       'application/json': {
-        schema: {
-          type: 'object',
-          required: ['email'],
-          properties: { email: { type: 'string', format: 'email' } },
-        },
+        schema: { type: 'object', required: ['email'], properties: { email: { type: 'string', format: 'email' } } },
       },
     },
   },
-  responses: {
-    200: {
-      description: 'Reset link sent if account exists',
-      content: { 'application/json': { schema: { $ref: '#/components/schemas/OkResponse' } } },
-    },
-  },
+  responses: ok200(),
 })
-
 registry.registerPath({
   method: 'post',
   path: '/auth/corporate/reset-password',
@@ -90,22 +73,13 @@ registry.registerPath({
         schema: {
           type: 'object',
           required: ['token', 'password'],
-          properties: {
-            token: { type: 'string' },
-            password: { type: 'string', minLength: 8 },
-          },
+          properties: { token: { type: 'string' }, password: { type: 'string', minLength: 8 } },
         },
       },
     },
   },
-  responses: {
-    200: {
-      description: 'Password reset successful',
-      content: { 'application/json': { schema: { $ref: '#/components/schemas/OkResponse' } } },
-    },
-  },
+  responses: ok200(),
 })
-
 registry.registerPath({
   method: 'post',
   path: '/auth/corporate/mfa/verify',
@@ -117,22 +91,13 @@ registry.registerPath({
         schema: {
           type: 'object',
           required: ['mfaSessionId', 'code'],
-          properties: {
-            mfaSessionId: { type: 'string' },
-            code: { type: 'string' },
-          },
+          properties: { mfaSessionId: { type: 'string' }, code: { type: 'string' } },
         },
       },
     },
   },
-  responses: {
-    200: {
-      description: 'MFA verified',
-      content: { 'application/json': { schema: { $ref: '#/components/schemas/OkResponse' } } },
-    },
-  },
+  responses: ok200(),
 })
-
 registry.registerPath({
   method: 'post',
   path: '/auth/corporate/invite-team',
@@ -150,10 +115,7 @@ registry.registerPath({
               type: 'array',
               items: {
                 type: 'object',
-                properties: {
-                  email: { type: 'string', format: 'email' },
-                  role: { type: 'string' },
-                },
+                properties: { email: { type: 'string', format: 'email' }, role: { type: 'string' } },
               },
             },
           },
@@ -161,10 +123,5 @@ registry.registerPath({
       },
     },
   },
-  responses: {
-    200: {
-      description: 'Invitations sent',
-      content: { 'application/json': { schema: { $ref: '#/components/schemas/OkResponse' } } },
-    },
-  },
+  responses: ok200(),
 })

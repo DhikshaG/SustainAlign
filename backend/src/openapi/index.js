@@ -1,7 +1,4 @@
 import registry from './registry.js'
-import { registerCommonComponents } from './components.js'
-
-registerCommonComponents(registry)
 
 import './annotations/health.js'
 import './annotations/public.js'

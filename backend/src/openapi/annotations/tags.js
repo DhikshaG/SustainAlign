@@ -1,14 +1,10 @@
 import registry from '../registry.js'
+import { okSchema } from '../components.js'
 
-const auth = [{ bearerAuth: [] }]
-function okRef() {
-  return {
-    200: {
-      description: 'OK',
-      content: { 'application/json': { schema: { $ref: '#/components/schemas/OkResponse' } } },
-    },
-  }
+function ok200() {
+  return { 200: { description: 'OK', content: { 'application/json': { schema: okSchema } } } }
 }
+const auth = [{ bearerAuth: [] }]
 
 registry.registerPath({
   method: 'get',
@@ -16,7 +12,7 @@ registry.registerPath({
   summary: 'List tag categories',
   security: auth,
   tags: ['Tags'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'get',
@@ -25,7 +21,7 @@ registry.registerPath({
   security: auth,
   tags: ['Tags'],
   parameters: [{ name: 'category', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'get',
@@ -37,7 +33,7 @@ registry.registerPath({
     { name: 'type', in: 'path', required: true, schema: { type: 'string' } },
     { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
   ],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'put',
@@ -49,5 +45,5 @@ registry.registerPath({
     { name: 'type', in: 'path', required: true, schema: { type: 'string' } },
     { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
   ],
-  responses: okRef(),
+  responses: ok200(),
 })

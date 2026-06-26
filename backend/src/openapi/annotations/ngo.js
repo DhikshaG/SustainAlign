@@ -1,14 +1,9 @@
 import registry from '../registry.js'
+import { okSchema } from '../components.js'
 
 const auth = [{ bearerAuth: [] }]
-
-function okRef() {
-  return {
-    200: {
-      description: 'OK',
-      content: { 'application/json': { schema: { $ref: '#/components/schemas/OkResponse' } } },
-    },
-  }
+function ok200() {
+  return { 200: { description: 'OK', content: { 'application/json': { schema: okSchema } } } }
 }
 
 registry.registerPath({
@@ -17,7 +12,7 @@ registry.registerPath({
   summary: 'NGO dashboard summary',
   security: auth,
   tags: ['NGO'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'get',
@@ -25,7 +20,7 @@ registry.registerPath({
   summary: 'List NGO projects',
   security: auth,
   tags: ['NGO', 'Projects'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'get',
@@ -34,7 +29,7 @@ registry.registerPath({
   security: auth,
   tags: ['NGO', 'Projects'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'patch',
@@ -46,7 +41,7 @@ registry.registerPath({
     { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
     { name: 'mid', in: 'path', required: true, schema: { type: 'string' } },
   ],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -55,7 +50,7 @@ registry.registerPath({
   security: auth,
   tags: ['NGO', 'Projects'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'get',
@@ -63,7 +58,7 @@ registry.registerPath({
   summary: 'List NGO beneficiary logs',
   security: auth,
   tags: ['NGO', 'Impact'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -72,7 +67,7 @@ registry.registerPath({
   security: auth,
   tags: ['NGO', 'Impact'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -81,7 +76,7 @@ registry.registerPath({
   security: auth,
   tags: ['NGO', 'Impact'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -90,7 +85,7 @@ registry.registerPath({
   security: auth,
   tags: ['NGO', 'Impact'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -102,23 +97,25 @@ registry.registerPath({
     { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
     { name: 'uid', in: 'path', required: true, schema: { type: 'string' } },
   ],
-  responses: okRef(),
+  responses: ok200(),
 })
+
 registry.registerPath({
   method: 'get',
   path: '/ngo/finance/summary',
   summary: 'NGO finance summary',
   security: auth,
   tags: ['NGO'],
-  responses: okRef(),
+  responses: ok200(),
 })
+
 registry.registerPath({
   method: 'get',
   path: '/ngo/profile',
   summary: 'Get NGO profile',
   security: auth,
   tags: ['NGO', 'Profile'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'patch',
@@ -126,7 +123,7 @@ registry.registerPath({
   summary: 'Update NGO profile',
   security: auth,
   tags: ['NGO', 'Profile'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'get',
@@ -134,7 +131,7 @@ registry.registerPath({
   summary: 'Get NGO team members',
   security: auth,
   tags: ['NGO', 'Profile'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'put',
@@ -142,7 +139,7 @@ registry.registerPath({
   summary: 'Replace NGO team',
   security: auth,
   tags: ['NGO', 'Profile'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'get',
@@ -150,7 +147,7 @@ registry.registerPath({
   summary: 'Get past projects',
   security: auth,
   tags: ['NGO', 'Profile'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'put',
@@ -158,7 +155,7 @@ registry.registerPath({
   summary: 'Replace past projects',
   security: auth,
   tags: ['NGO', 'Profile'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'get',
@@ -166,7 +163,7 @@ registry.registerPath({
   summary: 'Get impact metrics',
   security: auth,
   tags: ['NGO', 'Profile'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'put',
@@ -174,7 +171,7 @@ registry.registerPath({
   summary: 'Replace impact metrics',
   security: auth,
   tags: ['NGO', 'Profile'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'get',
@@ -182,7 +179,7 @@ registry.registerPath({
   summary: 'List impact stories',
   security: auth,
   tags: ['NGO', 'Profile'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -190,7 +187,7 @@ registry.registerPath({
   summary: 'Add impact story',
   security: auth,
   tags: ['NGO', 'Profile'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'patch',
@@ -199,7 +196,7 @@ registry.registerPath({
   security: auth,
   tags: ['NGO', 'Profile'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'delete',
@@ -208,7 +205,7 @@ registry.registerPath({
   security: auth,
   tags: ['NGO', 'Profile'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'get',
@@ -216,7 +213,7 @@ registry.registerPath({
   summary: 'List certifications',
   security: auth,
   tags: ['NGO', 'Profile'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -224,7 +221,7 @@ registry.registerPath({
   summary: 'Add certification',
   security: auth,
   tags: ['NGO', 'Profile'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'patch',
@@ -233,7 +230,7 @@ registry.registerPath({
   security: auth,
   tags: ['NGO', 'Profile'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'delete',
@@ -242,7 +239,7 @@ registry.registerPath({
   security: auth,
   tags: ['NGO', 'Profile'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'get',
@@ -250,7 +247,7 @@ registry.registerPath({
   summary: 'List verification documents',
   security: auth,
   tags: ['NGO', 'Profile'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'get',
@@ -258,7 +255,7 @@ registry.registerPath({
   summary: 'List media files',
   security: auth,
   tags: ['NGO', 'Profile'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -266,7 +263,7 @@ registry.registerPath({
   summary: 'Upload media file',
   security: auth,
   tags: ['NGO', 'Profile'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'delete',
@@ -275,15 +272,16 @@ registry.registerPath({
   security: auth,
   tags: ['NGO', 'Profile'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
+
 registry.registerPath({
   method: 'get',
   path: '/ngo/partnership-requests',
   summary: 'List partnership requests',
   security: auth,
   tags: ['NGO', 'Partnerships'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -292,7 +290,7 @@ registry.registerPath({
   security: auth,
   tags: ['NGO', 'Partnerships'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 
 registry.registerPath({
@@ -301,7 +299,7 @@ registry.registerPath({
   summary: 'List NGO communication threads',
   security: auth,
   tags: ['NGO', 'Communications'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'get',
@@ -310,7 +308,7 @@ registry.registerPath({
   security: auth,
   tags: ['NGO', 'Communications'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -319,7 +317,7 @@ registry.registerPath({
   security: auth,
   tags: ['NGO', 'Communications'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'get',
@@ -328,7 +326,7 @@ registry.registerPath({
   security: auth,
   tags: ['NGO', 'Communications'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'get',
@@ -337,7 +335,7 @@ registry.registerPath({
   security: auth,
   tags: ['NGO', 'Tasks'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -346,7 +344,7 @@ registry.registerPath({
   security: auth,
   tags: ['NGO', 'Tasks'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'patch',
@@ -358,7 +356,7 @@ registry.registerPath({
     { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
     { name: 'taskId', in: 'path', required: true, schema: { type: 'string' } },
   ],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -370,7 +368,7 @@ registry.registerPath({
     { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
     { name: 'mid', in: 'path', required: true, schema: { type: 'string' } },
   ],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'get',
@@ -379,7 +377,7 @@ registry.registerPath({
   security: auth,
   tags: ['NGO', 'Projects'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'get',
@@ -387,5 +385,5 @@ registry.registerPath({
   summary: 'List NGO submissions/inbox',
   security: auth,
   tags: ['NGO', 'Workflows'],
-  responses: okRef(),
+  responses: ok200(),
 })

@@ -1,23 +1,9 @@
 import registry from '../registry.js'
+import { okSchema } from '../components.js'
 
 const auth = [{ bearerAuth: [] }]
-
-function okRef() {
-  return {
-    200: {
-      description: 'OK',
-      content: { 'application/json': { schema: { $ref: '#/components/schemas/OkResponse' } } },
-    },
-  }
-}
-
-function ok201() {
-  return {
-    201: {
-      description: 'Created',
-      content: { 'application/json': { schema: { $ref: '#/components/schemas/CreatedResponse' } } },
-    },
-  }
+function ok200() {
+  return { 200: { description: 'OK', content: { 'application/json': { schema: okSchema } } } }
 }
 
 registry.registerPath({
@@ -26,7 +12,7 @@ registry.registerPath({
   summary: 'Corporate dashboard summary',
   security: auth,
   tags: ['Corporate'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'get',
@@ -34,7 +20,7 @@ registry.registerPath({
   summary: 'Discovery filter options',
   security: auth,
   tags: ['Corporate', 'Discovery'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'get',
@@ -42,7 +28,7 @@ registry.registerPath({
   summary: 'AI matching defaults from projects',
   security: auth,
   tags: ['Corporate', 'Discovery'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'get',
@@ -58,16 +44,15 @@ registry.registerPath({
     { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
     { name: 'limit', in: 'query', schema: { type: 'integer', default: 20 } },
   ],
-  responses: okRef(),
+  responses: ok200(),
 })
-
 registry.registerPath({
   method: 'get',
   path: '/corporate/saved-ngos',
   summary: 'List saved NGOs',
   security: auth,
   tags: ['Corporate', 'Discovery'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -76,7 +61,7 @@ registry.registerPath({
   security: auth,
   tags: ['Corporate', 'Discovery'],
   parameters: [{ name: 'slug', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'delete',
@@ -85,7 +70,7 @@ registry.registerPath({
   security: auth,
   tags: ['Corporate', 'Discovery'],
   parameters: [{ name: 'slug', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -105,7 +90,7 @@ registry.registerPath({
       },
     },
   },
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'get',
@@ -114,7 +99,7 @@ registry.registerPath({
   security: auth,
   tags: ['Corporate', 'Discovery'],
   parameters: [{ name: 'slug', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 
 registry.registerPath({
@@ -123,7 +108,7 @@ registry.registerPath({
   summary: 'List corporate projects',
   security: auth,
   tags: ['Corporate', 'Projects'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -147,7 +132,7 @@ registry.registerPath({
       },
     },
   },
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'get',
@@ -156,7 +141,7 @@ registry.registerPath({
   security: auth,
   tags: ['Corporate', 'Projects'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'patch',
@@ -165,7 +150,7 @@ registry.registerPath({
   security: auth,
   tags: ['Corporate', 'Projects'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'delete',
@@ -174,7 +159,7 @@ registry.registerPath({
   security: auth,
   tags: ['Corporate', 'Projects'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 
 registry.registerPath({
@@ -184,7 +169,7 @@ registry.registerPath({
   security: auth,
   tags: ['Corporate', 'Projects'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'patch',
@@ -196,7 +181,7 @@ registry.registerPath({
     { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
     { name: 'mid', in: 'path', required: true, schema: { type: 'string' } },
   ],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'delete',
@@ -208,9 +193,8 @@ registry.registerPath({
     { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
     { name: 'mid', in: 'path', required: true, schema: { type: 'string' } },
   ],
-  responses: okRef(),
+  responses: ok200(),
 })
-
 registry.registerPath({
   method: 'post',
   path: '/corporate/projects/{id}/updates',
@@ -218,7 +202,7 @@ registry.registerPath({
   security: auth,
   tags: ['Corporate', 'Projects'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -230,7 +214,7 @@ registry.registerPath({
     { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
     { name: 'uid', in: 'path', required: true, schema: { type: 'string' } },
   ],
-  responses: okRef(),
+  responses: ok200(),
 })
 
 registry.registerPath({
@@ -240,7 +224,7 @@ registry.registerPath({
   security: auth,
   tags: ['Corporate', 'Impact'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -249,7 +233,7 @@ registry.registerPath({
   security: auth,
   tags: ['Corporate', 'Impact'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -258,7 +242,7 @@ registry.registerPath({
   security: auth,
   tags: ['Corporate', 'Impact'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'patch',
@@ -267,7 +251,7 @@ registry.registerPath({
   security: auth,
   tags: ['Corporate', 'Projects'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 
 registry.registerPath({
@@ -276,7 +260,7 @@ registry.registerPath({
   summary: 'Compliance summary',
   security: auth,
   tags: ['Corporate', 'Compliance'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'patch',
@@ -284,7 +268,7 @@ registry.registerPath({
   summary: 'Update CSR profile',
   security: auth,
   tags: ['Corporate', 'Compliance'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'patch',
@@ -293,7 +277,7 @@ registry.registerPath({
   security: auth,
   tags: ['Corporate', 'Compliance'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -301,7 +285,7 @@ registry.registerPath({
   summary: 'Run compliance check',
   security: auth,
   tags: ['Corporate', 'Compliance'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'get',
@@ -309,7 +293,7 @@ registry.registerPath({
   summary: 'Export MCA CSR-2 data',
   security: auth,
   tags: ['Corporate', 'Compliance'],
-  responses: okRef(),
+  responses: ok200(),
 })
 
 registry.registerPath({
@@ -318,15 +302,7 @@ registry.registerPath({
   summary: 'Reporting overview',
   security: auth,
   tags: ['Corporate', 'Reporting'],
-  responses: okRef(),
-})
-registry.registerPath({
-  method: 'get',
-  path: '/corporate/esg/unified',
-  summary: 'Unified ESG dashboard',
-  security: auth,
-  tags: ['Corporate', 'ESG'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'get',
@@ -334,7 +310,7 @@ registry.registerPath({
   summary: 'List generated reports',
   security: auth,
   tags: ['Corporate', 'Reporting'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -342,7 +318,7 @@ registry.registerPath({
   summary: 'Generate a report',
   security: auth,
   tags: ['Corporate', 'Reporting'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -350,7 +326,7 @@ registry.registerPath({
   summary: 'Preview a report',
   security: auth,
   tags: ['Corporate', 'Reporting'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'get',
@@ -359,7 +335,7 @@ registry.registerPath({
   security: auth,
   tags: ['Corporate', 'Reporting'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -368,7 +344,15 @@ registry.registerPath({
   security: auth,
   tags: ['Corporate', 'Reporting'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
+})
+registry.registerPath({
+  method: 'get',
+  path: '/corporate/esg/unified',
+  summary: 'Unified ESG dashboard',
+  security: auth,
+  tags: ['Corporate', 'ESG'],
+  responses: ok200(),
 })
 
 registry.registerPath({
@@ -377,7 +361,7 @@ registry.registerPath({
   summary: 'Fund allocation data',
   security: auth,
   tags: ['Corporate', 'Funds'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -385,7 +369,7 @@ registry.registerPath({
   summary: 'AI fund allocation intelligence',
   security: auth,
   tags: ['Corporate', 'Funds'],
-  responses: okRef(),
+  responses: ok200(),
 })
 
 registry.registerPath({
@@ -394,7 +378,7 @@ registry.registerPath({
   summary: 'Volunteer program summary',
   security: auth,
   tags: ['Corporate', 'Volunteers'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'get',
@@ -402,7 +386,7 @@ registry.registerPath({
   summary: 'List volunteer events',
   security: auth,
   tags: ['Corporate', 'Volunteers'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -410,7 +394,7 @@ registry.registerPath({
   summary: 'Create volunteer event',
   security: auth,
   tags: ['Corporate', 'Volunteers'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'get',
@@ -418,7 +402,8 @@ registry.registerPath({
   summary: 'Get volunteer event',
   security: auth,
   tags: ['Corporate', 'Volunteers'],
-  responses: okRef(),
+  parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'patch',
@@ -426,7 +411,8 @@ registry.registerPath({
   summary: 'Update volunteer event',
   security: auth,
   tags: ['Corporate', 'Volunteers'],
-  responses: okRef(),
+  parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'get',
@@ -434,7 +420,7 @@ registry.registerPath({
   summary: 'List volunteer signups',
   security: auth,
   tags: ['Corporate', 'Volunteers'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'get',
@@ -442,7 +428,7 @@ registry.registerPath({
   summary: 'Volunteer calendar events',
   security: auth,
   tags: ['Corporate', 'Volunteers'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -451,7 +437,7 @@ registry.registerPath({
   security: auth,
   tags: ['Corporate', 'Volunteers'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'delete',
@@ -460,7 +446,7 @@ registry.registerPath({
   security: auth,
   tags: ['Corporate', 'Volunteers'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -469,7 +455,7 @@ registry.registerPath({
   security: auth,
   tags: ['Corporate', 'Volunteers'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'get',
@@ -478,7 +464,7 @@ registry.registerPath({
   security: auth,
   tags: ['Corporate', 'Volunteers'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -486,7 +472,7 @@ registry.registerPath({
   summary: 'Check in with QR token',
   security: auth,
   tags: ['Corporate', 'Volunteers'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -495,7 +481,7 @@ registry.registerPath({
   security: auth,
   tags: ['Corporate', 'Volunteers'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -504,7 +490,7 @@ registry.registerPath({
   security: auth,
   tags: ['Corporate', 'Volunteers'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'get',
@@ -513,7 +499,7 @@ registry.registerPath({
   security: auth,
   tags: ['Corporate', 'Volunteers'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 
 registry.registerPath({
@@ -522,7 +508,7 @@ registry.registerPath({
   summary: 'Corporate audit trail',
   security: auth,
   tags: ['Corporate', 'Audit'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'get',
@@ -530,7 +516,7 @@ registry.registerPath({
   summary: 'Audit folder tree',
   security: auth,
   tags: ['Corporate', 'Audit'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -538,7 +524,12 @@ registry.registerPath({
   summary: 'Export audit package (ZIP)',
   security: auth,
   tags: ['Corporate', 'Audit'],
-  responses: { 200: { description: 'ZIP file download', content: { 'application/zip': {} } } },
+  responses: {
+    200: {
+      description: 'ZIP file download',
+      content: { 'application/zip': { schema: { type: 'string', format: 'binary' } } },
+    },
+  },
 })
 
 registry.registerPath({
@@ -547,7 +538,7 @@ registry.registerPath({
   summary: 'List grouped documents',
   security: auth,
   tags: ['Corporate', 'Documents'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'get',
@@ -556,7 +547,7 @@ registry.registerPath({
   security: auth,
   tags: ['Corporate', 'Documents'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -565,7 +556,7 @@ registry.registerPath({
   security: auth,
   tags: ['Corporate', 'Documents'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 
 registry.registerPath({
@@ -574,7 +565,7 @@ registry.registerPath({
   summary: 'Get permission matrix',
   security: auth,
   tags: ['Corporate', 'Settings'],
-  responses: okRef(),
+  responses: ok200(),
 })
 
 registry.registerPath({
@@ -583,7 +574,7 @@ registry.registerPath({
   summary: 'List communication threads',
   security: auth,
   tags: ['Corporate', 'Communications'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -591,7 +582,7 @@ registry.registerPath({
   summary: 'Create thread',
   security: auth,
   tags: ['Corporate', 'Communications'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'get',
@@ -600,7 +591,7 @@ registry.registerPath({
   security: auth,
   tags: ['Corporate', 'Communications'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -609,7 +600,7 @@ registry.registerPath({
   security: auth,
   tags: ['Corporate', 'Communications'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 
 registry.registerPath({
@@ -619,7 +610,7 @@ registry.registerPath({
   security: auth,
   tags: ['Corporate', 'Communications'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'get',
@@ -628,7 +619,7 @@ registry.registerPath({
   security: auth,
   tags: ['Corporate', 'Projects'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -637,7 +628,7 @@ registry.registerPath({
   security: auth,
   tags: ['Corporate', 'Projects'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'patch',
@@ -649,7 +640,7 @@ registry.registerPath({
     { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
     { name: 'taskId', in: 'path', required: true, schema: { type: 'string' } },
   ],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'get',
@@ -658,7 +649,7 @@ registry.registerPath({
   security: auth,
   tags: ['Corporate', 'Projects'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 
 registry.registerPath({
@@ -667,7 +658,7 @@ registry.registerPath({
   summary: 'Get AI copilot suggestions',
   security: auth,
   tags: ['Corporate', 'AI'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -675,7 +666,7 @@ registry.registerPath({
   summary: 'Chat with RAG copilot',
   security: auth,
   tags: ['Corporate', 'AI'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -683,7 +674,7 @@ registry.registerPath({
   summary: 'RAG NGO recommendations',
   security: auth,
   tags: ['Corporate', 'AI'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -691,7 +682,7 @@ registry.registerPath({
   summary: 'Reindex all vectors',
   security: auth,
   tags: ['Corporate', 'AI'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -699,7 +690,7 @@ registry.registerPath({
   summary: 'Match NGOs using AI',
   security: auth,
   tags: ['Corporate', 'AI'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -707,7 +698,7 @@ registry.registerPath({
   summary: 'AI-powered search',
   security: auth,
   tags: ['Corporate', 'AI'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -715,7 +706,7 @@ registry.registerPath({
   summary: 'Generate narrative text',
   security: auth,
   tags: ['Corporate', 'AI'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -723,7 +714,7 @@ registry.registerPath({
   summary: 'Generate impact summary',
   security: auth,
   tags: ['Corporate', 'AI'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'post',
@@ -731,7 +722,7 @@ registry.registerPath({
   summary: 'Generate ESG summary',
   security: auth,
   tags: ['Corporate', 'ESG'],
-  responses: okRef(),
+  responses: ok200(),
 })
 
 registry.registerPath({
@@ -740,5 +731,5 @@ registry.registerPath({
   summary: 'Live impact snapshot',
   security: auth,
   tags: ['Corporate', 'Impact'],
-  responses: okRef(),
+  responses: ok200(),
 })

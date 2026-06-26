@@ -1,12 +1,8 @@
 import registry from '../registry.js'
+import { okSchema } from '../components.js'
 
-function okRef() {
-  return {
-    200: {
-      description: 'OK',
-      content: { 'application/json': { schema: { $ref: '#/components/schemas/OkResponse' } } },
-    },
-  }
+function ok200() {
+  return { 200: { description: 'OK', content: { 'application/json': { schema: okSchema } } } }
 }
 
 registry.registerPath({
@@ -20,9 +16,8 @@ registry.registerPath({
     { name: 'types', in: 'query', schema: { type: 'string' }, description: 'Comma-separated entity types' },
     { name: 'limit', in: 'query', schema: { type: 'integer', default: 20 } },
   ],
-  responses: okRef(),
+  responses: ok200(),
 })
-
 registry.registerPath({
   method: 'get',
   path: '/search/public',
@@ -32,5 +27,5 @@ registry.registerPath({
     { name: 'q', in: 'query', required: true, schema: { type: 'string' } },
     { name: 'limit', in: 'query', schema: { type: 'integer', default: 10 } },
   ],
-  responses: okRef(),
+  responses: ok200(),
 })

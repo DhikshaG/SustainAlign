@@ -1,9 +1,12 @@
-import { OpenApiRegistry } from '@asteasolutions/zod-to-openapi'
+import pkg from '@asteasolutions/zod-to-openapi'
+const { OpenAPIRegistry, OpenApiGeneratorV3 } = pkg
 
-const registry = new OpenApiRegistry()
+const registry = new OpenAPIRegistry()
 
 export function generateSpec() {
-  return registry.generateSpec({
+  const generator = new OpenApiGeneratorV3(registry.definitions)
+
+  return generator.generateDocument({
     openapi: '3.0.3',
     info: {
       title: 'SustainAlign API',

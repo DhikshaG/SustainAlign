@@ -7,6 +7,7 @@ import { errorHandler, notFound } from './middleware/error-handler.js'
 import { apiRateLimit } from './middleware/rate-limit-auth.js'
 import apiRoutes from './routes/index.js'
 import healthRoutes from './routes/health.js'
+import docsRoutes from './openapi/docs.js'
 import { createRequestLogger } from './lib/logger.js'
 import { metricsMiddleware, metricsRoute, isMetricsEnabled } from './lib/metrics.js'
 import { initSentry, getSentryRequestHandler, getSentryErrorHandler } from './lib/sentry.js'
@@ -46,6 +47,8 @@ export function createApp() {
 
   mountRoutes(API_V1)
   mountRoutes(API_LEGACY)
+
+  app.use('/api/docs', docsRoutes)
 
   const sentryErrHandler = getSentryErrorHandler()
   if (sentryErrHandler) {

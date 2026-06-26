@@ -1,14 +1,10 @@
 import registry from '../registry.js'
+import { okSchema } from '../components.js'
 
-const auth = [{ bearerAuth: [] }]
-function okRef() {
-  return {
-    200: {
-      description: 'OK',
-      content: { 'application/json': { schema: { $ref: '#/components/schemas/OkResponse' } } },
-    },
-  }
+function ok200() {
+  return { 200: { description: 'OK', content: { 'application/json': { schema: okSchema } } } }
 }
+const auth = [{ bearerAuth: [] }]
 
 registry.registerPath({
   method: 'post',
@@ -32,16 +28,15 @@ registry.registerPath({
       },
     },
   },
-  responses: okRef(),
+  responses: ok200(),
 })
-
 registry.registerPath({
   method: 'get',
   path: '/files',
   summary: 'List files',
   security: auth,
   tags: ['Files'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'get',
@@ -50,7 +45,7 @@ registry.registerPath({
   security: auth,
   tags: ['Files'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'get',
@@ -59,5 +54,10 @@ registry.registerPath({
   security: auth,
   tags: ['Files'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: { 200: { description: 'File binary', content: { 'application/octet-stream': {} } } },
+  responses: {
+    200: {
+      description: 'File binary',
+      content: { 'application/octet-stream': { schema: { type: 'string', format: 'binary' } } },
+    },
+  },
 })

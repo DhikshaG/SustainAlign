@@ -1,4 +1,12 @@
 import registry from '../registry.js'
+import { okSchema, createdSchema } from '../components.js'
+
+function ok200() {
+  return { 200: { description: 'OK', content: { 'application/json': { schema: okSchema } } } }
+}
+function created201() {
+  return { 201: { description: 'Created', content: { 'application/json': { schema: createdSchema } } } }
+}
 
 registry.registerPath({
   method: 'post',
@@ -22,14 +30,8 @@ registry.registerPath({
       },
     },
   },
-  responses: {
-    201: {
-      description: 'NGO registered',
-      content: { 'application/json': { schema: { $ref: '#/components/schemas/CreatedResponse' } } },
-    },
-  },
+  responses: created201(),
 })
-
 registry.registerPath({
   method: 'post',
   path: '/auth/ngo/login',
@@ -41,22 +43,13 @@ registry.registerPath({
         schema: {
           type: 'object',
           required: ['email', 'password'],
-          properties: {
-            email: { type: 'string', format: 'email' },
-            password: { type: 'string' },
-          },
+          properties: { email: { type: 'string', format: 'email' }, password: { type: 'string' } },
         },
       },
     },
   },
-  responses: {
-    200: {
-      description: 'Login successful',
-      content: { 'application/json': { schema: { $ref: '#/components/schemas/OkResponse' } } },
-    },
-  },
+  responses: ok200(),
 })
-
 registry.registerPath({
   method: 'post',
   path: '/auth/ngo/verification',
@@ -78,10 +71,5 @@ registry.registerPath({
       },
     },
   },
-  responses: {
-    200: {
-      description: 'Documents received',
-      content: { 'application/json': { schema: { $ref: '#/components/schemas/OkResponse' } } },
-    },
-  },
+  responses: ok200(),
 })

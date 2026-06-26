@@ -1,14 +1,10 @@
 import registry from '../registry.js'
+import { okSchema } from '../components.js'
 
-const auth = [{ bearerAuth: [] }]
-function okRef() {
-  return {
-    200: {
-      description: 'OK',
-      content: { 'application/json': { schema: { $ref: '#/components/schemas/OkResponse' } } },
-    },
-  }
+function ok200() {
+  return { 200: { description: 'OK', content: { 'application/json': { schema: okSchema } } } }
 }
+const auth = [{ bearerAuth: [] }]
 
 registry.registerPath({
   method: 'get',
@@ -16,8 +12,7 @@ registry.registerPath({
   summary: 'List notifications',
   security: auth,
   tags: ['Notifications'],
-  parameters: [{ name: 'limit', in: 'query', schema: { type: 'integer', default: 30 } }],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'patch',
@@ -25,7 +20,7 @@ registry.registerPath({
   summary: 'Mark all notifications as read',
   security: auth,
   tags: ['Notifications'],
-  responses: okRef(),
+  responses: ok200(),
 })
 registry.registerPath({
   method: 'patch',
@@ -34,5 +29,5 @@ registry.registerPath({
   security: auth,
   tags: ['Notifications'],
   parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-  responses: okRef(),
+  responses: ok200(),
 })
