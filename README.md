@@ -2,7 +2,6 @@
 
 <img src="docs/images/logo.png" alt="SustainAlign Logo" width="100" height="100" style="vertical-align: middle; margin-right: 10px;" />
 
-
 # 🌱 SustainAlign 🌱
 
 **End-to-End CSR/ESG Management & Alignment Platform with AI Agents**
@@ -41,18 +40,16 @@ SustainAlign is the first India-first, AI-agentic CSR & ESG platform It connects
 
 📑 Reporting → Audit-proof CSR + ESG compliance (MCA, SEBI, GRI, SASB, UN SDGs)
 
-
-
 👉 SustainAlign = LinkedIn + Bloomberg Terminal for CSR & ESG in India.
 
-Not just an idea. Not just a demo. A working prototype solving a real India-first problem 
----
+## Not just an idea. Not just a demo. A working prototype solving a real India-first problem
 
 ## 🎯 Problem Statement
 
 ![Problem Statement](docs/images/problem_statement.png)
 
 **The Challenge**: Corporates in India face mandatory CSR spending requirements but struggle with:
+
 - **Project Discovery**: Finding the right NGOs and projects aligned to their goals
 - **Manual Reporting**: Scattered, time-consuming compliance documentation
 - **Transparency Issues**: Lack of visibility into CSR fund utilization and impact
@@ -68,6 +65,7 @@ SustainAlign is an AI-powered CSR-focused platform designed to connect NGO proje
 ![Solution Features](docs/images/solution_features.png)
 
 **Our AI-Agent Ecosystem**:
+
 - **🤖 Agent 1 (Discovery)**: Intelligent project discovery and filtering
 - **🎯 Agent 2 (Alignment)**: Company-project matching and scoring
 - **📊 Agent 3 (Evaluation)**: Risk assessment and credibility scoring
@@ -82,6 +80,7 @@ SustainAlign is an AI-powered CSR-focused platform designed to connect NGO proje
 ![Target Users](docs/images/target_users.png)
 
 **Primary Stakeholders**:
+
 - **🏢 Corporate Users**: Sustainability officers, CSR managers, decision-makers
 - **🌍 NGOs**: Project managers, impact coordinators, community leaders
 - **🏛️ Regulators**: Government bodies, compliance officers, auditors
@@ -94,6 +93,7 @@ SustainAlign is an AI-powered CSR-focused platform designed to connect NGO proje
 ### Before SustainAlign
 
 **Traditional Challenges**:
+
 - Manual project discovery through scattered sources
 - Time-consuming approval processes
 - Limited transparency in fund utilization
@@ -102,8 +102,8 @@ SustainAlign is an AI-powered CSR-focused platform designed to connect NGO proje
 
 ### After SustainAlign Implementation
 
-
 **Modern Solutions**:
+
 - AI-powered project discovery and matching
 - Streamlined approval workflows
 - Real-time transparency and tracking
@@ -111,11 +111,13 @@ SustainAlign is an AI-powered CSR-focused platform designed to connect NGO proje
 - Comprehensive impact analytics
 
 ### Enhanced Impact Areas
+
 <div align="center">
 <img src="docs/images/before%20vs%20after%203.jpg" alt="Enhanced Impact Areas" width="600" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin: 20px 0;" />
 </div>
 
 **Improved Outcomes**:
+
 - Better project alignment with corporate goals
 - Increased NGO visibility and funding opportunities
 - Enhanced regulatory compliance and transparency
@@ -128,6 +130,7 @@ SustainAlign is an AI-powered CSR-focused platform designed to connect NGO proje
 ### Primary Impact Sectors
 
 **Key Focus Areas**:
+
 - **Education**: Digital literacy, skill development, rural education
 - **Healthcare**: Primary healthcare, maternal health, disease prevention
 - **Environment**: Afforestation, waste management, renewable energy
@@ -135,11 +138,13 @@ SustainAlign is an AI-powered CSR-focused platform designed to connect NGO proje
 - **Women Empowerment**: Skill training, entrepreneurship, leadership
 
 ### Regional Impact Distribution
+
 <div align="center">
 <img src="docs/images/India%20Impact%20areas%202.png.jpg" alt="Regional Impact Areas" width="300" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin: 20px 0;" />
 </div>
 
 **Geographic Coverage**:
+
 - **North India**: Education and healthcare initiatives
 - **South India**: Technology and skill development
 - **East India**: Rural development and agriculture
@@ -155,6 +160,7 @@ SustainAlign is an AI-powered CSR-focused platform designed to connect NGO proje
 </div>
 
 **Platform Ecosystem**:
+
 - **Corporate ↔ NGO**: Direct project funding and collaboration
 - **NGO ↔ Community**: Local impact and beneficiary engagement
 - **Corporate ↔ Regulator**: Compliance reporting and transparency
@@ -164,6 +170,7 @@ SustainAlign is an AI-powered CSR-focused platform designed to connect NGO proje
 ---
 
 ## ✨ Platform Highlights
+
 - 🎨 **Elegant UI**: React 19 + Tailwind v4 with soft gradients, rounded cards, and subtle motion
 - 📈 **Insightful Charts**: Recharts dashboards (allocation, trends, ESG, SDG); transparent cards for dark-on-light clarity
 - 🧭 **App Shell**: Role-aware TopNav and modular routes (Discovery, Alignment, Decision, Monitoring, Reporting)
@@ -174,6 +181,7 @@ SustainAlign is an AI-powered CSR-focused platform designed to connect NGO proje
 ---
 
 ## 🔗 Quick Links
+
 - Frontend guide: `frontend/README.md`
 - Backend guide: `backend/README.md`
 - Docker Setup: `DOCKER_README.md`
@@ -246,36 +254,39 @@ The Vite dev server proxies `/api` to the backend on `:3001`.
 
 All demo accounts use the password **`Demo@12345`**. Full list in [`docs/DEMO.md`](docs/DEMO.md).
 
-| Portal | Example login | Entry URL |
-|--------|---------------|-----------|
-| Corporate (Acme Corp) | `admin@acme.com` | `/login/corporate` |
-| NGO (Green Earth Foundation) | `admin@greenearth.org` | `/login/ngo` |
-| Platform admin | `platform@sustainalign.com` | `/login/corporate` → `/admin` |
+| Portal                       | Example login               | Entry URL                     |
+| ---------------------------- | --------------------------- | ----------------------------- |
+| Corporate (Acme Corp)        | `admin@acme.com`            | `/login/corporate`            |
+| NGO (Green Earth Foundation) | `admin@greenearth.org`      | `/login/ngo`                  |
+| Platform admin               | `platform@sustainalign.com` | `/login/corporate` → `/admin` |
 
 ### Common scripts
 
 **Root**
 
-| Script | Action |
-|--------|--------|
-| `npm run dev:backend` | Start backend API in watch mode |
-| `npm run dev:frontend` | Start frontend Vite dev server |
-| `npm run build` | Production-build the frontend |
-| `npm test` | Run tests in all workspaces that define them |
-| `npm run lint` | Run linters in all workspaces that define them |
+| Script                 | Action                                         |
+| ---------------------- | ---------------------------------------------- |
+| `npm run dev:backend`  | Start backend API in watch mode                |
+| `npm run dev:frontend` | Start frontend Vite dev server                 |
+| `npm run build`        | Production-build the frontend                  |
+| `npm test`             | Run tests in all workspaces that define them   |
+| `npm run lint`         | Run linters in all workspaces that define them |
 
 **Backend (`cd backend`)** — see `backend/package.json` for the full list. Highlights:
 
-| Script | Action |
-|--------|--------|
-| `npm run dev` / `npm start` | Watch / production server |
-| `npm run db:generate` | Generate a Drizzle migration from schema changes |
-| `npm run db:migrate` | Apply pending migrations |
-| `npm run db:reset` | Drop → migrate → full demo seed |
-| `npm run db:seed` | Seed base data (no demo enrichment) |
-| `npm run db:verify-e2e` | End-to-end post-seed verification |
-| `npm run db:verify-*` | Per-domain verifiers (ngo, discovery, projects, impact, reports, compliance, ai, matching, allocation, esg, crm, audit, volunteers, rag) |
-| `npm run db:studio` | Open Drizzle Studio |
+| Script                      | Action                                                                                                                                   |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run dev` / `npm start` | Watch / production server                                                                                                                |
+| `npm run db:generate`       | Generate a Drizzle migration from schema changes                                                                                         |
+| `npm run db:migrate`        | Apply pending migrations                                                                                                                 |
+| `npm run db:reset`          | Drop → migrate → full demo seed                                                                                                          |
+| `npm run db:seed`           | Seed base data (no demo enrichment)                                                                                                      |
+| `npm run db:verify-e2e`     | End-to-end post-seed verification                                                                                                        |
+| `npm run db:verify-*`       | Per-domain verifiers (ngo, discovery, projects, impact, reports, compliance, ai, matching, allocation, esg, crm, audit, volunteers, rag) |
+| `npm run db:studio`         | Open Drizzle Studio                                                                                                                      |
+| `npm run docs:generate`     | Generate `api-spec.json` + `api-spec.yaml`                                                                                               |
+| `npm run docs:postman`      | Export Postman collection (`sustainalign.postman_collection.json`)                                                                       |
+| —                           | `GET /api/docs` — Swagger UI (on `npm run dev`)                                                                                          |
 
 ### Architecture notes
 
@@ -299,11 +310,11 @@ All demo accounts use the password **`Demo@12345`**. Full list in [`docs/DEMO.md
 
 ### Roles & navigation
 
-| Portal | Roles | Key areas |
-|--------|-------|-----------|
-| Corporate | super_admin, csr_head, finance, compliance, esg_head, volunteer, board | discovery, projects, funds, compliance, reporting, copilot, volunteers, audit-trail |
-| NGO | ngo_admin, field_officer | profile, projects, partnership-requests, beneficiaries, finance |
-| Admin | platform_super_admin | overview, ngo-verification, fraud, analytics, support, compliance, ai-monitoring, content |
+| Portal    | Roles                                                                  | Key areas                                                                                 |
+| --------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Corporate | super_admin, csr_head, finance, compliance, esg_head, volunteer, board | discovery, projects, funds, compliance, reporting, copilot, volunteers, audit-trail       |
+| NGO       | ngo_admin, field_officer                                               | profile, projects, partnership-requests, beneficiaries, finance                           |
+| Admin     | platform_super_admin                                                   | overview, ngo-verification, fraud, analytics, support, compliance, ai-monitoring, content |
 
 ### Configuration
 
@@ -325,8 +336,8 @@ This codebase is being hardened in phases. Current status:
 - ✅ Phase 3 — Operational resilience (health checks, graceful shutdown, request IDs, CORS caching)
 - ✅ Phase 4 — Frontend perf (lazy loading, code splitting, meta tags, noscript)
 - ✅ Phase 5 — Deployment (Docker, docker-compose, nginx)
-- ⏳ Phase 6 — Test foundation (Vitest backend + frontend)
-- ⏳ Phase 7 — Launch polish (API versioning, OpenAPI, runbook, CI/CD)
+- ✅ Phase 6 — Test foundation + OpenAPI documentation (Vitest smoke tests + Swagger UI)
+- ⏳ Phase 7 — Launch polish (API versioning, runbook, CI/CD)
 
 **Database:** SQLite (WAL mode) is used. For an early-pilot launch this is sufficient with automated backups and a single-instance deploy. A Postgres migration is documented as a future milestone for horizontal scaling.
 
@@ -334,16 +345,18 @@ This codebase is being hardened in phases. Current status:
 
 Every push to `main` is automatically linted, built, tested, and ready to deploy.
 
-| Pipeline | Trigger | What it does |
-|----------|---------|-------------|
-| **CI** (`.github/workflows/ci.yml`) | Push / PR to `main` | `npm ci` → `lint` → `build` → `test` |
-| **CD** (`.github/workflows/deploy.yml`) | Push to `main` | SSH into VM → `git pull` → `docker compose up --build -d` → health check |
+| Pipeline                                | Trigger             | What it does                                                             |
+| --------------------------------------- | ------------------- | ------------------------------------------------------------------------ |
+| **CI** (`.github/workflows/ci.yml`)     | Push / PR to `main` | `npm ci` → `lint` → `build` → `test`                                     |
+| **CD** (`.github/workflows/deploy.yml`) | Push to `main`      | SSH into VM → `git pull` → `docker compose up --build -d` → health check |
 
 **Pre-commit hooks** (via husky):
+
 - `lint-staged` — lints and formats staged files
 - `commitlint` — enforces [conventional commits](https://www.conventionalcommits.org/)
 
 **Makefile shortcuts:**
+
 ```bash
 make ci        # lint + build + test (same as CI pipeline)
 make test      # run all tests
@@ -353,24 +366,28 @@ make deploy    # one-command deploy (requires SSH setup)
 ### Deploy notes
 
 **Docker (recommended):**
+
 ```bash
 cp backend/.env.example backend/.env  # edit with production secrets
 docker compose up --build -d
 ```
 
 **Production Docker (with logging + SSL templates):**
+
 ```bash
 cp backend/.env.example backend/.env  # edit with production secrets
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
 ```
 
 **Manual:**
+
 - Frontend: `npm run build` → serve `frontend/dist/` behind a static host with SPA fallback.
 - Backend: `npm start` behind a reverse proxy; set `CORS_ORIGIN` and `APP_URL` to the deployed frontend URL; run `npm run db:migrate` as a deploy step.
 
 ---
 
 ## 🤝 Contributing
+
 - Small, focused PRs welcome
 - Keep components modular and accessible
 - Charts: keep options data-driven and themable
@@ -378,6 +395,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
 ---
 
 ### UX Notes
+
 - Soft, accessible color scheme; consistent spacing; shadow hierarchy
 - Mobile-friendly grids; sticky table headers; animated hero sections
 
@@ -386,7 +404,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
 ## ✅ End Results
 
 - **Corporates** → Smarter CSR spend, no compliance headache
-- **NGOs** → More visibility, fair funding opportunities  
+- **NGOs** → More visibility, fair funding opportunities
 - **Regulators** → Transparent, AI-audited CSR tracking
 
 ---
@@ -394,7 +412,6 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
 ## 🎨 Visual Design System & Brand Identity
 
 ### 🌟 Design Philosophy
-
 
 <div style="background: linear-gradient(135deg,rgb(58, 159, 227) 0%,rgba(7, 250, 165, 0.9) 100%); padding: 20px; border-radius: 12px; margin: 20px 0; border: 1px solid #e2e8f0; color:black";>
 
@@ -405,7 +422,8 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
 ### 🎨 **Brand Identity Framework**
 
 #### 🌱 **Sustainability-First Design**
-- **Color Palette**: 
+
+- **Color Palette**:
   - Primary: `#10b981` (Emerald Green) - Growth & Sustainability
   - Secondary: `#3b82f6` (Blue) - Trust & Technology
   - Accent: `#f59e0b` (Amber) - Energy & Innovation
@@ -423,6 +441,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
 <div style="background: linear-gradient(135deg,rgb(58, 159, 227) 0%,rgba(7, 250, 165, 0.9) 100%); padding: 20px; border-radius: 12px; margin: 20px 0; border: 1px solid #e2e8f0; color:black";>
 
 ##### 🎯 **Cards & Containers**
+
 - **Elevation Levels**: 3-tier shadow system
 - **Border Radius**: Consistent 8px/12px/16px
 - **Spacing**: 8px grid system throughout
@@ -431,6 +450,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
 <div style="background: linear-gradient(135deg,rgb(58, 159, 227) 0%,rgba(7, 250, 165, 0.9) 100%); padding: 20px; border-radius: 12px; margin: 20px 0; border: 1px solid #e2e8f0; color:black";>
 
 ##### 🎨 **Interactive Elements**
+
 - **Buttons**: Primary, Secondary, Ghost variants
 - **Forms**: Floating labels with validation states
 - **Navigation**: Breadcrumbs and progress indicators
@@ -439,6 +459,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
 <div style="background: linear-gradient(135deg,rgb(58, 159, 227) 0%,rgba(7, 250, 165, 0.9) 100%); padding: 20px; border-radius: 12px; margin: 20px 0; border: 1px solid #e2e8f0; color:black";>
 
 ##### 📊 **Data Visualization**
+
 - **Charts**: Recharts with custom themes
 - **Icons**: Lucide React icon library
 - **Loading States**: Skeleton screens and spinners
@@ -450,12 +471,14 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
 ### 🎭 **User Experience Design**
 
 #### 📱 **Responsive Design Strategy**
+
 - **Mobile-First**: Progressive enhancement approach
 - **Breakpoints**: 640px, 768px, 1024px, 1280px
 - **Touch Targets**: Minimum 44px for mobile interaction
 - **Gesture Support**: Swipe, pinch, and tap interactions
 
 #### ♿ **Accessibility Standards**
+
 - **WCAG 2.1 AA**: Full compliance with accessibility guidelines
 - **Keyboard Navigation**: Complete keyboard accessibility
 - **Screen Reader**: ARIA labels and semantic HTML
@@ -465,6 +488,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
 ### 🎨 **Visual Language**
 
 #### 🌈 **Color Psychology**
+
 <div style="background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin: 20px 0;">
 
 <div style="display: flex; gap: 15px; flex-wrap: wrap;">
@@ -494,6 +518,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
 </div>
 
 #### 🎯 **Micro-Interactions**
+
 - **Button Hover**: Subtle scale and shadow changes
 - **Form Focus**: Smooth border color transitions
 - **Loading States**: Skeleton screens with shimmer effects
@@ -503,6 +528,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
 ### 📐 **Layout & Grid System**
 
 #### 🏗️ **Component Architecture**
+
 ```
 Layout Components
 ├─ AppLayout (Global shell)
@@ -519,56 +545,65 @@ Page Components
 ```
 
 #### 📱 **Responsive Breakpoints**
+
 ```css
 /* Mobile First Approach */
 .container {
-  padding: 1rem;           /* Mobile */
+  padding: 1rem; /* Mobile */
 }
 
 @media (min-width: 640px) {
-  .container { padding: 1.5rem; }  /* Tablet */
+  .container {
+    padding: 1.5rem;
+  } /* Tablet */
 }
 
 @media (min-width: 1024px) {
-  .container { padding: 2rem; }    /* Desktop */
+  .container {
+    padding: 2rem;
+  } /* Desktop */
 }
 ```
 
 ### 🎨 **Design Tokens**
 
 #### 🎨 **Spacing Scale**
+
 ```css
---space-1: 0.25rem;   /* 4px */
---space-2: 0.5rem;    /* 8px */
---space-3: 0.75rem;   /* 12px */
---space-4: 1rem;      /* 16px */
---space-6: 1.5rem;    /* 24px */
---space-8: 2rem;      /* 32px */
---space-12: 3rem;     /* 48px */
---space-16: 4rem;     /* 64px */
+--space-1: 0.25rem; /* 4px */
+--space-2: 0.5rem; /* 8px */
+--space-3: 0.75rem; /* 12px */
+--space-4: 1rem; /* 16px */
+--space-6: 1.5rem; /* 24px */
+--space-8: 2rem; /* 32px */
+--space-12: 3rem; /* 48px */
+--space-16: 4rem; /* 64px */
 ```
 
 #### 🎨 **Typography Scale**
+
 ```css
---text-xs: 0.75rem;   /* 12px */
---text-sm: 0.875rem;  /* 14px */
---text-base: 1rem;    /* 16px */
---text-lg: 1.125rem;  /* 18px */
---text-xl: 1.25rem;   /* 20px */
---text-2xl: 1.5rem;   /* 24px */
+--text-xs: 0.75rem; /* 12px */
+--text-sm: 0.875rem; /* 14px */
+--text-base: 1rem; /* 16px */
+--text-lg: 1.125rem; /* 18px */
+--text-xl: 1.25rem; /* 20px */
+--text-2xl: 1.5rem; /* 24px */
 --text-3xl: 1.875rem; /* 30px */
---text-4xl: 2.25rem;  /* 36px */
+--text-4xl: 2.25rem; /* 36px */
 ```
 
 ### 🎭 **Animation & Motion**
 
 #### ⚡ **Performance-First Animations**
+
 - **Duration**: 150ms for micro-interactions, 300ms for page transitions
 - **Easing**: `cubic-bezier(0.4, 0, 0.2, 1)` for natural feel
 - **Reduced Motion**: Respects user preferences for accessibility
 - **GPU Acceleration**: Transform and opacity for smooth 60fps animations
 
 #### 🎬 **Animation Categories**
+
 - **Entrance**: Fade in, slide up, scale in
 - **Exit**: Fade out, slide down, scale out
 - **State Changes**: Hover, focus, active states
@@ -614,18 +649,21 @@ Page Components
 </div>
 
 **Features Demonstrated**:
+
 - **Search & Filter**: Advanced project discovery with multiple criteria
 - **Project Cards**: Clean, informative project presentations
 - **AI Matching**: Intelligent project recommendations
 - **User Experience**: Intuitive navigation and interaction
 
 **Platform Capabilities**:
+
 - **Real-time Updates**: Live project status and progress tracking
 - **Data Visualization**: Charts and metrics for project insights
 - **Workflow Management**: Streamlined approval and monitoring processes
 - **Responsive Design**: Mobile-friendly interface across devices
 
 **What These Screenshots Show**:
+
 - **Working Application**: Real, functional SustainAlign platform
 - **Professional UI**: Clean, modern interface design
 - **User Experience**: Intuitive navigation and project management
@@ -638,6 +676,7 @@ Page Components
 <div style="background: linear-gradient(135deg,rgb(58, 159, 227) 0%,rgba(7, 250, 165, 0.9) 100%); padding: 20px; border-radius: 12px; margin: 20px 0; border: 1px solid #e2e8f0; color:black";>
 
 ### 🌟 **Upcoming Features**
+
 - **🌐 CSR Marketplace**: Direct B2B platform for corporate-NGO transactions
 - **🛰️ IoT + Satellite Validation**: Real-time impact verification using satellite imagery
 - **🌍 Cross-border CSR Expansion**: International CSR project management
@@ -646,6 +685,7 @@ Page Components
 ### 🧩 **Platform Uniqueness**
 
 #### 🥇 **First Agent-Powered CSR + ESG Platform**
+
 - **🇮🇳 India-first, global-ready**: Built for Indian CSR laws, scalable globally
 - **🔗 Bridges corporates, NGOs, and regulators**: Complete ecosystem integration
 - **✅ Prototype built and functional**: Working solution, not just concepts
@@ -678,7 +718,6 @@ Thanks to these amazing people for their contributions! 💡
     </td>
   </tr>
 </table>
-
 
 <div align="center">
 Made with care for sustainability‑minded teams 🌍
