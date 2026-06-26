@@ -5,7 +5,9 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(3001),
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  DB_DIALECT: z.enum(['sqlite', 'pg']).default('sqlite'),
   DATABASE_PATH: z.string().default('./data/sustainalign.db'),
+  DATABASE_URL: z.string().default('postgresql://postgres:postgres@localhost:5432/sustainalign'),
   JWT_SECRET: z.string().default('dev-secret-change-me-in-production-32chars'),
   JWT_REFRESH_SECRET: z.string().default('dev-refresh-secret-change-me-prod-32'),
   ACCESS_TOKEN_TTL_MINUTES: z.coerce.number().default(15),
@@ -34,7 +36,12 @@ const parsed = envSchema.parse(process.env)
 
 function validateProduction(env) {
   if (env.NODE_ENV !== 'production') return
-  const required = ['JWT_SECRET', 'JWT_REFRESH_SECRET', 'DATABASE_PATH', 'APP_URL']
+  const required = ['JWT_SECRET', 'JWT_REFRESH_SECRET', 'APP_URL']
+  if (env.DB_DIALECT === 'sqlite') {
+    required.push('DATABASE_PATH')
+  } else {
+    required.push('DATABASE_URL')
+  }
   for (const key of required) {
     if (!process.env[key]) {
       throw new Error(`Missing required production env: ${key}`)
