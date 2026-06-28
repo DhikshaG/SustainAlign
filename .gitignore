@@ -59,6 +59,9 @@ frontend/coverage/
 *.test.db
 backend/data/test.db
 
+# ─── Terraform state and secrets ───────────────────────────────
+terraform/terraform.tfvars
+
 # ─── Project-specific ignores (pre-existing) ───────────────────
 *.o
 .graphify_detect.json
