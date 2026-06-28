@@ -1,12 +1,6 @@
 import { eq, and, isNull, desc } from 'drizzle-orm'
 import { db } from '../../db/index.js'
-import {
-  tenants,
-  ngoProfiles,
-  csrProjects,
-  complianceAlerts,
-  workflowInstances,
-} from '../../db/schema.js'
+import { tenants, ngoProfiles, csrProjects, complianceAlerts, workflowInstances } from '../../db/schema.js'
 import { aggregateForTenant } from '../impact/index.js'
 import { getDistrictImpact, getSdgProgress } from '../impact/analytics.js'
 import { getComplianceSummary } from '../compliance/index.js'
@@ -21,12 +15,14 @@ const SYSTEM_GROUNDED = `You are SustainAlign CSR copilot. Answer ONLY using the
 If the context lacks information, reply with exactly: insufficient_data
 Be concise. Cite project names and numbers from context. Do not invent NGOs or figures.`
 
-export function buildTenantContext(tenantId) {
+export async function buildTenantContext(tenantId) {
   const aggregate = aggregateForTenant(tenantId)
   const compliance = getComplianceSummary(tenantId)
   const projects = listProjects({ corporateTenantId: tenantId, audience: 'corporate' })
   const reports = listReports(tenantId)
-  const alerts = db.select().from(complianceAlerts)
+  const alerts = await db
+    .select()
+    .from(complianceAlerts)
     .where(and(eq(complianceAlerts.tenantId, tenantId), isNull(complianceAlerts.acknowledgedAt)))
     .limit(5)
     .all()
@@ -54,7 +50,7 @@ export function buildTenantContext(tenantId) {
   }
 }
 
-export function getCopilotSuggestions(tenantId) {
+export async function getCopilotSuggestions(tenantId) {
   const compliance = getComplianceSummary(tenantId)
   const suggestions = []
 
@@ -66,7 +62,9 @@ export function getCopilotSuggestions(tenantId) {
     })
   }
 
-  const pending = db.select().from(workflowInstances)
+  const pending = await db
+    .select()
+    .from(workflowInstances)
     .where(and(eq(workflowInstances.tenantId, tenantId), eq(workflowInstances.status, 'pending')))
     .limit(1)
     .all()
@@ -81,9 +79,17 @@ export function getCopilotSuggestions(tenantId) {
   suggestions.push(
     { id: suggestions.length + 1, prompt: 'Summarize our CSR impact this quarter', category: 'impact' },
     { id: suggestions.length + 1, prompt: 'Suggest NGOs for healthcare in Karnataka', category: 'discovery' },
-    { id: suggestions.length + 1, prompt: 'Find education NGOs under ₹50L budget', category: 'discovery' },
+    {
+      id: suggestions.length + 1,
+      prompt: 'Find education NGOs under ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¹50L budget',
+      category: 'discovery',
+    },
     { id: suggestions.length + 1, prompt: 'How should I allocate unspent CSR funds by district?', category: 'funds' },
-    { id: suggestions.length + 1, prompt: 'Summarize our ESG performance across environmental, social, and governance pillars', category: 'esg' },
+    {
+      id: suggestions.length + 1,
+      prompt: 'Summarize our ESG performance across environmental, social, and governance pillars',
+      category: 'esg',
+    },
     { id: suggestions.length + 1, prompt: 'Generate a board-ready CSR report', category: 'reporting' },
     { id: suggestions.length + 1, prompt: 'Which NGOs are performing best?', category: 'projects' },
   )
@@ -109,11 +115,7 @@ export async function copilotChat(tenantId, message, history = []) {
 
   const context = buildTenantContext(tenantId)
   const contextStr = JSON.stringify(context, null, 2)
-  const reply = await chatWithSystem(
-    SYSTEM_GROUNDED,
-    `Context:\n${contextStr}\n\nUser question: ${message}`,
-    history,
-  )
+  const reply = await chatWithSystem(SYSTEM_GROUNDED, `Context:\n${contextStr}\n\nUser question: ${message}`, history)
   return { reply, offline: false }
 }
 
@@ -275,10 +277,7 @@ export async function generateReportContent(tenantId, reportContext, type) {
 }
 Include 2-4 impactStories when type is impact_stories or quarterly or board. Use real project names and numbers from context.`
 
-  const raw = await chatWithSystem(
-    systemPrompt,
-    `Report type: ${type}\nContext:\n${JSON.stringify(aiPayload)}`,
-  )
+  const raw = await chatWithSystem(systemPrompt, `Report type: ${type}\nContext:\n${JSON.stringify(aiPayload)}`)
 
   try {
     const parsed = JSON.parse(raw.replace(/^```json?\s*|\s*```$/g, '').trim())
@@ -325,7 +324,10 @@ export async function generateEsgSummary(tenantId, unifiedDto) {
 
   const context = {
     pillars: {
-      environmental: { score: payload.pillars?.environmental?.score, highlights: payload.pillars?.environmental?.highlights },
+      environmental: {
+        score: payload.pillars?.environmental?.score,
+        highlights: payload.pillars?.environmental?.highlights,
+      },
       social: { score: payload.pillars?.social?.score, highlights: payload.pillars?.social?.highlights },
       governance: { score: payload.pillars?.governance?.score, highlights: payload.pillars?.governance?.highlights },
     },

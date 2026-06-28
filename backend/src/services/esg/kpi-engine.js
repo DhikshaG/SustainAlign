@@ -3,28 +3,33 @@ import { db } from '../../db/index.js'
 import { csrProjects, projectKpis } from '../../db/schema.js'
 import { KPI_CATALOG, mapKpi } from './taxonomy.js'
 
-function getCorporateProjectIds(tenantId) {
-  return db.select({ id: csrProjects.id })
+async function getCorporateProjectIds(tenantId) {
+  return await db
+    .select({ id: csrProjects.id })
     .from(csrProjects)
     .where(eq(csrProjects.corporateTenantId, tenantId))
     .all()
     .map((p) => p.id)
 }
 
-function latestKpiForProject(projectId, metricKey) {
-  return db.select().from(projectKpis)
+async function latestKpiForProject(projectId, metricKey) {
+  return await db
+    .select()
+    .from(projectKpis)
     .where(eq(projectKpis.projectId, projectId))
     .orderBy(desc(projectKpis.recordedAt))
     .all()
     .find((k) => k.metricKey === metricKey)
 }
 
-export function rollupKpisForTenant(tenantId) {
+export async function rollupKpisForTenant(tenantId) {
   const projectIds = getCorporateProjectIds(tenantId)
   const totals = new Map()
 
   for (const pid of projectIds) {
-    const kpis = db.select().from(projectKpis)
+    const kpis = await db
+      .select()
+      .from(projectKpis)
       .where(eq(projectKpis.projectId, pid))
       .orderBy(desc(projectKpis.recordedAt))
       .all()

@@ -5,7 +5,14 @@ import { newId } from '../../lib/ids.js'
 import { getProfileByTenantId, listProfiles } from '../ngo/index.js'
 import { runNgoMatch } from '../matching/index.js'
 import { search } from '../search/index.js'
-import { chatWithSystem, ollamaEmbed, isAiEnabled, checkOllamaHealth, isOllamaModelAvailable, isEmbedModelAvailable } from './ollama.js'
+import {
+  chatWithSystem,
+  ollamaEmbed,
+  isAiEnabled,
+  checkOllamaHealth,
+  isOllamaModelAvailable,
+  isEmbedModelAvailable,
+} from './ollama.js'
 import { cosineSimilarity, parseEmbedding } from './vector.js'
 import { buildTenantContext, copilotChat } from './context.js'
 
@@ -14,11 +21,36 @@ If context is insufficient, reply with exactly: insufficient_data
 Recommend specific NGOs by name when relevant. Be concise (3-5 sentences). Do not invent NGOs or figures.`
 
 const INDIAN_STATES = [
-  'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat',
-  'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh',
-  'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab',
-  'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh',
-  'Uttarakhand', 'West Bengal', 'Delhi', 'Puducherry',
+  'Andhra Pradesh',
+  'Arunachal Pradesh',
+  'Assam',
+  'Bihar',
+  'Chhattisgarh',
+  'Goa',
+  'Gujarat',
+  'Haryana',
+  'Himachal Pradesh',
+  'Jharkhand',
+  'Karnataka',
+  'Kerala',
+  'Madhya Pradesh',
+  'Maharashtra',
+  'Manipur',
+  'Meghalaya',
+  'Mizoram',
+  'Nagaland',
+  'Odisha',
+  'Punjab',
+  'Rajasthan',
+  'Sikkim',
+  'Tamil Nadu',
+  'Telangana',
+  'Tripura',
+  'Uttar Pradesh',
+  'Uttarakhand',
+  'West Bengal',
+  'Delhi',
+  'Puducherry',
 ]
 
 const THEME_KEYWORDS = {
@@ -69,13 +101,13 @@ function chunkNgoProfile(dto) {
     `Region: ${dto.region}. States: ${(dto.statesServed || []).join(', ')}. Sector: ${dto.primarySector || dto.sector}.`,
     `Focus: ${(dto.focusAreas || []).join(', ')}. SDGs: ${(dto.sdgs || []).join(', ')}. Budget: ${dto.budgetRange || 'N/A'}.`,
   ]
-  const projects = (dto.pastProjects || []).slice(0, 3)
-    .map((p) => `Past project: ${p.title} — ${p.description || p.outcome || ''}`)
+  const projects = (dto.pastProjects || [])
+    .slice(0, 3)
+    .map((p) => `Past project: ${p.title} Ã¢â‚¬â€ ${p.description || p.outcome || ''}`)
   const metricsArr = Array.isArray(dto.impactMetrics)
     ? dto.impactMetrics
     : Object.entries(dto.impactMetrics || {}).map(([k, v]) => ({ label: k, value: v }))
-  const metrics = metricsArr.slice(0, 3)
-    .map((m) => `Impact: ${m.label} ${m.value}${m.unit ? ` ${m.unit}` : ''}`)
+  const metrics = metricsArr.slice(0, 3).map((m) => `Impact: ${m.label} ${m.value}${m.unit ? ` ${m.unit}` : ''}`)
   return [...base, ...projects, ...metrics].filter((t) => t.length > 10)
 }
 
@@ -92,7 +124,8 @@ export async function indexNgoProfile(tenantId) {
     sdgs: dto.sdgs,
   })
 
-  db.delete(vectorDocuments)
+  await db
+    .delete(vectorDocuments)
     .where(and(eq(vectorDocuments.entityType, 'ngo_profile'), eq(vectorDocuments.entityId, dto.slug)))
     .run()
 
@@ -113,23 +146,26 @@ export async function indexNgoProfile(tenantId) {
         embedding = []
       }
     }
-    db.insert(vectorDocuments).values({
-      id: newId(),
-      entityType: 'ngo_profile',
-      entityId: dto.slug,
-      chunkIndex: i,
-      text: chunks[i],
-      embedding: JSON.stringify(embedding),
-      metadata,
-      updatedAt: now,
-    }).run()
+    await db
+      .insert(vectorDocuments)
+      .values({
+        id: newId(),
+        entityType: 'ngo_profile',
+        entityId: dto.slug,
+        chunkIndex: i,
+        text: chunks[i],
+        embedding: JSON.stringify(embedding),
+        metadata,
+        updatedAt: now,
+      })
+      .run()
     indexed += 1
   }
   return indexed
 }
 
 export async function reindexAllVectors() {
-  const ngoTenants = db.select().from(tenants).where(eq(tenants.type, 'ngo')).all()
+  const ngoTenants = await db.select().from(tenants).where(eq(tenants.type, 'ngo')).all()
   let total = 0
   for (const t of ngoTenants) {
     total += await indexNgoProfile(t.id)
@@ -138,9 +174,7 @@ export async function reindexAllVectors() {
 }
 
 export async function semanticSearch(query, { limit = 8, filters = {} } = {}) {
-  const rows = db.select().from(vectorDocuments)
-    .where(eq(vectorDocuments.entityType, 'ngo_profile'))
-    .all()
+  const rows = await db.select().from(vectorDocuments).where(eq(vectorDocuments.entityType, 'ngo_profile')).all()
 
   if (!rows.length) return []
 
@@ -262,7 +296,10 @@ export async function ragRecommendNgos(tenantId, query) {
   let reply
   if (offline || !recommendations.length) {
     reply = recommendations.length
-      ? `Found ${recommendations.length} NGO(s) matching "${query}". Top: ${recommendations.slice(0, 3).map((r) => r.name).join(', ')}.`
+      ? `Found ${recommendations.length} NGO(s) matching "${query}". Top: ${recommendations
+          .slice(0, 3)
+          .map((r) => r.name)
+          .join(', ')}.`
       : `No NGOs found matching "${query}". Try broadening location or theme filters.`
     return { reply, recommendations, citations, offline: true }
   }
@@ -286,7 +323,10 @@ export async function ragRecommendNgos(tenantId, query) {
   )
 
   if (reply === 'insufficient_data' && recommendations.length) {
-    reply = `Based on your query, I recommend ${recommendations.slice(0, 3).map((r) => `${r.name} (${r.region || 'India'})`).join(', ')}. These NGOs align with ${filters.theme || filters.state || 'your CSR focus'}.`
+    reply = `Based on your query, I recommend ${recommendations
+      .slice(0, 3)
+      .map((r) => `${r.name} (${r.region || 'India'})`)
+      .join(', ')}. These NGOs align with ${filters.theme || filters.state || 'your CSR focus'}.`
   }
 
   return { reply, recommendations, citations, offline: false }

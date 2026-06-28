@@ -16,18 +16,22 @@ export function canUseCrm(project) {
   return false
 }
 
-export function onCorporateProjectApproved(projectId) {
-  const row = db.select().from(csrProjects).where(eq(csrProjects.id, projectId)).get()
+export async function onCorporateProjectApproved(projectId) {
+  const row = await db.select().from(csrProjects).where(eq(csrProjects.id, projectId)).get()
   if (!row) return
 
   const now = new Date()
-  db.update(csrProjects).set({
-    status: 'pending_ngo',
-    ngoPartnershipStatus: 'pending',
-    updatedAt: now,
-  }).where(eq(csrProjects.id, projectId)).run()
+  await db
+    .update(csrProjects)
+    .set({
+      status: 'pending_ngo',
+      ngoPartnershipStatus: 'pending',
+      updatedAt: now,
+    })
+    .where(eq(csrProjects.id, projectId))
+    .run()
 
-  const corporate = db.select().from(tenants).where(eq(tenants.id, row.corporateTenantId)).get()
+  const corporate = await db.select().from(tenants).where(eq(tenants.id, row.corporateTenantId)).get()
   notifyRole(row.ngoTenantId, 'ngo_admin', {
     type: 'partnership.request',
     title: 'New partnership request',
@@ -36,15 +40,14 @@ export function onCorporateProjectApproved(projectId) {
   }).catch(() => {})
 }
 
-export function listPartnershipRequests(ngoTenantId) {
-  return db.select().from(csrProjects)
-    .where(and(
-      eq(csrProjects.ngoTenantId, ngoTenantId),
-      eq(csrProjects.ngoPartnershipStatus, 'pending'),
-    ))
+export async function listPartnershipRequests(ngoTenantId) {
+  return await db
+    .select()
+    .from(csrProjects)
+    .where(and(eq(csrProjects.ngoTenantId, ngoTenantId), eq(csrProjects.ngoPartnershipStatus, 'pending')))
     .all()
-    .map((row) => {
-      const corporate = db.select().from(tenants).where(eq(tenants.id, row.corporateTenantId)).get()
+    .map(async (row) => {
+      const corporate = await db.select().from(tenants).where(eq(tenants.id, row.corporateTenantId)).get()
       return {
         id: row.id,
         name: row.name,
@@ -61,8 +64,8 @@ export function listPartnershipRequests(ngoTenantId) {
     })
 }
 
-export function respondToPartnership(projectId, ngoTenantId, { action, note }, req) {
-  const row = db.select().from(csrProjects).where(eq(csrProjects.id, projectId)).get()
+export async function respondToPartnership(projectId, ngoTenantId, { action, note }, req) {
+  const row = await db.select().from(csrProjects).where(eq(csrProjects.id, projectId)).get()
   if (!row || row.ngoTenantId !== ngoTenantId) throw httpError('Project not found', 404)
   if (row.ngoPartnershipStatus !== 'pending') {
     throw httpError('Partnership request is not pending', 400)
@@ -70,13 +73,17 @@ export function respondToPartnership(projectId, ngoTenantId, { action, note }, r
 
   const now = new Date()
   const accepted = action === 'accept'
-  db.update(csrProjects).set({
-    ngoPartnershipStatus: accepted ? 'accepted' : 'declined',
-    ngoRespondedAt: now,
-    ngoResponseNote: note || null,
-    status: accepted ? 'active' : 'rejected',
-    updatedAt: now,
-  }).where(eq(csrProjects.id, projectId)).run()
+  await db
+    .update(csrProjects)
+    .set({
+      ngoPartnershipStatus: accepted ? 'accepted' : 'declined',
+      ngoRespondedAt: now,
+      ngoResponseNote: note || null,
+      status: accepted ? 'active' : 'rejected',
+      updatedAt: now,
+    })
+    .where(eq(csrProjects.id, projectId))
+    .run()
 
   if (req) {
     logMutation({
@@ -88,7 +95,7 @@ export function respondToPartnership(projectId, ngoTenantId, { action, note }, r
     }).catch(() => {})
   }
 
-  const submitter = db.select().from(users).where(eq(users.id, row.createdBy)).get()
+  const submitter = await db.select().from(users).where(eq(users.id, row.createdBy)).get()
   if (submitter) {
     createNotification({
       userId: row.createdBy,

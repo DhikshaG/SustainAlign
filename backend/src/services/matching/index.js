@@ -4,10 +4,7 @@ import { csrProjects, projectMilestones, tenants } from '../../db/schema.js'
 import { listProfiles } from '../ngo/index.js'
 import { listProjects } from '../projects/index.js'
 import { chatWithSystem, isAiEnabled, checkOllamaHealth, isOllamaModelAvailable } from '../ai/ollama.js'
-import {
-  scoreNgo,
-  buildGenericReason,
-} from './scoring.js'
+import { scoreNgo, buildGenericReason } from './scoring.js'
 import { deriveDefaultsFromProjects } from './preferences.js'
 
 export { deriveDefaultsFromProjects } from './preferences.js'
@@ -29,10 +26,8 @@ function normalizeCriteria(raw = {}) {
   }
 }
 
-function buildPerformanceMap(corporateTenantId) {
-  const rows = db.select().from(csrProjects)
-    .where(eq(csrProjects.corporateTenantId, corporateTenantId))
-    .all()
+async function buildPerformanceMap(corporateTenantId) {
+  const rows = await db.select().from(csrProjects).where(eq(csrProjects.corporateTenantId, corporateTenantId)).all()
 
   const byNgoTenant = new Map()
   for (const row of rows) {
@@ -44,14 +39,12 @@ function buildPerformanceMap(corporateTenantId) {
 
   const performanceBySlug = new Map()
   for (const [ngoTenantId, projects] of byNgoTenant) {
-    const ngo = db.select().from(tenants).where(eq(tenants.id, ngoTenantId)).get()
+    const ngo = await db.select().from(tenants).where(eq(tenants.id, ngoTenantId)).get()
     if (!ngo?.slug) continue
 
     let totalScore = 0
     for (const p of projects) {
-      const milestones = db.select().from(projectMilestones)
-        .where(eq(projectMilestones.projectId, p.id))
-        .all()
+      const milestones = await db.select().from(projectMilestones).where(eq(projectMilestones.projectId, p.id)).all()
       let onTime = 100
       if (milestones.length) {
         const today = new Date().toISOString().slice(0, 10)
@@ -145,7 +138,7 @@ Budget: ${criteria.budgetRange || 'any'}
 Ranked candidates (pre-scored):
 ${JSON.stringify(candidates)}
 
-Return JSON only: {"ranked":[{"slug":"","reason":""}],"summary":""} — top 5 matches with concise reasons.`
+Return JSON only: {"ranked":[{"slug":"","reason":""}],"summary":""} ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â top 5 matches with concise reasons.`
 
   const raw = await chatWithSystem(
     'You rank NGOs for CSR partnership. Output valid JSON only. Respect pre-computed matchPercent scores.',
@@ -153,7 +146,12 @@ Return JSON only: {"ranked":[{"slug":"","reason":""}],"summary":""} — top 5 ma
   )
 
   try {
-    const parsed = JSON.parse(raw.replace(/```json?\n?/g, '').replace(/```/g, '').trim())
+    const parsed = JSON.parse(
+      raw
+        .replace(/```json?\n?/g, '')
+        .replace(/```/g, '')
+        .trim(),
+    )
     const rankMap = new Map((parsed.ranked || []).map((r, i) => [r.slug, { reason: r.reason, rank: i }]))
 
     const reranked = top.map((item) => {
@@ -162,7 +160,10 @@ Return JSON only: {"ranked":[{"slug":"","reason":""}],"summary":""} — top 5 ma
       if (llm) {
         const boost = Math.max(0, 5 - llm.rank)
         matchPercent = Math.min(100, matchPercent + boost)
-        matchPercent = Math.max(item.scores.matchPercent - RERANK_CAP, Math.min(item.scores.matchPercent + RERANK_CAP, matchPercent))
+        matchPercent = Math.max(
+          item.scores.matchPercent - RERANK_CAP,
+          Math.min(item.scores.matchPercent + RERANK_CAP, matchPercent),
+        )
       }
       const reason = llm?.reason || buildGenericReason(item.scores.scoreBreakdown)
       return {
@@ -180,10 +181,12 @@ Return JSON only: {"ranked":[{"slug":"","reason":""}],"summary":""} — top 5 ma
     })
 
     return {
-      matches: reranked.slice(0, 10).map((item) => toMatchDto(item.ngo, item.scores, {
-        reason: item.reason,
-        previouslyPartnered: item.previouslyPartnered,
-      })),
+      matches: reranked.slice(0, 10).map((item) =>
+        toMatchDto(item.ngo, item.scores, {
+          reason: item.reason,
+          previouslyPartnered: item.previouslyPartnered,
+        }),
+      ),
       explanation: parsed.summary || '',
       offline: false,
     }
@@ -201,21 +204,25 @@ export function runNgoMatchSync(corporateTenantId, rawCriteria = {}, { limit = 1
 
   const performanceBySlug = buildPerformanceMap(corporateTenantId)
 
-  const scored = ngos.map((ngo) => {
-    const scores = scoreNgo(ngo, criteria, performanceBySlug)
-    return {
-      ngo,
-      scores,
-      previouslyPartnered: partneredSlugs.has(ngo.slug),
-      reason: buildGenericReason(scores.scoreBreakdown),
-    }
-  }).sort((a, b) => b.scores.matchPercent - a.scores.matchPercent)
+  const scored = ngos
+    .map((ngo) => {
+      const scores = scoreNgo(ngo, criteria, performanceBySlug)
+      return {
+        ngo,
+        scores,
+        previouslyPartnered: partneredSlugs.has(ngo.slug),
+        reason: buildGenericReason(scores.scoreBreakdown),
+      }
+    })
+    .sort((a, b) => b.scores.matchPercent - a.scores.matchPercent)
 
   return {
-    matches: scored.slice(0, limit).map((item) => toMatchDto(item.ngo, item.scores, {
-      reason: item.reason,
-      previouslyPartnered: item.previouslyPartnered,
-    })),
+    matches: scored.slice(0, limit).map((item) =>
+      toMatchDto(item.ngo, item.scores, {
+        reason: item.reason,
+        previouslyPartnered: item.previouslyPartnered,
+      }),
+    ),
     explanation: 'Ranked by deterministic match scoring across similarity, geography, budget, impact, and credibility.',
     criteria,
     offline: true,
@@ -231,21 +238,25 @@ export async function runNgoMatch(corporateTenantId, rawCriteria = {}, { limit =
 
   const performanceBySlug = buildPerformanceMap(corporateTenantId)
 
-  const scored = ngos.map((ngo) => {
-    const scores = scoreNgo(ngo, criteria, performanceBySlug)
-    return {
-      ngo,
-      scores,
-      previouslyPartnered: partneredSlugs.has(ngo.slug),
-      reason: buildGenericReason(scores.scoreBreakdown),
-    }
-  }).sort((a, b) => b.scores.matchPercent - a.scores.matchPercent)
+  const scored = ngos
+    .map((ngo) => {
+      const scores = scoreNgo(ngo, criteria, performanceBySlug)
+      return {
+        ngo,
+        scores,
+        previouslyPartnered: partneredSlugs.has(ngo.slug),
+        reason: buildGenericReason(scores.scoreBreakdown),
+      }
+    })
+    .sort((a, b) => b.scores.matchPercent - a.scores.matchPercent)
 
   const baseResult = {
-    matches: scored.slice(0, limit).map((item) => toMatchDto(item.ngo, item.scores, {
-      reason: item.reason,
-      previouslyPartnered: item.previouslyPartnered,
-    })),
+    matches: scored.slice(0, limit).map((item) =>
+      toMatchDto(item.ngo, item.scores, {
+        reason: item.reason,
+        previouslyPartnered: item.previouslyPartnered,
+      }),
+    ),
     explanation: 'Ranked by deterministic match scoring across similarity, geography, budget, impact, and credibility.',
     criteria,
     offline: true,

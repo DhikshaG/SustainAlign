@@ -3,16 +3,13 @@ import { db } from '../../db/index.js'
 import { csrProjects } from '../../db/schema.js'
 import { getComplianceSummary, getFundAllocation } from '../compliance/index.js'
 import { getSdgProgress } from '../impact/analytics.js'
-import {
-  BRSR_PRINCIPLES,
-  mapProject,
-  mapThemeToPillar,
-  THEME_TO_SDG,
-} from './taxonomy.js'
+import { BRSR_PRINCIPLES, mapProject, mapThemeToPillar, THEME_TO_SDG } from './taxonomy.js'
 import { getSustainabilityKpis, rollupByPillar } from './kpi-engine.js'
 
-function getProjects(tenantId) {
-  return db.select().from(csrProjects)
+async function getProjects(tenantId) {
+  return await db
+    .select()
+    .from(csrProjects)
     .where(eq(csrProjects.corporateTenantId, tenantId))
     .all()
     .filter((p) => p.status !== 'archived' && p.status !== 'rejected')
@@ -75,7 +72,7 @@ export function buildEsgContext(tenantId) {
 }
 
 function computePillarScore({ spendShare, projectShare, kpiBoost, extra = 0 }) {
-  const raw = (spendShare * 40) + (projectShare * 30) + (kpiBoost * 20) + (extra * 10)
+  const raw = spendShare * 40 + projectShare * 30 + kpiBoost * 20 + extra * 10
   return Math.min(100, Math.round(raw))
 }
 
@@ -119,9 +116,10 @@ export function computePillarScores(context) {
     highlights: socialKpis.slice(0, 3).map((k) => `${k.label}: ${k.value}${k.unit ? ` ${k.unit}` : ''}`),
   }
 
-  const govExtra = (compliance.auditReadiness / 100) * 0.5
-    + (compliance.scheduleViiPassRate / 100) * 0.3
-    + (compliance.alertsOpen === 0 ? 0.2 : 0)
+  const govExtra =
+    (compliance.auditReadiness / 100) * 0.5 +
+    (compliance.scheduleViiPassRate / 100) * 0.3 +
+    (compliance.alertsOpen === 0 ? 0.2 : 0)
 
   const governance = {
     score: computePillarScore({
@@ -212,9 +210,7 @@ export function buildBrsrCoverage(context) {
   return BRSR_PRINCIPLES.map((principle) => {
     const linked = principleProjects.get(principle.id) || new Set()
     const indicators = principleIndicators.get(principle.id) || []
-    const coverage = linked.size > 0
-      ? Math.min(100, Math.round((linked.size / activeCount) * 100))
-      : 0
+    const coverage = linked.size > 0 ? Math.min(100, Math.round((linked.size / activeCount) * 100)) : 0
     return {
       principle: principle.id,
       title: principle.title,
