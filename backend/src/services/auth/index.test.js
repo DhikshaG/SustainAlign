@@ -38,24 +38,58 @@ beforeAll(async () => {
 })
 
 afterAll(() => {
-  try { if (fs.existsSync(testDbPath)) fs.unlinkSync(testDbPath) } catch {}
-  try { const w = testDbPath + '-wal'; if (fs.existsSync(w)) fs.unlinkSync(w) } catch {}
-  try { const s = testDbPath + '-shm'; if (fs.existsSync(s)) fs.unlinkSync(s) } catch {}
+  try {
+    if (fs.existsSync(testDbPath)) fs.unlinkSync(testDbPath)
+  } catch {}
+  try {
+    const w = testDbPath + '-wal'
+    if (fs.existsSync(w)) fs.unlinkSync(w)
+  } catch {}
+  try {
+    const s = testDbPath + '-shm'
+    if (fs.existsSync(s)) fs.unlinkSync(s)
+  } catch {}
 })
 
 async function seedUser(overrides = {}) {
   const id = newId()
   const tenantId = newId()
   const now = new Date()
-  db.insert(schema.tenants).values({ id: tenantId, type: 'corporate', name: 'Test Corp', slug: `tc-${Date.now()}-${Math.random()}`, createdAt: now }).run()
-  db.insert(schema.users).values({
-    id, email: `u-${Date.now()}-${Math.random()}@test.com`, passwordHash: await hashPassword('password123'),
-    fullName: 'Test User', tenantType: 'corporate', mfaEnabled: false, createdAt: now, updatedAt: now,
-    ...overrides,
-  }).run()
-  db.insert(schema.memberships).values({
-    id: newId(), userId: id, tenantId, role: 'admin', status: 'active', createdAt: now,
-  }).run()
+  await db
+    .insert(schema.tenants)
+    .values({
+      id: tenantId,
+      type: 'corporate',
+      name: 'Test Corp',
+      slug: `tc-${Date.now()}-${Math.random()}`,
+      createdAt: now,
+    })
+    .run()
+  await db
+    .insert(schema.users)
+    .values({
+      id,
+      email: `u-${Date.now()}-${Math.random()}@test.com`,
+      passwordHash: await hashPassword('password123'),
+      fullName: 'Test User',
+      tenantType: 'corporate',
+      mfaEnabled: false,
+      createdAt: now,
+      updatedAt: now,
+      ...overrides,
+    })
+    .run()
+  await db
+    .insert(schema.memberships)
+    .values({
+      id: newId(),
+      userId: id,
+      tenantId,
+      role: 'admin',
+      status: 'active',
+      createdAt: now,
+    })
+    .run()
   return auth.loadUserContext(id)
 }
 
@@ -75,9 +109,13 @@ describe('buildUserDto', () => {
       tenant: { id: 't1', name: 'Acme' },
     })
     expect(dto).toMatchObject({
-      id: 'u1', email: 'a@b.com', fullName: 'Alice',
-      tenantType: 'corporate', role: 'admin',
-      tenantId: 't1', tenantName: 'Acme',
+      id: 'u1',
+      email: 'a@b.com',
+      fullName: 'Alice',
+      tenantType: 'corporate',
+      role: 'admin',
+      tenantId: 't1',
+      tenantName: 'Acme',
     })
   })
 })
@@ -99,9 +137,14 @@ describe('loadUserContext', () => {
 
 describe('corporateSignup', () => {
   it('creates a corporate user and returns tokens', async () => {
-    const result = await auth.corporateSignup({
-      email: uniqueEmail(), password: 'StrongPass1!', companyName: 'New Corp',
-    }, mockReqMeta())
+    const result = await auth.corporateSignup(
+      {
+        email: uniqueEmail(),
+        password: 'StrongPass1!',
+        companyName: 'New Corp',
+      },
+      mockReqMeta(),
+    )
     expect(result.access_token).toBeTruthy()
     expect(result.refresh_token).toBeTruthy()
     expect(result.token_type).toBe('Bearer')
@@ -112,14 +155,21 @@ describe('corporateSignup', () => {
   it('throws 409 for duplicate email', async () => {
     const email = uniqueEmail()
     await auth.corporateSignup({ email, password: 'Pass1!', companyName: 'Dup' }, mockReqMeta())
-    await expect(auth.corporateSignup({ email, password: 'Pass1!', companyName: 'Dup' }, mockReqMeta()))
-      .rejects.toMatchObject({ message: 'An account with this email already exists', status: 409 })
+    await expect(
+      auth.corporateSignup({ email, password: 'Pass1!', companyName: 'Dup' }, mockReqMeta()),
+    ).rejects.toMatchObject({ message: 'An account with this email already exists', status: 409 })
   })
 
   it('returns MFA challenge when mfaEnabled is true', async () => {
-    const result = await auth.corporateSignup({
-      email: uniqueEmail(), password: 'Pass1!', companyName: 'MFA Corp', enableMfa: true,
-    }, mockReqMeta())
+    const result = await auth.corporateSignup(
+      {
+        email: uniqueEmail(),
+        password: 'Pass1!',
+        companyName: 'MFA Corp',
+        enableMfa: true,
+      },
+      mockReqMeta(),
+    )
     expect(result.requiresMfa).toBe(true)
     expect(result.mfaSessionId).toBeTruthy()
   })
@@ -135,13 +185,17 @@ describe('loginUser', () => {
 
   it('throws 401 for invalid password', async () => {
     const ctx = await seedUser()
-    await expect(auth.loginUser(ctx.user.email, 'wrongpass', mockReqMeta()))
-      .rejects.toMatchObject({ message: 'Invalid email or password', status: 401 })
+    await expect(auth.loginUser(ctx.user.email, 'wrongpass', mockReqMeta())).rejects.toMatchObject({
+      message: 'Invalid email or password',
+      status: 401,
+    })
   })
 
   it('throws 401 for non-existent email', async () => {
-    await expect(auth.loginUser('noone@test.com', 'password123', mockReqMeta()))
-      .rejects.toMatchObject({ message: 'Invalid email or password', status: 401 })
+    await expect(auth.loginUser('noone@test.com', 'password123', mockReqMeta())).rejects.toMatchObject({
+      message: 'Invalid email or password',
+      status: 401,
+    })
   })
 
   it('returns MFA challenge when user has MFA enabled', async () => {
@@ -154,13 +208,19 @@ describe('loginUser', () => {
 
 describe('verifyMfa', () => {
   it('verifies MFA code and returns tokens', async () => {
-    const signup = await auth.corporateSignup({
-      email: uniqueEmail(), password: 'Pass1!', companyName: 'MFA Verify', enableMfa: true,
-    }, mockReqMeta())
+    const signup = await auth.corporateSignup(
+      {
+        email: uniqueEmail(),
+        password: 'Pass1!',
+        companyName: 'MFA Verify',
+        enableMfa: true,
+      },
+      mockReqMeta(),
+    )
     expect(signup.requiresMfa).toBe(true)
     const sid = signup.mfaSessionId
 
-    const challenge = db.select().from(schema.mfaChallenges).where(eq(schema.mfaChallenges.id, sid)).get()
+    const challenge = await db.select().from(schema.mfaChallenges).where(eq(schema.mfaChallenges.id, sid)).get()
     expect(challenge).not.toBeNull()
 
     const result = await auth.verifyMfa(sid, '000000', mockReqMeta())
@@ -169,21 +229,37 @@ describe('verifyMfa', () => {
   })
 
   it('throws for invalid MFA code', async () => {
-    const signup = await auth.corporateSignup({
-      email: uniqueEmail(), password: 'Pass1!', companyName: 'MFA Bad', enableMfa: true,
-    }, mockReqMeta())
-    await expect(auth.verifyMfa(signup.mfaSessionId, '111111', mockReqMeta()))
-      .rejects.toMatchObject({ message: 'Invalid or expired verification code', status: 400 })
+    const signup = await auth.corporateSignup(
+      {
+        email: uniqueEmail(),
+        password: 'Pass1!',
+        companyName: 'MFA Bad',
+        enableMfa: true,
+      },
+      mockReqMeta(),
+    )
+    await expect(auth.verifyMfa(signup.mfaSessionId, '111111', mockReqMeta())).rejects.toMatchObject({
+      message: 'Invalid or expired verification code',
+      status: 400,
+    })
   })
 
   it('throws for consumed MFA challenge', async () => {
-    const signup = await auth.corporateSignup({
-      email: uniqueEmail(), password: 'Pass1!', companyName: 'MFA Consumed', enableMfa: true,
-    }, mockReqMeta())
+    const signup = await auth.corporateSignup(
+      {
+        email: uniqueEmail(),
+        password: 'Pass1!',
+        companyName: 'MFA Consumed',
+        enableMfa: true,
+      },
+      mockReqMeta(),
+    )
     const sid = signup.mfaSessionId
     await auth.verifyMfa(sid, '000000', mockReqMeta())
-    await expect(auth.verifyMfa(sid, '000000', mockReqMeta()))
-      .rejects.toMatchObject({ message: 'Invalid or expired verification code', status: 400 })
+    await expect(auth.verifyMfa(sid, '000000', mockReqMeta())).rejects.toMatchObject({
+      message: 'Invalid or expired verification code',
+      status: 400,
+    })
   })
 })
 
@@ -205,17 +281,26 @@ describe('resetPassword', () => {
     const ctx = await seedUser()
     const token = generateResetToken()
     const tHash = hashToken(token)
-    db.insert(schema.passwordResetTokens).values({
-      id: newId(), userId: ctx.user.id, tokenHash: tHash,
-      expiresAt: new Date(Date.now() + 3600000), createdAt: new Date(), usedAt: null,
-    }).run()
+    await db
+      .insert(schema.passwordResetTokens)
+      .values({
+        id: newId(),
+        userId: ctx.user.id,
+        tokenHash: tHash,
+        expiresAt: new Date(Date.now() + 3600000),
+        createdAt: new Date(),
+        usedAt: null,
+      })
+      .run()
     const result = await auth.resetPassword(token, 'NewPass123!')
     expect(result).toEqual({ ok: true })
   })
 
   it('throws for invalid token', async () => {
-    await expect(auth.resetPassword('invalid-token', 'NewPass123!'))
-      .rejects.toMatchObject({ message: 'Invalid or expired reset token', status: 400 })
+    await expect(auth.resetPassword('invalid-token', 'NewPass123!')).rejects.toMatchObject({
+      message: 'Invalid or expired reset token',
+      status: 400,
+    })
   })
 })
 
@@ -223,10 +308,18 @@ describe('refreshSession', () => {
   it('returns new tokens for valid refresh token', async () => {
     const ctx = await seedUser()
     const { token: rt, jti, expiresAt } = await createRefreshToken({ sub: ctx.user.id })
-    db.insert(schema.refreshTokens).values({
-      id: newId(), userId: ctx.user.id, jti, expiresAt,
-      userAgent: null, ipAddress: null, createdAt: new Date(),
-    }).run()
+    await db
+      .insert(schema.refreshTokens)
+      .values({
+        id: newId(),
+        userId: ctx.user.id,
+        jti,
+        expiresAt,
+        userAgent: null,
+        ipAddress: null,
+        createdAt: new Date(),
+      })
+      .run()
     const result = await auth.refreshSession(rt, mockReqMeta())
     expect(result.access_token).toBeTruthy()
     expect(result.refresh_token).toBeTruthy()
@@ -234,8 +327,10 @@ describe('refreshSession', () => {
   })
 
   it('throws 401 for invalid refresh token', async () => {
-    await expect(auth.refreshSession('invalid-token', mockReqMeta()))
-      .rejects.toMatchObject({ message: 'Invalid refresh token', status: 401 })
+    await expect(auth.refreshSession('invalid-token', mockReqMeta())).rejects.toMatchObject({
+      message: 'Invalid refresh token',
+      status: 401,
+    })
   })
 })
 
@@ -243,10 +338,18 @@ describe('logout', () => {
   it('revokes refresh token', async () => {
     const ctx = await seedUser()
     const { token: rt, jti, expiresAt } = await createRefreshToken({ sub: ctx.user.id })
-    db.insert(schema.refreshTokens).values({
-      id: newId(), userId: ctx.user.id, jti, expiresAt,
-      userAgent: null, ipAddress: null, createdAt: new Date(),
-    }).run()
+    await db
+      .insert(schema.refreshTokens)
+      .values({
+        id: newId(),
+        userId: ctx.user.id,
+        jti,
+        expiresAt,
+        userAgent: null,
+        ipAddress: null,
+        createdAt: new Date(),
+      })
+      .run()
     const result = await auth.logout(rt, mockReqMeta())
     expect(result).toEqual({ ok: true })
   })
@@ -267,7 +370,6 @@ describe('getMe', () => {
   })
 
   it('throws 404 for non-existent user', async () => {
-    await expect(auth.getMe('nonexistent'))
-      .rejects.toMatchObject({ message: 'User not found', status: 404 })
+    await expect(auth.getMe('nonexistent')).rejects.toMatchObject({ message: 'User not found', status: 404 })
   })
 })

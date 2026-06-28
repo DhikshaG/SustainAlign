@@ -1,14 +1,26 @@
 import { eq, and, isNull } from 'drizzle-orm'
 import { db } from '../../db/index.js'
 import {
-  users, tenants, memberships, refreshTokens,
-  mfaChallenges, passwordResetTokens, invitations, ngoProfiles, ngoDocuments,
+  users,
+  tenants,
+  memberships,
+  refreshTokens,
+  mfaChallenges,
+  passwordResetTokens,
+  invitations,
+  ngoProfiles,
+  ngoDocuments,
 } from '../../db/schema.js'
 import { env } from '../../config/env.js'
 import { hashPassword, verifyPassword } from '../../lib/password.js'
 import {
-  createAccessToken, createRefreshToken, decodeRefreshToken,
-  hashToken, generateOtp, generateResetToken, newJti,
+  createAccessToken,
+  createRefreshToken,
+  decodeRefreshToken,
+  hashToken,
+  generateOtp,
+  generateResetToken,
+  newJti,
 } from '../../lib/tokens.js'
 import { newId, uniqueSlug } from '../../lib/ids.js'
 import { sendMfaCode, sendPasswordReset, sendInvitation } from '../../lib/email.js'
@@ -23,15 +35,17 @@ const RESET_TTL_MS = 60 * 60 * 1000
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
 async function loadUserContext(userId) {
-  const user = db.select().from(users).where(eq(users.id, userId)).get()
+  const user = await db.select().from(users).where(eq(users.id, userId)).get()
   if (!user) return null
 
-  const membership = db.select().from(memberships)
+  const membership = await db
+    .select()
+    .from(memberships)
     .where(and(eq(memberships.userId, userId), eq(memberships.status, 'active')))
     .get()
   if (!membership) return null
 
-  const tenant = db.select().from(tenants).where(eq(tenants.id, membership.tenantId)).get()
+  const tenant = await db.select().from(tenants).where(eq(tenants.id, membership.tenantId)).get()
   return { user, membership, tenant }
 }
 
@@ -61,15 +75,18 @@ async function issueTokenPair(userContext, reqMeta = {}) {
   const accessToken = await createAccessToken(payload)
   const { token: refreshToken, jti, expiresAt } = await createRefreshToken({ sub: user.id })
 
-  db.insert(refreshTokens).values({
-    id: newId(),
-    userId: user.id,
-    jti,
-    expiresAt,
-    userAgent: reqMeta.userAgent || null,
-    ipAddress: reqMeta.ipAddress || null,
-    createdAt: new Date(),
-  }).run()
+  await db
+    .insert(refreshTokens)
+    .values({
+      id: newId(),
+      userId: user.id,
+      jti,
+      expiresAt,
+      userAgent: reqMeta.userAgent || null,
+      ipAddress: reqMeta.ipAddress || null,
+      createdAt: new Date(),
+    })
+    .run()
 
   authLog('token.issued', { userId: user.id, tenantId: tenant.id })
 
@@ -89,15 +106,18 @@ async function createMfaChallenge(userId) {
   const sessionId = newId()
   const expiresAt = new Date(Date.now() + MFA_TTL_MS)
 
-  db.insert(mfaChallenges).values({
-    id: sessionId,
-    userId,
-    codeHash: hashToken(code),
-    expiresAt,
-    createdAt: new Date(),
-  }).run()
+  await db
+    .insert(mfaChallenges)
+    .values({
+      id: sessionId,
+      userId,
+      codeHash: hashToken(code),
+      expiresAt,
+      createdAt: new Date(),
+    })
+    .run()
 
-  const user = db.select().from(users).where(eq(users.id, userId)).get()
+  const user = await db.select().from(users).where(eq(users.id, userId)).get()
   await sendMfaCode(user.email, code)
   authLog('mfa.sent', { userId, sessionId })
 
@@ -105,7 +125,7 @@ async function createMfaChallenge(userId) {
 }
 
 export async function corporateSignup(data, reqMeta) {
-  const existing = db.select().from(users).where(eq(users.email, data.email.toLowerCase())).get()
+  const existing = await db.select().from(users).where(eq(users.email, data.email.toLowerCase())).get()
   if (existing) {
     const err = new Error('An account with this email already exists')
     err.status = 409
@@ -116,41 +136,56 @@ export async function corporateSignup(data, reqMeta) {
   const userId = newId()
   const tenantId = newId()
   const slug = await uniqueSlug(data.companyName, async (s) => {
-    return Boolean(db.select().from(tenants).where(eq(tenants.slug, s)).get())
+    return Boolean(await db.select().from(tenants).where(eq(tenants.slug, s)).get())
   })
 
   const passwordHash = await hashPassword(data.password)
 
-  db.insert(tenants).values({
-    id: tenantId,
-    type: 'corporate',
-    name: data.companyName,
-    slug,
-    createdAt: now,
-  }).run()
+  await db
+    .insert(tenants)
+    .values({
+      id: tenantId,
+      type: 'corporate',
+      name: data.companyName,
+      slug,
+      createdAt: now,
+    })
+    .run()
 
-  db.insert(users).values({
-    id: userId,
-    email: data.email.toLowerCase(),
-    passwordHash,
-    fullName: data.companyName,
-    tenantType: 'corporate',
-    mfaEnabled: Boolean(data.enableMfa),
-    createdAt: now,
-    updatedAt: now,
-  }).run()
+  await db
+    .insert(users)
+    .values({
+      id: userId,
+      email: data.email.toLowerCase(),
+      passwordHash,
+      fullName: data.companyName,
+      tenantType: 'corporate',
+      mfaEnabled: Boolean(data.enableMfa),
+      createdAt: now,
+      updatedAt: now,
+    })
+    .run()
 
-  db.insert(memberships).values({
-    id: newId(),
-    userId,
-    tenantId,
-    role: 'super_admin',
-    status: 'active',
-    createdAt: now,
-  }).run()
+  await db
+    .insert(memberships)
+    .values({
+      id: newId(),
+      userId,
+      tenantId,
+      role: 'super_admin',
+      status: 'active',
+      createdAt: now,
+    })
+    .run()
 
   authLog('signup.corporate', { userId, tenantId })
-  await logActivity({ tenantId, userId, action: 'auth.signup.corporate', entityType: 'tenant', entityId: tenantId }).catch(() => {})
+  await logActivity({
+    tenantId,
+    userId,
+    action: 'auth.signup.corporate',
+    entityType: 'tenant',
+    entityId: tenantId,
+  }).catch(() => {})
 
   if (data.enableMfa) {
     return createMfaChallenge(userId)
@@ -161,7 +196,7 @@ export async function corporateSignup(data, reqMeta) {
 }
 
 export async function loginUser(email, password, reqMeta) {
-  const user = db.select().from(users).where(eq(users.email, email.toLowerCase())).get()
+  const user = await db.select().from(users).where(eq(users.email, email.toLowerCase())).get()
   if (!user) {
     const err = new Error('Invalid email or password')
     err.status = 401
@@ -199,7 +234,7 @@ export async function loginUser(email, password, reqMeta) {
 }
 
 export async function verifyMfa(sessionId, code, reqMeta) {
-  const challenge = db.select().from(mfaChallenges).where(eq(mfaChallenges.id, sessionId)).get()
+  const challenge = await db.select().from(mfaChallenges).where(eq(mfaChallenges.id, sessionId)).get()
   if (!challenge || challenge.consumedAt || challenge.expiresAt < new Date()) {
     const err = new Error('Invalid or expired verification code')
     err.status = 400
@@ -212,7 +247,7 @@ export async function verifyMfa(sessionId, code, reqMeta) {
     throw err
   }
 
-  db.update(mfaChallenges).set({ consumedAt: new Date() }).where(eq(mfaChallenges.id, sessionId)).run()
+  await db.update(mfaChallenges).set({ consumedAt: new Date() }).where(eq(mfaChallenges.id, sessionId)).run()
 
   const ctx = await loadUserContext(challenge.userId)
   authLog('mfa.verified', { userId: challenge.userId })
@@ -227,27 +262,37 @@ export async function verifyMfa(sessionId, code, reqMeta) {
 }
 
 export async function forgotPassword(email) {
-  const user = db.select().from(users).where(eq(users.email, email.toLowerCase())).get()
+  const user = await db.select().from(users).where(eq(users.email, email.toLowerCase())).get()
   if (!user) return { ok: true }
 
   const token = generateResetToken()
-  db.insert(passwordResetTokens).values({
-    id: newId(),
-    userId: user.id,
-    tokenHash: hashToken(token),
-    expiresAt: new Date(Date.now() + RESET_TTL_MS),
-    createdAt: new Date(),
-  }).run()
+  await db
+    .insert(passwordResetTokens)
+    .values({
+      id: newId(),
+      userId: user.id,
+      tokenHash: hashToken(token),
+      expiresAt: new Date(Date.now() + RESET_TTL_MS),
+      createdAt: new Date(),
+    })
+    .run()
 
   await sendPasswordReset(user.email, token)
   authLog('password.reset_requested', { userId: user.id })
-  await logActivity({ userId: user.id, action: 'auth.password.reset_requested', entityType: 'user', entityId: user.id }).catch(() => {})
+  await logActivity({
+    userId: user.id,
+    action: 'auth.password.reset_requested',
+    entityType: 'user',
+    entityId: user.id,
+  }).catch(() => {})
   return { ok: true }
 }
 
 export async function resetPassword(token, password) {
   const tokenHash = hashToken(token)
-  const row = db.select().from(passwordResetTokens)
+  const row = await db
+    .select()
+    .from(passwordResetTokens)
     .where(and(eq(passwordResetTokens.tokenHash, tokenHash), isNull(passwordResetTokens.usedAt)))
     .get()
 
@@ -260,14 +305,21 @@ export async function resetPassword(token, password) {
   const passwordHash = await hashPassword(password)
   const now = new Date()
 
-  db.update(users).set({ passwordHash, updatedAt: now }).where(eq(users.id, row.userId)).run()
-  db.update(passwordResetTokens).set({ usedAt: now }).where(eq(passwordResetTokens.id, row.id)).run()
-  db.update(refreshTokens).set({ revokedAt: now }).where(
-    and(eq(refreshTokens.userId, row.userId), isNull(refreshTokens.revokedAt)),
-  ).run()
+  await db.update(users).set({ passwordHash, updatedAt: now }).where(eq(users.id, row.userId)).run()
+  await db.update(passwordResetTokens).set({ usedAt: now }).where(eq(passwordResetTokens.id, row.id)).run()
+  await db
+    .update(refreshTokens)
+    .set({ revokedAt: now })
+    .where(and(eq(refreshTokens.userId, row.userId), isNull(refreshTokens.revokedAt)))
+    .run()
 
   authLog('password.reset_completed', { userId: row.userId })
-  await logActivity({ userId: row.userId, action: 'auth.password.reset_completed', entityType: 'user', entityId: row.userId }).catch(() => {})
+  await logActivity({
+    userId: row.userId,
+    action: 'auth.password.reset_completed',
+    entityType: 'user',
+    entityId: row.userId,
+  }).catch(() => {})
   return { ok: true }
 }
 
@@ -277,16 +329,19 @@ export async function inviteTeam(inviter, invites) {
 
   for (const invite of invites) {
     const token = generateResetToken()
-    db.insert(invitations).values({
-      id: newId(),
-      tenantId: inviter.tenantId,
-      email: invite.email.toLowerCase(),
-      role: invite.role,
-      tokenHash: hashToken(token),
-      invitedBy: inviter.sub,
-      expiresAt: new Date(now.getTime() + INVITE_TTL_MS),
-      createdAt: now,
-    }).run()
+    await db
+      .insert(invitations)
+      .values({
+        id: newId(),
+        tenantId: inviter.tenantId,
+        email: invite.email.toLowerCase(),
+        role: invite.role,
+        tokenHash: hashToken(token),
+        invitedBy: inviter.sub,
+        expiresAt: new Date(now.getTime() + INVITE_TTL_MS),
+        createdAt: now,
+      })
+      .run()
 
     await sendInvitation(invite.email, token, inviter.tenantName || 'your team')
     sent++
@@ -314,7 +369,7 @@ export async function refreshSession(refreshToken, reqMeta) {
     throw err
   }
 
-  const stored = db.select().from(refreshTokens).where(eq(refreshTokens.jti, payload.jti)).get()
+  const stored = await db.select().from(refreshTokens).where(eq(refreshTokens.jti, payload.jti)).get()
 
   if (!stored) {
     const err = new Error('Invalid refresh token')
@@ -323,9 +378,11 @@ export async function refreshSession(refreshToken, reqMeta) {
   }
 
   if (stored.revokedAt) {
-    db.update(refreshTokens).set({ revokedAt: new Date() }).where(
-      and(eq(refreshTokens.userId, stored.userId), isNull(refreshTokens.revokedAt)),
-    ).run()
+    await db
+      .update(refreshTokens)
+      .set({ revokedAt: new Date() })
+      .where(and(eq(refreshTokens.userId, stored.userId), isNull(refreshTokens.revokedAt)))
+      .run()
     authLog('token.reuse_detected', { userId: stored.userId })
     const err = new Error('Session revoked')
     err.status = 401
@@ -341,16 +398,23 @@ export async function refreshSession(refreshToken, reqMeta) {
   const { token: newRefresh, jti: newJti, expiresAt } = await createRefreshToken({ sub: stored.userId })
   const now = new Date()
 
-  db.update(refreshTokens).set({ revokedAt: now, replacedByJti: newJti }).where(eq(refreshTokens.id, stored.id)).run()
-  db.insert(refreshTokens).values({
-    id: newId(),
-    userId: stored.userId,
-    jti: newJti,
-    expiresAt,
-    userAgent: reqMeta.userAgent || null,
-    ipAddress: reqMeta.ipAddress || null,
-    createdAt: now,
-  }).run()
+  await db
+    .update(refreshTokens)
+    .set({ revokedAt: now, replacedByJti: newJti })
+    .where(eq(refreshTokens.id, stored.id))
+    .run()
+  await db
+    .insert(refreshTokens)
+    .values({
+      id: newId(),
+      userId: stored.userId,
+      jti: newJti,
+      expiresAt,
+      userAgent: reqMeta.userAgent || null,
+      ipAddress: reqMeta.ipAddress || null,
+      createdAt: now,
+    })
+    .run()
 
   const ctx = await loadUserContext(stored.userId)
   const accessToken = await createAccessToken({
@@ -377,7 +441,7 @@ export async function logout(refreshToken, reqMeta = {}) {
   if (!refreshToken) return { ok: true }
   try {
     const payload = await decodeRefreshToken(refreshToken)
-    db.update(refreshTokens).set({ revokedAt: new Date() }).where(eq(refreshTokens.jti, payload.jti)).run()
+    await db.update(refreshTokens).set({ revokedAt: new Date() }).where(eq(refreshTokens.jti, payload.jti)).run()
     authLog('logout', { userId: payload.sub })
     const ctx = await loadUserContext(payload.sub)
     if (ctx) {
@@ -406,7 +470,7 @@ export async function getMe(userId) {
 }
 
 export async function ngoRegister(data, reqMeta) {
-  const existing = db.select().from(users).where(eq(users.email, data.email.toLowerCase())).get()
+  const existing = await db.select().from(users).where(eq(users.email, data.email.toLowerCase())).get()
   if (existing) {
     const err = new Error('An account with this email already exists')
     err.status = 409
@@ -417,50 +481,64 @@ export async function ngoRegister(data, reqMeta) {
   const userId = newId()
   const tenantId = newId()
   const slug = await uniqueSlug(data.ngoName, async (s) => {
-    return Boolean(db.select().from(tenants).where(eq(tenants.slug, s)).get())
+    return Boolean(await db.select().from(tenants).where(eq(tenants.slug, s)).get())
   })
 
   const passwordHash = await hashPassword(data.password)
 
-  db.insert(tenants).values({
-    id: tenantId,
-    type: 'ngo',
-    name: data.ngoName,
-    slug,
-    createdAt: now,
-  }).run()
+  await db
+    .insert(tenants)
+    .values({
+      id: tenantId,
+      type: 'ngo',
+      name: data.ngoName,
+      slug,
+      createdAt: now,
+    })
+    .run()
 
-  db.insert(users).values({
-    id: userId,
-    email: data.email.toLowerCase(),
-    passwordHash,
-    fullName: data.contactPerson,
-    tenantType: 'ngo',
-    mfaEnabled: false,
-    createdAt: now,
-    updatedAt: now,
-  }).run()
+  await db
+    .insert(users)
+    .values({
+      id: userId,
+      email: data.email.toLowerCase(),
+      passwordHash,
+      fullName: data.contactPerson,
+      tenantType: 'ngo',
+      mfaEnabled: false,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .run()
 
-  db.insert(memberships).values({
-    id: newId(),
-    userId,
-    tenantId,
-    role: 'ngo_admin',
-    status: 'active',
-    createdAt: now,
-  }).run()
+  await db
+    .insert(memberships)
+    .values({
+      id: newId(),
+      userId,
+      tenantId,
+      role: 'ngo_admin',
+      status: 'active',
+      createdAt: now,
+    })
+    .run()
 
-  db.insert(ngoProfiles).values({
-    tenantId,
-    registrationNumber: data.registrationNumber,
-    sectors: JSON.stringify(data.sectors),
-    verificationStatus: 'pending',
-    contactPerson: data.contactPerson,
-    createdAt: now,
-  }).run()
+  await db
+    .insert(ngoProfiles)
+    .values({
+      tenantId,
+      registrationNumber: data.registrationNumber,
+      sectors: JSON.stringify(data.sectors),
+      verificationStatus: 'pending',
+      contactPerson: data.contactPerson,
+      createdAt: now,
+    })
+    .run()
 
   authLog('signup.ngo', { userId, tenantId })
-  await logActivity({ tenantId, userId, action: 'auth.signup.ngo', entityType: 'ngo', entityId: tenantId }).catch(() => {})
+  await logActivity({ tenantId, userId, action: 'auth.signup.ngo', entityType: 'ngo', entityId: tenantId }).catch(
+    () => {},
+  )
 
   const ctx = await loadUserContext(userId)
   return issueTokenPair(ctx, reqMeta)
@@ -485,21 +563,28 @@ export async function saveNgoDocuments(user, files, req = null) {
         entityId: docType,
       })
 
-      db.insert(ngoDocuments).values({
-        id: newId(),
-        tenantId: user.tenantId,
-        docType,
-        filePath: record.id,
-        originalName: file.originalname,
-        mime: file.mimetype,
-        sizeBytes: file.size,
-        uploadedAt: now,
-      }).run()
+      await db
+        .insert(ngoDocuments)
+        .values({
+          id: newId(),
+          tenantId: user.tenantId,
+          docType,
+          filePath: record.id,
+          originalName: file.originalname,
+          mime: file.mimetype,
+          sizeBytes: file.size,
+          uploadedAt: now,
+        })
+        .run()
       uploaded.push(record)
     }
   }
 
-  db.update(ngoProfiles).set({ verificationStatus: 'pending' }).where(eq(ngoProfiles.tenantId, user.tenantId)).run()
+  await db
+    .update(ngoProfiles)
+    .set({ verificationStatus: 'pending' })
+    .where(eq(ngoProfiles.tenantId, user.tenantId))
+    .run()
   authLog('ngo.verification_uploaded', { tenantId: user.tenantId })
 
   await notifyPlatformAdmins({
