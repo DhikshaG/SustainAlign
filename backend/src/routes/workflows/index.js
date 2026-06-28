@@ -5,12 +5,7 @@ import { requirePermission } from '../../middleware/permissions.js'
 import { validate } from '../../middleware/validate.js'
 import { ok, fail } from '../../lib/response.js'
 import { PERMISSIONS } from '../../lib/permissions.js'
-import {
-  createInstance,
-  getInstance,
-  listInboxForUser,
-  transition,
-} from '../../services/workflow/index.js'
+import { createInstance, getInstance, listInboxForUser, transition } from '../../services/workflow/index.js'
 import { db } from '../../db/index.js'
 import { tenants } from '../../db/schema.js'
 import { eq } from 'drizzle-orm'
@@ -61,19 +56,24 @@ router.get('/instances/:id', requirePermission(PERMISSIONS.WORKFLOW_READ), (req,
   return ok(res, instance)
 })
 
-router.post('/instances/:id/transition', requirePermission(PERMISSIONS.WORKFLOW_REVIEW), validate(transitionSchema), async (req, res, next) => {
-  try {
-    const instance = await transition({
-      req,
-      instanceId: req.params.id,
-      action: req.validated.action,
-      comment: req.validated.comment,
-    })
-    return ok(res, instance)
-  } catch (err) {
-    next(err)
-  }
-})
+router.post(
+  '/instances/:id/transition',
+  requirePermission(PERMISSIONS.WORKFLOW_REVIEW),
+  validate(transitionSchema),
+  async (req, res, next) => {
+    try {
+      const instance = await transition({
+        req,
+        instanceId: req.params.id,
+        action: req.validated.action,
+        comment: req.validated.comment,
+      })
+      return ok(res, instance)
+    } catch (err) {
+      next(err)
+    }
+  },
+)
 
 export default router
 
@@ -82,7 +82,7 @@ export const ngoReportsRouter = Router()
 ngoReportsRouter.post('/', authenticate, requirePermission(PERMISSIONS.WORKFLOW_SUBMIT), async (req, res, next) => {
   try {
     if (req.user.tenantType !== 'ngo') return fail(res, 403, 'NGO account required')
-    const corporate = db.select().from(tenants).where(eq(tenants.slug, 'acme-corp')).get()
+    const corporate = await db.select().from(tenants).where(eq(tenants.slug, 'acme-corp')).get()
     if (!corporate) return fail(res, 500, 'Demo corporate tenant not found')
     const reportId = newId()
     const title = req.body?.title || 'Q4 Utilization Report'

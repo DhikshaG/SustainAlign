@@ -33,7 +33,7 @@ router.post(
       const category = req.body?.category || req.query?.category
       if (!category) return fail(res, 400, 'category is required')
 
-      const tenant = db.select().from(tenants).where(eq(tenants.id, req.user.tenantId)).get()
+      const tenant = await db.select().from(tenants).where(eq(tenants.id, req.user.tenantId)).get()
       const record = await storeFile({
         req,
         buffer: req.file.buffer,
@@ -53,17 +53,23 @@ router.post(
   },
 )
 
-router.get('/', authenticate, requirePermission(PERMISSIONS.FILES_DOWNLOAD), validate(listSchema, 'query'), async (req, res, next) => {
-  try {
-    const rows = listFiles({
-      tenantId: req.user.tenantId,
-      ...req.validated,
-    })
-    return ok(res, { files: rows })
-  } catch (err) {
-    next(err)
-  }
-})
+router.get(
+  '/',
+  authenticate,
+  requirePermission(PERMISSIONS.FILES_DOWNLOAD),
+  validate(listSchema, 'query'),
+  async (req, res, next) => {
+    try {
+      const rows = listFiles({
+        tenantId: req.user.tenantId,
+        ...req.validated,
+      })
+      return ok(res, { files: rows })
+    } catch (err) {
+      next(err)
+    }
+  },
+)
 
 router.get('/:id', authenticate, requirePermission(PERMISSIONS.FILES_DOWNLOAD), async (req, res, next) => {
   try {
