@@ -113,10 +113,45 @@ Last updated: 2026-06-28
 
 ---
 
+## Phase 2 commit log
+
+```
+ 1. 7cc3902 test(backend): raise vitest line and statement coverage thresholds to 32%
+ 2. b32e2c4 test(backend): raise vitest function threshold to 17% and branch to 25%
+ 3. 2354b15 test(frontend): raise vitest branch coverage threshold from 15% to 20%
+```
+
+---
+
+## Phase 5 commit log
+
+```
+ 1. 5ed6640 feat(pgbouncer): add pgbouncer.ini with session pooling configuration
+ 2. 4534401 feat(pgbouncer): add pgbouncer userlist for database authentication
+ 3. d4f2765 feat(pgbouncer): add pgbouncer service to docker compose production with session pooling
+```
+
+---
+
 ## Phase 7 commit log
 
 ```
  1. 63ff9c9 feat(security): phase 7 — security hardening (dependabot, gitleaks, trivy, npm audit, docs)
+ 2. 3cf81e1 chore: add terraform.tfvars to gitignore to prevent secret leaks
+```
+
+---
+
+## Docs & polish commit log
+
+```
+ 1. 4f32696 docs: update README prod readiness section header to reference production plan
+ 2. 3a2581e docs: update README phase 1-2 descriptions to match production plan
+ 3. 89d32cc docs: update README phase 3-4 descriptions to Observability and Deployability
+ 4. 193680b docs: update README phase 5-7 descriptions to Postgres, API docs, and Security
+ 5. f833109 docs: update README database section to mention Postgres and PgBouncer support
+ 6. b98017d docs: add PgBouncer connection pooling notes to production deploy section
+ 7. 3e102f6 docs: update production plan status to all 7 phases complete, fix phase count
 ```
 
 ---
