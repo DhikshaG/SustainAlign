@@ -43,22 +43,31 @@ export async function createTask(projectId, data, createdBy, req) {
 
   const now = new Date()
   const id = newId()
-  await db.insert(projectTasks).values({
-    id,
-    projectId,
-    title: data.title,
-    description: data.description || null,
-    assigneeSide: data.assigneeSide,
-    assigneeUserId: data.assigneeUserId || null,
-    status: 'open',
-    dueDate: data.dueDate || null,
-    createdBy,
-    createdAt: now,
-    updatedAt: now,
-  }).run()
+  await db
+    .insert(projectTasks)
+    .values({
+      id,
+      projectId,
+      title: data.title,
+      description: data.description || null,
+      assigneeSide: data.assigneeSide,
+      assigneeUserId: data.assigneeUserId || null,
+      status: 'open',
+      dueDate: data.dueDate || null,
+      createdBy,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .run()
 
   if (req) {
-    logMutation({ req, action: 'task.create', entityType: 'project', entityId: projectId, after: { taskId: id, title: data.title } }).catch(() => {})
+    logMutation({
+      req,
+      action: 'task.create',
+      entityType: 'project',
+      entityId: projectId,
+      after: { taskId: id, title: data.title },
+    }).catch(() => {})
   }
 
   const notifyTenant = data.assigneeSide === 'ngo' ? project.ngoTenantId : project.corporateTenantId
@@ -74,7 +83,9 @@ export async function createTask(projectId, data, createdBy, req) {
 }
 
 export async function listTasksForProject(projectId) {
-  return await db.select().from(projectTasks)
+  return await db
+    .select()
+    .from(projectTasks)
     .where(eq(projectTasks.projectId, projectId))
     .orderBy(desc(projectTasks.updatedAt))
     .all()
@@ -82,14 +93,15 @@ export async function listTasksForProject(projectId) {
 }
 
 export async function listTasksForUser(userId, tenantId, side) {
-  const projects = side === 'ngo'
-    ? await db.select().from(csrProjects).where(eq(csrProjects.ngoTenantId, tenantId)).all()
-    : await db.select().from(csrProjects).where(eq(csrProjects.corporateTenantId, tenantId)).all()
+  const projects =
+    side === 'ngo'
+      ? await db.select().from(csrProjects).where(eq(csrProjects.ngoTenantId, tenantId)).all()
+      : await db.select().from(csrProjects).where(eq(csrProjects.corporateTenantId, tenantId)).all()
   const projectIds = new Set(projects.map((p) => p.id))
-  const tasks = await db.select().from(projectTasks)
-    .where(and(
-      eq(projectTasks.assigneeSide, side),
-    ))
+  const tasks = await db
+    .select()
+    .from(projectTasks)
+    .where(and(eq(projectTasks.assigneeSide, side)))
     .orderBy(desc(projectTasks.updatedAt))
     .all()
   return tasks

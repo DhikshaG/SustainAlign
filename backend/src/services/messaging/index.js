@@ -14,11 +14,19 @@ function httpError(message, status) {
 
 async function resolveNgoTenant({ ngoTenantId, ngoSlug }) {
   if (ngoTenantId) {
-    const t = await db.select().from(tenants).where(and(eq(tenants.id, ngoTenantId), eq(tenants.type, 'ngo'))).get()
+    const t = await db
+      .select()
+      .from(tenants)
+      .where(and(eq(tenants.id, ngoTenantId), eq(tenants.type, 'ngo')))
+      .get()
     if (t) return t
   }
   if (ngoSlug) {
-    const t = await db.select().from(tenants).where(and(eq(tenants.slug, ngoSlug), eq(tenants.type, 'ngo'))).get()
+    const t = await db
+      .select()
+      .from(tenants)
+      .where(and(eq(tenants.slug, ngoSlug), eq(tenants.type, 'ngo')))
+      .get()
     if (t) return t
   }
   throw httpError('NGO not found', 404)
@@ -50,14 +58,19 @@ async function shapeThread(row, preview) {
 }
 
 async function getLastMessage(threadId) {
-  return await db.select().from(messages)
+  return await db
+    .select()
+    .from(messages)
     .where(eq(messages.threadId, threadId))
     .orderBy(desc(messages.createdAt))
     .limit(1)
     .get()
 }
 
-export async function createThread({ corporateTenantId, ngoTenantId, ngoSlug, projectId, subject, createdBy, message }, req) {
+export async function createThread(
+  { corporateTenantId, ngoTenantId, ngoSlug, projectId, subject, createdBy, message },
+  req,
+) {
   const ngo = resolveNgoTenant({ ngoTenantId, ngoSlug })
 
   if (projectId) {
@@ -70,29 +83,41 @@ export async function createThread({ corporateTenantId, ngoTenantId, ngoSlug, pr
 
   const now = new Date()
   const id = newId()
-  await db.insert(messageThreads).values({
-    id,
-    corporateTenantId,
-    ngoTenantId: ngo.id,
-    projectId: projectId || null,
-    subject,
-    lastMessageAt: now,
-    createdBy,
-    createdAt: now,
-  }).run()
+  await db
+    .insert(messageThreads)
+    .values({
+      id,
+      corporateTenantId,
+      ngoTenantId: ngo.id,
+      projectId: projectId || null,
+      subject,
+      lastMessageAt: now,
+      createdBy,
+      createdAt: now,
+    })
+    .run()
 
   if (message) {
-    await db.insert(messages).values({
-      id: newId(),
-      threadId: id,
-      senderUserId: createdBy,
-      body: message,
-      createdAt: now,
-    }).run()
+    await db
+      .insert(messages)
+      .values({
+        id: newId(),
+        threadId: id,
+        senderUserId: createdBy,
+        body: message,
+        createdAt: now,
+      })
+      .run()
   }
 
   if (req) {
-    logMutation({ req, action: 'crm.thread.create', entityType: 'message_thread', entityId: id, after: { subject } }).catch(() => {})
+    logMutation({
+      req,
+      action: 'crm.thread.create',
+      entityType: 'message_thread',
+      entityId: id,
+      after: { subject },
+    }).catch(() => {})
   }
 
   notifyRole(ngo.id, 'ngo_admin', {
@@ -106,7 +131,9 @@ export async function createThread({ corporateTenantId, ngoTenantId, ngoSlug, pr
 }
 
 export async function listThreadsForCorporate(tenantId) {
-  const rows = await db.select().from(messageThreads)
+  const rows = await db
+    .select()
+    .from(messageThreads)
     .where(eq(messageThreads.corporateTenantId, tenantId))
     .orderBy(desc(messageThreads.lastMessageAt))
     .all()
@@ -114,7 +141,9 @@ export async function listThreadsForCorporate(tenantId) {
 }
 
 export async function listThreadsForNgo(tenantId) {
-  const rows = await db.select().from(messageThreads)
+  const rows = await db
+    .select()
+    .from(messageThreads)
     .where(eq(messageThreads.ngoTenantId, tenantId))
     .orderBy(desc(messageThreads.lastMessageAt))
     .all()
@@ -126,13 +155,14 @@ export async function getThread(threadId, user) {
   if (!row) throw httpError('Thread not found', 404)
   assertThreadAccess(row, user)
 
-  const msgs = await db.select({
-    id: messages.id,
-    body: messages.body,
-    createdAt: messages.createdAt,
-    senderUserId: messages.senderUserId,
-    senderName: users.fullName,
-  })
+  const msgs = await db
+    .select({
+      id: messages.id,
+      body: messages.body,
+      createdAt: messages.createdAt,
+      senderUserId: messages.senderUserId,
+      senderName: users.fullName,
+    })
     .from(messages)
     .innerJoin(users, eq(users.id, messages.senderUserId))
     .where(eq(messages.threadId, threadId))
@@ -163,18 +193,27 @@ export async function postMessage(threadId, userId, body, user, req) {
 
   const now = new Date()
   const id = newId()
-  await db.insert(messages).values({
-    id,
-    threadId,
-    senderUserId: userId,
-    body,
-    createdAt: now,
-  }).run()
+  await db
+    .insert(messages)
+    .values({
+      id,
+      threadId,
+      senderUserId: userId,
+      body,
+      createdAt: now,
+    })
+    .run()
 
   await db.update(messageThreads).set({ lastMessageAt: now }).where(eq(messageThreads.id, threadId)).run()
 
   if (req) {
-    logMutation({ req, action: 'crm.message.post', entityType: 'message_thread', entityId: threadId, after: { messageId: id } }).catch(() => {})
+    logMutation({
+      req,
+      action: 'crm.message.post',
+      entityType: 'message_thread',
+      entityId: threadId,
+      after: { messageId: id },
+    }).catch(() => {})
   }
 
   const targetTenantId = isCorporate ? row.ngoTenantId : row.corporateTenantId
@@ -202,18 +241,23 @@ export async function getOrCreateProjectThread(projectId, user, req) {
   }
   if (!canUseCrm(project)) throw httpError('Partnership must be accepted before messaging', 400)
 
-  const existing = await db.select().from(messageThreads)
+  const existing = await db
+    .select()
+    .from(messageThreads)
     .where(and(eq(messageThreads.projectId, projectId)))
     .get()
   if (existing) return getThread(existing.id, user)
 
   const corporateTenantId = project.corporateTenantId
-  return createThread({
-    corporateTenantId,
-    ngoTenantId: project.ngoTenantId,
-    projectId,
-    subject: `Project: ${project.name}`,
-    createdBy: user.sub,
-    message: `Thread started for project "${project.name}".`,
-  }, req)
+  return createThread(
+    {
+      corporateTenantId,
+      ngoTenantId: project.ngoTenantId,
+      projectId,
+      subject: `Project: ${project.name}`,
+      createdBy: user.sub,
+      message: `Thread started for project "${project.name}".`,
+    },
+    req,
+  )
 }

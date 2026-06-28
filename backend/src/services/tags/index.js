@@ -69,7 +69,7 @@ const ENTITY_TAG_SEEDS = {
   'green-earth-foundation': ['climate', 'sdg-13', 'maharashtra', 'rural'],
   'pratham-education-foundation': ['education', 'sdg-4', 'pan-india', 'urban'],
   'sankara-eye-foundation': ['healthcare', 'sdg-3', 'tamil-nadu', 'rural'],
-  'goonj': ['rural-development', 'sdg-1', 'delhi-ncr', 'rural'],
+  goonj: ['rural-development', 'sdg-1', 'delhi-ncr', 'rural'],
   'giveindia-foundation': ['education', 'sdg-10', 'maharashtra', 'urban'],
   'nanhi-kali': ['education', 'sdg-5', 'pan-india', 'rural'],
 }
@@ -79,26 +79,34 @@ export async function seedTags() {
     const existing = await db.select().from(tagCategories).where(eq(tagCategories.slug, cat.slug)).get()
     const catId = existing?.id || newId()
     if (!existing) {
-      await db.insert(tagCategories).values({
-        id: catId,
-        slug: cat.slug,
-        name: cat.name,
-        description: null,
-      }).run()
+      await db
+        .insert(tagCategories)
+        .values({
+          id: catId,
+          slug: cat.slug,
+          name: cat.name,
+          description: null,
+        })
+        .run()
     }
 
     for (const t of cat.tags) {
-      const tagRow = await db.select().from(tags)
+      const tagRow = await db
+        .select()
+        .from(tags)
         .where(and(eq(tags.categoryId, catId), eq(tags.slug, t.slug)))
         .get()
       if (!tagRow) {
-        await db.insert(tags).values({
-          id: newId(),
-          categoryId: catId,
-          slug: t.slug,
-          label: t.label,
-          metadata: t.metadata ? JSON.stringify(t.metadata) : null,
-        }).run()
+        await db
+          .insert(tags)
+          .values({
+            id: newId(),
+            categoryId: catId,
+            slug: t.slug,
+            label: t.label,
+            metadata: t.metadata ? JSON.stringify(t.metadata) : null,
+          })
+          .run()
       }
     }
   }
@@ -136,13 +144,14 @@ function parseTag(t) {
 }
 
 export async function getEntityTags(entityType, entityId) {
-  const rows = await db.select({
-    id: tags.id,
-    slug: tags.slug,
-    label: tags.label,
-    categoryId: tags.categoryId,
-    metadata: tags.metadata,
-  })
+  const rows = await db
+    .select({
+      id: tags.id,
+      slug: tags.slug,
+      label: tags.label,
+      categoryId: tags.categoryId,
+      metadata: tags.metadata,
+    })
     .from(entityTags)
     .innerJoin(tags, eq(entityTags.tagId, tags.id))
     .where(and(eq(entityTags.entityType, entityType), eq(entityTags.entityId, entityId)))
@@ -152,20 +161,24 @@ export async function getEntityTags(entityType, entityId) {
 
 export async function setEntityTags({ req, entityType, entityId, tenantId, tagIds, skipActivity = false }) {
   const previous = getEntityTags(entityType, entityId)
-  await db.delete(entityTags)
+  await db
+    .delete(entityTags)
     .where(and(eq(entityTags.entityType, entityType), eq(entityTags.entityId, entityId)))
     .run()
 
   const now = new Date()
   for (const tagId of tagIds) {
-    await db.insert(entityTags).values({
-      id: newId(),
-      entityType,
-      entityId,
-      tagId,
-      tenantId,
-      createdAt: now,
-    }).run()
+    await db
+      .insert(entityTags)
+      .values({
+        id: newId(),
+        entityType,
+        entityId,
+        tagId,
+        tenantId,
+        createdAt: now,
+      })
+      .run()
   }
 
   const updated = getEntityTags(entityType, entityId)
@@ -202,7 +215,9 @@ export async function findEntitiesByTags(entityType, tagSlugs) {
   if (!tagRows.length) return []
 
   const tagIds = tagRows.map((t) => t.id)
-  const assignments = await db.select().from(entityTags)
+  const assignments = await db
+    .select()
+    .from(entityTags)
     .where(and(eq(entityTags.entityType, entityType), inArray(entityTags.tagId, tagIds)))
     .all()
 
@@ -227,7 +242,9 @@ export async function findEntitiesByTagGroups(entityType, tagGroups) {
     if (!tagRows.length) return []
 
     const tagIds = tagRows.map((t) => t.id)
-    const assignments = await db.select().from(entityTags)
+    const assignments = await db
+      .select()
+      .from(entityTags)
       .where(and(eq(entityTags.entityType, entityType), inArray(entityTags.tagId, tagIds)))
       .all()
 
@@ -277,8 +294,14 @@ export function getDiscoveryFilterOptions() {
     states: [{ value: 'All', label: 'All states' }, ...states.map((s) => ({ value: s.value, label: s.label }))],
     sdgs: [{ value: 'all', label: 'All SDGs' }, ...sdgs.map((s) => ({ value: s.value, label: s.label }))],
     themes: [{ value: 'All', label: 'All themes' }, ...themes.map((t) => ({ value: t.slug, label: t.label }))],
-    impactAreas: [{ value: 'all', label: 'All impact areas' }, ...impactAreas.map((i) => ({ value: i.slug, label: i.label }))],
-    budgetRanges: ['All', 'Under 10L', '10L-25L', '25L-50L', '50L-1Cr', '1Cr+'].map((b) => ({ value: b, label: b === 'All' ? 'All budgets' : b })),
+    impactAreas: [
+      { value: 'all', label: 'All impact areas' },
+      ...impactAreas.map((i) => ({ value: i.slug, label: i.label })),
+    ],
+    budgetRanges: ['All', 'Under 10L', '10L-25L', '25L-50L', '50L-1Cr', '1Cr+'].map((b) => ({
+      value: b,
+      label: b === 'All' ? 'All budgets' : b,
+    })),
     verifiedOptions: [
       { value: 'all', label: 'All NGOs' },
       { value: 'true', label: 'Verified only' },
@@ -303,7 +326,9 @@ export function resolveStateGeographySlug(state) {
   if (!state || state === 'All') return null
   if (STATE_LABEL_TO_SLUG[state]) return STATE_LABEL_TO_SLUG[state]
   const normalized = state.toLowerCase().replace(/\s+/g, '-')
-  const geo = listTagsByCategory('geography').find((t) => t.slug === normalized || t.label.toLowerCase() === state.toLowerCase())
+  const geo = listTagsByCategory('geography').find(
+    (t) => t.slug === normalized || t.label.toLowerCase() === state.toLowerCase(),
+  )
   return geo?.slug ?? null
 }
 
