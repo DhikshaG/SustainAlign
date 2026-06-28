@@ -339,7 +339,7 @@ This codebase has been hardened across seven phases per the [Production Readines
 - ✅ Phase 6 — API Documentation (OpenAPI 3.0 spec from Zod schemas, Swagger UI, Postman collection, API changelog)
 - ✅ Phase 7 — Security Hardening (Dependabot + npm audit, Gitleaks + GitGuardian secret scanning, Trivy container scanning, rate limit audit, OWASP pen test plan)
 
-**Database:** SQLite (WAL mode) is used. For an early-pilot launch this is sufficient with automated backups and a single-instance deploy. A Postgres migration is documented as a future milestone for horizontal scaling.
+**Database:** SQLite (WAL mode) is the default, with automated backups via age-encrypted cron. Postgres is fully supported via `DB_DIALECT=pg` with optional PgBouncer connection pooling for production scale.
 
 ### CI/CD Pipeline
 
