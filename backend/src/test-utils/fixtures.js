@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { newId } from '../lib/ids.js'
 
-export function seedUser(db, schema, overrides = {}) {
+export async function seedUser(db, schema, overrides = {}) {
   const id = overrides.id || newId()
   const tenantId = overrides.tenantId || 'test-corp-tenant'
   const now = new Date()
@@ -15,11 +15,11 @@ export function seedUser(db, schema, overrides = {}) {
     createdAt: now,
     updatedAt: now,
   }
-  db.insert(schema.users).values(user).run()
-  return db.select().from(schema.users).where(eq(schema.users.id, id)).get()
+  await db.insert(schema.users).values(user).run()
+  return await db.select().from(schema.users).where(eq(schema.users.id, id)).get()
 }
 
-export function seedTenant(db, schema, overrides = {}) {
+export async function seedTenant(db, schema, overrides = {}) {
   const id = overrides.id || overrides.tenantId || 'test-corp-tenant'
   const now = new Date()
   const tenant = {
@@ -29,11 +29,11 @@ export function seedTenant(db, schema, overrides = {}) {
     slug: overrides.slug || 'test-corp',
     createdAt: now,
   }
-  db.insert(schema.tenants).values(tenant).run()
-  return db.select().from(schema.tenants).where(eq(schema.tenants.id, id)).get()
+  await db.insert(schema.tenants).values(tenant).run()
+  return await db.select().from(schema.tenants).where(eq(schema.tenants.id, id)).get()
 }
 
-export function seedMembership(db, schema, overrides = {}) {
+export async function seedMembership(db, schema, overrides = {}) {
   const id = overrides.id || newId()
   const now = new Date()
   const membership = {
@@ -44,7 +44,7 @@ export function seedMembership(db, schema, overrides = {}) {
     status: 'active',
     createdAt: now,
   }
-  db.insert(schema.memberships).values(membership).run()
+  await db.insert(schema.memberships).values(membership).run()
   return membership
 }
 

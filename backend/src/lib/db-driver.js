@@ -2,7 +2,7 @@
  * Postgres dialect compatibility layer for Drizzle ORM.
  *
  * The better-sqlite3 dialect exposes `.get()` and `.run()` on query builders.
- * The node-postgres dialect does not — queries execute via `await qb`.
+ * The node-postgres dialect does not â€” queries execute via `await qb`.
  * This module wraps a Postgres Drizzle instance so that `.get()` and `.run()`
  * work identically to the SQLite dialect, enabling dual-dialect code.
  */
@@ -18,6 +18,11 @@ export function enhanceDbForPg(db) {
           return async function () {
             const rows = await target
             return Array.isArray(rows) && rows.length > 0 ? rows[0] : null
+          }
+        }
+        if (prop === 'all') {
+          return async function () {
+            return await target
           }
         }
         if (prop === 'run') {

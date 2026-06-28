@@ -93,9 +93,24 @@ const accounts = [
 ]
 
 const NOTIFICATION_SEEDS = [
-  { type: 'report.pending', title: 'Q4 utilization report due', body: 'Submit your quarterly utilization report by month end.', link: '/dashboard/reporting' },
-  { type: 'compliance.deadline', title: 'Section 135 filing reminder', body: 'Annual CSR compliance filing is due in 14 days.', link: '/dashboard/compliance' },
-  { type: 'milestone.delayed', title: 'Milestone behind schedule', body: 'Tree plantation milestone is 5 days overdue.', link: '/dashboard/projects' },
+  {
+    type: 'report.pending',
+    title: 'Q4 utilization report due',
+    body: 'Submit your quarterly utilization report by month end.',
+    link: '/dashboard/reporting',
+  },
+  {
+    type: 'compliance.deadline',
+    title: 'Section 135 filing reminder',
+    body: 'Annual CSR compliance filing is due in 14 days.',
+    link: '/dashboard/compliance',
+  },
+  {
+    type: 'milestone.delayed',
+    title: 'Milestone behind schedule',
+    body: 'Tree plantation milestone is 5 days overdue.',
+    link: '/dashboard/projects',
+  },
 ]
 
 export async function runSeed({ fresh = false } = {}) {
@@ -110,10 +125,10 @@ export async function runSeed({ fresh = false } = {}) {
   console.log('\n=== Seeding SustainAlign dev accounts ===\n')
 
   for (const acct of accounts) {
-    const existing = db.select().from(users).where(eq(users.email, acct.email)).get()
+    const existing = await db.select().from(users).where(eq(users.email, acct.email)).get()
     if (existing) {
       console.log(`  skip  ${acct.email} (exists)`)
-      const membership = db.select().from(memberships).where(eq(memberships.userId, existing.id)).get()
+      const membership = await db.select().from(memberships).where(eq(memberships.userId, existing.id)).get()
       if (membership) tenantByEmail[acct.email] = membership.tenantId
       userByEmail[acct.email] = existing.id
       continue
@@ -123,8 +138,8 @@ export async function runSeed({ fresh = false } = {}) {
     if (acct.linkTenant) {
       tenantId = tenantByEmail[acct.linkTenant]
       if (!tenantId) {
-        const linked = db.select().from(users).where(eq(users.email, acct.linkTenant)).get()
-        const mem = linked && db.select().from(memberships).where(eq(memberships.userId, linked.id)).get()
+        const linked = await db.select().from(users).where(eq(users.email, acct.linkTenant)).get()
+        const mem = linked && (await db.select().from(memberships).where(eq(memberships.userId, linked.id)).get())
         tenantId = mem?.tenantId
       }
       if (!tenantId) {
@@ -133,46 +148,58 @@ export async function runSeed({ fresh = false } = {}) {
       }
     } else {
       tenantId = newId()
-      db.insert(tenants).values({
-        id: tenantId,
-        type: acct.type,
-        name: acct.name,
-        slug: acct.slug,
-        createdAt: now,
-      }).run()
+      await db
+        .insert(tenants)
+        .values({
+          id: tenantId,
+          type: acct.type,
+          name: acct.name,
+          slug: acct.slug,
+          createdAt: now,
+        })
+        .run()
     }
 
     const userId = newId()
 
-    db.insert(users).values({
-      id: userId,
-      email: acct.email,
-      passwordHash,
-      fullName: acct.name,
-      tenantType: acct.type,
-      mfaEnabled: false,
-      createdAt: now,
-      updatedAt: now,
-    }).run()
+    await db
+      .insert(users)
+      .values({
+        id: userId,
+        email: acct.email,
+        passwordHash,
+        fullName: acct.name,
+        tenantType: acct.type,
+        mfaEnabled: false,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .run()
 
-    db.insert(memberships).values({
-      id: newId(),
-      userId,
-      tenantId,
-      role: acct.role,
-      status: 'active',
-      createdAt: now,
-    }).run()
+    await db
+      .insert(memberships)
+      .values({
+        id: newId(),
+        userId,
+        tenantId,
+        role: acct.role,
+        status: 'active',
+        createdAt: now,
+      })
+      .run()
 
     if (acct.ngo) {
-      db.insert(ngoProfiles).values({
-        tenantId,
-        registrationNumber: acct.ngo.registrationNumber,
-        sectors: JSON.stringify(acct.ngo.sectors),
-        verificationStatus: 'verified',
-        contactPerson: acct.ngo.contactPerson,
-        createdAt: now,
-      }).run()
+      await db
+        .insert(ngoProfiles)
+        .values({
+          tenantId,
+          registrationNumber: acct.ngo.registrationNumber,
+          sectors: JSON.stringify(acct.ngo.sectors),
+          verificationStatus: 'verified',
+          contactPerson: acct.ngo.contactPerson,
+          createdAt: now,
+        })
+        .run()
     }
 
     tenantByEmail[acct.email] = tenantId
@@ -181,14 +208,14 @@ export async function runSeed({ fresh = false } = {}) {
   }
 
   console.log('\n=== Seeding notifications ===\n')
-  const allUsers = db.select().from(users).all()
+  const allUsers = await db.select().from(users).all()
   for (const user of allUsers) {
-    const existing = db.select().from(notifications).where(eq(notifications.userId, user.id)).all()
+    const existing = await db.select().from(notifications).where(eq(notifications.userId, user.id)).all()
     if (existing.length > 0) {
       console.log(`  skip  notifications for ${user.email}`)
       continue
     }
-    const membership = db.select().from(memberships).where(eq(memberships.userId, user.id)).get()
+    const membership = await db.select().from(memberships).where(eq(memberships.userId, user.id)).get()
     if (!membership) continue
     for (const n of NOTIFICATION_SEEDS) {
       await createNotification({
