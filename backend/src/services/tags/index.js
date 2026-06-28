@@ -74,12 +74,12 @@ const ENTITY_TAG_SEEDS = {
   'nanhi-kali': ['education', 'sdg-5', 'pan-india', 'rural'],
 }
 
-export function seedTags() {
+export async function seedTags() {
   for (const cat of TAXONOMY) {
-    const existing = db.select().from(tagCategories).where(eq(tagCategories.slug, cat.slug)).get()
+    const existing = await db.select().from(tagCategories).where(eq(tagCategories.slug, cat.slug)).get()
     const catId = existing?.id || newId()
     if (!existing) {
-      db.insert(tagCategories).values({
+      await db.insert(tagCategories).values({
         id: catId,
         slug: cat.slug,
         name: cat.name,
@@ -88,11 +88,11 @@ export function seedTags() {
     }
 
     for (const t of cat.tags) {
-      const tagRow = db.select().from(tags)
+      const tagRow = await db.select().from(tags)
         .where(and(eq(tags.categoryId, catId), eq(tags.slug, t.slug)))
         .get()
       if (!tagRow) {
-        db.insert(tags).values({
+        await db.insert(tags).values({
           id: newId(),
           categoryId: catId,
           slug: t.slug,
@@ -104,9 +104,9 @@ export function seedTags() {
   }
 
   for (const [slug, tagSlugs] of Object.entries(ENTITY_TAG_SEEDS)) {
-    const tenant = db.select().from(tenants).where(eq(tenants.slug, slug)).get()
+    const tenant = await db.select().from(tenants).where(eq(tenants.slug, slug)).get()
     if (!tenant) continue
-    const tagRows = db.select().from(tags).where(inArray(tags.slug, tagSlugs)).all()
+    const tagRows = await db.select().from(tags).where(inArray(tags.slug, tagSlugs)).all()
     setEntityTags({
       entityType: 'ngo',
       entityId: tenant.id,
@@ -117,26 +117,26 @@ export function seedTags() {
   }
 }
 
-export function listCategories() {
-  const cats = db.select().from(tagCategories).all()
-  return cats.map((c) => ({
+export async function listCategories() {
+  const cats = await db.select().from(tagCategories).all()
+  return cats.map(async (c) => ({
     ...c,
-    tags: db.select().from(tags).where(eq(tags.categoryId, c.id)).all().map(parseTag),
+    tags: await db.select().from(tags).where(eq(tags.categoryId, c.id)).all().map(parseTag),
   }))
 }
 
-export function listTagsByCategory(categorySlug) {
-  const cat = db.select().from(tagCategories).where(eq(tagCategories.slug, categorySlug)).get()
+export async function listTagsByCategory(categorySlug) {
+  const cat = await db.select().from(tagCategories).where(eq(tagCategories.slug, categorySlug)).get()
   if (!cat) return []
-  return db.select().from(tags).where(eq(tags.categoryId, cat.id)).all().map(parseTag)
+  return await db.select().from(tags).where(eq(tags.categoryId, cat.id)).all().map(parseTag)
 }
 
 function parseTag(t) {
   return { ...t, metadata: t.metadata ? JSON.parse(t.metadata) : null }
 }
 
-export function getEntityTags(entityType, entityId) {
-  const rows = db.select({
+export async function getEntityTags(entityType, entityId) {
+  const rows = await db.select({
     id: tags.id,
     slug: tags.slug,
     label: tags.label,
@@ -150,15 +150,15 @@ export function getEntityTags(entityType, entityId) {
   return rows.map(parseTag)
 }
 
-export function setEntityTags({ req, entityType, entityId, tenantId, tagIds, skipActivity = false }) {
+export async function setEntityTags({ req, entityType, entityId, tenantId, tagIds, skipActivity = false }) {
   const previous = getEntityTags(entityType, entityId)
-  db.delete(entityTags)
+  await db.delete(entityTags)
     .where(and(eq(entityTags.entityType, entityType), eq(entityTags.entityId, entityId)))
     .run()
 
   const now = new Date()
   for (const tagId of tagIds) {
-    db.insert(entityTags).values({
+    await db.insert(entityTags).values({
       id: newId(),
       entityType,
       entityId,
@@ -181,7 +181,7 @@ export function setEntityTags({ req, entityType, entityId, tenantId, tagIds, ski
   }
 
   if (entityType === 'ngo') {
-    const tenant = db.select().from(tenants).where(eq(tenants.id, entityId)).get()
+    const tenant = await db.select().from(tenants).where(eq(tenants.id, entityId)).get()
     if (tenant) {
       indexDocument({
         tenantId,
@@ -196,13 +196,13 @@ export function setEntityTags({ req, entityType, entityId, tenantId, tagIds, ski
   return updated
 }
 
-export function findEntitiesByTags(entityType, tagSlugs) {
+export async function findEntitiesByTags(entityType, tagSlugs) {
   if (!tagSlugs?.length) return []
-  const tagRows = db.select().from(tags).where(inArray(tags.slug, tagSlugs)).all()
+  const tagRows = await db.select().from(tags).where(inArray(tags.slug, tagSlugs)).all()
   if (!tagRows.length) return []
 
   const tagIds = tagRows.map((t) => t.id)
-  const assignments = db.select().from(entityTags)
+  const assignments = await db.select().from(entityTags)
     .where(and(eq(entityTags.entityType, entityType), inArray(entityTags.tagId, tagIds)))
     .all()
 
@@ -217,17 +217,17 @@ export function findEntitiesByTags(entityType, tagSlugs) {
 }
 
 /** Each group is OR'd internally; groups are AND'd together. */
-export function findEntitiesByTagGroups(entityType, tagGroups) {
+export async function findEntitiesByTagGroups(entityType, tagGroups) {
   const groups = tagGroups.filter((g) => g?.length)
   if (!groups.length) return null
 
   let result = null
   for (const group of groups) {
-    const tagRows = db.select().from(tags).where(inArray(tags.slug, group)).all()
+    const tagRows = await db.select().from(tags).where(inArray(tags.slug, group)).all()
     if (!tagRows.length) return []
 
     const tagIds = tagRows.map((t) => t.id)
-    const assignments = db.select().from(entityTags)
+    const assignments = await db.select().from(entityTags)
       .where(and(eq(entityTags.entityType, entityType), inArray(entityTags.tagId, tagIds)))
       .all()
 

@@ -33,8 +33,8 @@ function httpError(message, status) {
   return err
 }
 
-function assertProjectAccess(projectId, { corporateTenantId, ngoTenantId }) {
-  const row = db.select().from(csrProjects).where(eq(csrProjects.id, projectId)).get()
+async function assertProjectAccess(projectId, { corporateTenantId, ngoTenantId }) {
+  const row = await db.select().from(csrProjects).where(eq(csrProjects.id, projectId)).get()
   if (!row) throw httpError('Project not found', 404)
   if (corporateTenantId && row.corporateTenantId !== corporateTenantId) {
     throw httpError('Project not found', 404)
@@ -45,14 +45,18 @@ function assertProjectAccess(projectId, { corporateTenantId, ngoTenantId }) {
   return row
 }
 
-export function getLatestBeneficiaries(projectId) {
-  const log = db.select().from(projectBeneficiaryLogs)
+export async function getLatestBeneficiaries(projectId) {
+  const log = await db
+    .select()
+    .from(projectBeneficiaryLogs)
     .where(eq(projectBeneficiaryLogs.projectId, projectId))
     .orderBy(desc(projectBeneficiaryLogs.recordedAt))
     .limit(1)
     .get()
   if (!log) return { direct: 0, indirect: 0, added: 0, history: [] }
-  const history = db.select().from(projectBeneficiaryLogs)
+  const history = await db
+    .select()
+    .from(projectBeneficiaryLogs)
     .where(eq(projectBeneficiaryLogs.projectId, projectId))
     .orderBy(desc(projectBeneficiaryLogs.recordedAt))
     .all()
@@ -71,8 +75,10 @@ export function getLatestBeneficiaries(projectId) {
   }
 }
 
-export function listKpis(projectId) {
-  return db.select().from(projectKpis)
+export async function listKpis(projectId) {
+  return await db
+    .select()
+    .from(projectKpis)
     .where(eq(projectKpis.projectId, projectId))
     .orderBy(desc(projectKpis.recordedAt))
     .all()
@@ -86,8 +92,10 @@ export function listKpis(projectId) {
     }))
 }
 
-export function listGeoUpdates(projectId) {
-  return db.select().from(projectGeoUpdates)
+export async function listGeoUpdates(projectId) {
+  return await db
+    .select()
+    .from(projectGeoUpdates)
     .where(eq(projectGeoUpdates.projectId, projectId))
     .orderBy(desc(projectGeoUpdates.effectiveDate))
     .all()
@@ -102,111 +110,147 @@ export function listGeoUpdates(projectId) {
     }))
 }
 
-export function getUpdateFiles(updateId) {
-  const links = db.select().from(projectUpdateFiles)
-    .where(eq(projectUpdateFiles.updateId, updateId))
-    .all()
-  return links.map((l) => {
-    const f = db.select().from(files).where(eq(files.id, l.fileId)).get()
-    return f ? {
-      id: f.id,
-      name: f.originalName,
-      mime: f.mime,
-      sizeBytes: f.sizeBytes,
-      downloadUrl: `/api/files/${f.id}/download`,
-    } : null
-  }).filter(Boolean)
+export async function getUpdateFiles(updateId) {
+  const links = await db.select().from(projectUpdateFiles).where(eq(projectUpdateFiles.updateId, updateId)).all()
+  return links
+    .map(async (l) => {
+      const f = await db.select().from(files).where(eq(files.id, l.fileId)).get()
+      return f
+        ? {
+            id: f.id,
+            name: f.originalName,
+            mime: f.mime,
+            sizeBytes: f.sizeBytes,
+            downloadUrl: `/api/files/${f.id}/download`,
+          }
+        : null
+    })
+    .filter(Boolean)
 }
 
-export function addKpi(projectId, data, { corporateTenantId, ngoTenantId, req } = {}) {
+export async function addKpi(projectId, data, { corporateTenantId, ngoTenantId, req } = {}) {
   assertProjectAccess(projectId, { corporateTenantId, ngoTenantId })
   const id = newId()
   const now = new Date()
-  db.insert(projectKpis).values({
-    id,
-    projectId,
-    metricKey: data.metricKey,
-    label: data.label,
-    value: String(data.value),
-    unit: data.unit || null,
-    recordedAt: now,
-  }).run()
+  await db
+    .insert(projectKpis)
+    .values({
+      id,
+      projectId,
+      metricKey: data.metricKey,
+      label: data.label,
+      value: String(data.value),
+      unit: data.unit || null,
+      recordedAt: now,
+    })
+    .run()
   if (req) {
-    logMutation({ req, action: 'impact.kpi.add', entityType: 'project', entityId: projectId, after: { kpiId: id } }).catch(() => {})
+    logMutation({
+      req,
+      action: 'impact.kpi.add',
+      entityType: 'project',
+      entityId: projectId,
+      after: { kpiId: id },
+    }).catch(() => {})
   }
   return listKpis(projectId).find((k) => k.id === id)
 }
 
-export function addBeneficiaryLog(projectId, data, { corporateTenantId, ngoTenantId, userId, req } = {}) {
+export async function addBeneficiaryLog(projectId, data, { corporateTenantId, ngoTenantId, userId, req } = {}) {
   assertProjectAccess(projectId, { corporateTenantId, ngoTenantId })
   const id = newId()
   const now = new Date()
-  db.insert(projectBeneficiaryLogs).values({
-    id,
-    projectId,
-    directCount: data.directCount ?? 0,
-    indirectCount: data.indirectCount ?? 0,
-    note: data.note || null,
-    recordedAt: now,
-    recordedBy: userId || null,
-  }).run()
+  await db
+    .insert(projectBeneficiaryLogs)
+    .values({
+      id,
+      projectId,
+      directCount: data.directCount ?? 0,
+      indirectCount: data.indirectCount ?? 0,
+      note: data.note || null,
+      recordedAt: now,
+      recordedBy: userId || null,
+    })
+    .run()
   if (req) {
-    logMutation({ req, action: 'impact.beneficiary.add', entityType: 'project', entityId: projectId, after: { logId: id } }).catch(() => {})
+    logMutation({
+      req,
+      action: 'impact.beneficiary.add',
+      entityType: 'project',
+      entityId: projectId,
+      after: { logId: id },
+    }).catch(() => {})
   }
   return getLatestBeneficiaries(projectId)
 }
 
-export function addGeoUpdate(projectId, data, { corporateTenantId, ngoTenantId, req } = {}) {
+export async function addGeoUpdate(projectId, data, { corporateTenantId, ngoTenantId, req } = {}) {
   assertProjectAccess(projectId, { corporateTenantId, ngoTenantId })
   const id = newId()
-  db.insert(projectGeoUpdates).values({
-    id,
-    projectId,
-    state: data.state,
-    district: data.district || null,
-    lat: data.lat ?? null,
-    lng: data.lng ?? null,
-    note: data.note || null,
-    effectiveDate: data.effectiveDate || new Date().toISOString().slice(0, 10),
-  }).run()
+  await db
+    .insert(projectGeoUpdates)
+    .values({
+      id,
+      projectId,
+      state: data.state,
+      district: data.district || null,
+      lat: data.lat ?? null,
+      lng: data.lng ?? null,
+      note: data.note || null,
+      effectiveDate: data.effectiveDate || new Date().toISOString().slice(0, 10),
+    })
+    .run()
   if (data.state) {
-    db.update(csrProjects)
-      .set({ state: data.state, location: data.district ? `${data.district}, ${data.state}` : data.state, updatedAt: new Date() })
+    await db
+      .update(csrProjects)
+      .set({
+        state: data.state,
+        location: data.district ? `${data.district}, ${data.state}` : data.state,
+        updatedAt: new Date(),
+      })
       .where(eq(csrProjects.id, projectId))
       .run()
   }
   if (req) {
-    logMutation({ req, action: 'impact.geo.add', entityType: 'project', entityId: projectId, after: { geoId: id } }).catch(() => {})
+    logMutation({
+      req,
+      action: 'impact.geo.add',
+      entityType: 'project',
+      entityId: projectId,
+      after: { geoId: id },
+    }).catch(() => {})
   }
   return listGeoUpdates(projectId).find((g) => g.id === id)
 }
 
-export function attachFilesToUpdate(updateId, fileIds, { corporateTenantId, ngoTenantId } = {}) {
-  const update = db.select().from(projectUpdates).where(eq(projectUpdates.id, updateId)).get()
+export async function attachFilesToUpdate(updateId, fileIds, { corporateTenantId, ngoTenantId } = {}) {
+  const update = await db.select().from(projectUpdates).where(eq(projectUpdates.id, updateId)).get()
   if (!update) throw httpError('Update not found', 404)
   assertProjectAccess(update.projectId, { corporateTenantId, ngoTenantId })
   for (const fileId of fileIds) {
-    const existing = db.select().from(projectUpdateFiles)
+    const existing = await db
+      .select()
+      .from(projectUpdateFiles)
       .where(and(eq(projectUpdateFiles.updateId, updateId), eq(projectUpdateFiles.fileId, fileId)))
       .get()
     if (!existing) {
-      db.insert(projectUpdateFiles).values({ id: newId(), updateId, fileId }).run()
+      await db.insert(projectUpdateFiles).values({ id: newId(), updateId, fileId }).run()
     }
   }
   return getUpdateFiles(updateId)
 }
 
-function computeNgoPerformance(projects) {
+async function computeNgoPerformance(projects) {
   const byNgo = new Map()
   for (const p of projects) {
-    const ngo = db.select().from(tenants).where(eq(tenants.id, p.ngoTenantId)).get()
+    const ngo = await db.select().from(tenants).where(eq(tenants.id, p.ngoTenantId)).get()
     const name = ngo?.name || 'Unknown NGO'
     if (!byNgo.has(p.ngoTenantId)) {
       byNgo.set(p.ngoTenantId, { ngo: name, scores: [], spend: 0 })
     }
     const entry = byNgo.get(p.ngoTenantId)
     entry.spend += p.spentInr || 0
-    const milestones = db.select().from(projectMilestones).where(eq(projectMilestones.projectId, p.id)).all()
+    const milestones = await db.select().from(projectMilestones).where(eq(projectMilestones.projectId, p.id)).all()
     let onTime = 100
     if (milestones.length) {
       const today = new Date().toISOString().slice(0, 10)
@@ -215,15 +259,17 @@ function computeNgoPerformance(projects) {
       onTime = Math.round((onTimeCount / milestones.length) * 100)
     }
     const impact = p.progress || 0
-    const score = Math.round((onTime * 0.4) + (impact * 0.6))
+    const score = Math.round(onTime * 0.4 + impact * 0.6)
     entry.scores.push({ onTime, impact, score })
   }
-  return [...byNgo.values()].map((e) => {
-    const avg = e.scores.reduce((s, x) => s + x.score, 0) / (e.scores.length || 1)
-    const onTime = Math.round(e.scores.reduce((s, x) => s + x.onTime, 0) / (e.scores.length || 1))
-    const impact = Math.round(e.scores.reduce((s, x) => s + x.impact, 0) / (e.scores.length || 1))
-    return { ngo: e.ngo, score: Math.round(avg), onTime, impact, spend: e.spend }
-  }).sort((a, b) => b.score - a.score)
+  return [...byNgo.values()]
+    .map((e) => {
+      const avg = e.scores.reduce((s, x) => s + x.score, 0) / (e.scores.length || 1)
+      const onTime = Math.round(e.scores.reduce((s, x) => s + x.onTime, 0) / (e.scores.length || 1))
+      const impact = Math.round(e.scores.reduce((s, x) => s + x.impact, 0) / (e.scores.length || 1))
+      return { ngo: e.ngo, score: Math.round(avg), onTime, impact, spend: e.spend }
+    })
+    .sort((a, b) => b.score - a.score)
 }
 
 function aggregateBeneficiaries(projectIds) {
@@ -237,10 +283,8 @@ function aggregateBeneficiaries(projectIds) {
   return { direct, indirect, total: direct + indirect }
 }
 
-export function aggregateForTenant(corporateTenantId) {
-  const projects = db.select().from(csrProjects)
-    .where(eq(csrProjects.corporateTenantId, corporateTenantId))
-    .all()
+export async function aggregateForTenant(corporateTenantId) {
+  const projects = await db.select().from(csrProjects).where(eq(csrProjects.corporateTenantId, corporateTenantId)).all()
   const active = projects.filter((p) => p.status === 'active' || p.status === 'pending_approval')
   const activeOnly = projects.filter((p) => p.status === 'active')
 
@@ -284,7 +328,7 @@ export function aggregateForTenant(corporateTenantId) {
     impactMetrics.push({ sdg: 3, label: 'Total Beneficiaries', value: formatCompact(ben.total) })
   }
   if (co2 > 0) {
-    impactMetrics.push({ sdg: 13, label: 'CO₂ Offset (tons)', value: formatCompact(co2) })
+    impactMetrics.push({ sdg: 13, label: 'COÃƒÂ¢Ã¢â‚¬Å¡Ã¢â‚¬Å¡ Offset (tons)', value: formatCompact(co2) })
   }
   for (const [theme, spend] of categoryMap) {
     if (theme === 'Education') impactMetrics.push({ sdg: 4, label: 'Education Spend', value: formatINR(spend) })
@@ -313,17 +357,19 @@ export function aggregateForTenant(corporateTenantId) {
       spendProgress,
       activeProjects: {
         count: activeOnly.length,
-        list: activeOnly.slice(0, 5).map((p) => {
-          const ngo = db.select().from(tenants).where(eq(tenants.id, p.ngoTenantId)).get()
+        list: activeOnly.slice(0, 5).map(async (p) => {
+          const ngo = await db.select().from(tenants).where(eq(tenants.id, p.ngoTenantId)).get()
           return { id: p.id, name: p.name, ngo: ngo?.name, progress: p.progress }
         }),
       },
       impactMetrics,
-      ngoPerformance: computeNgoPerformance(activeOnly.length ? activeOnly : projects).slice(0, 5).map((n) => ({
-        name: n.ngo,
-        score: n.score,
-        spend: n.spend,
-      })),
+      ngoPerformance: computeNgoPerformance(activeOnly.length ? activeOnly : projects)
+        .slice(0, 5)
+        .map((n) => ({
+          name: n.ngo,
+          score: n.score,
+          spend: n.spend,
+        })),
     },
   }
 }
@@ -335,16 +381,18 @@ function formatCompact(n) {
 }
 
 function formatINR(n) {
-  if (n >= 10000000) return `₹${(n / 10000000).toFixed(1)} Cr`
-  if (n >= 100000) return `₹${(n / 100000).toFixed(1)} L`
-  return `₹${n}`
+  if (n >= 10000000) return `ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¹${(n / 10000000).toFixed(1)} Cr`
+  if (n >= 100000) return `ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¹${(n / 100000).toFixed(1)} L`
+  return `ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¹${n}`
 }
 
-export function listBeneficiaryLogsForNgo(ngoTenantId) {
-  const projects = db.select().from(csrProjects).where(eq(csrProjects.ngoTenantId, ngoTenantId)).all()
+export async function listBeneficiaryLogsForNgo(ngoTenantId) {
+  const projects = await db.select().from(csrProjects).where(eq(csrProjects.ngoTenantId, ngoTenantId)).all()
   const result = []
   for (const p of projects) {
-    const logs = db.select().from(projectBeneficiaryLogs)
+    const logs = await db
+      .select()
+      .from(projectBeneficiaryLogs)
       .where(eq(projectBeneficiaryLogs.projectId, p.id))
       .orderBy(desc(projectBeneficiaryLogs.recordedAt))
       .all()
@@ -362,7 +410,6 @@ export function listBeneficiaryLogsForNgo(ngoTenantId) {
   }
   return result.sort((a, b) => b.recordedAt - a.recordedAt)
 }
-
 
 export function getReportingOverview(corporateTenantId) {
   const agg = aggregateForTenant(corporateTenantId)

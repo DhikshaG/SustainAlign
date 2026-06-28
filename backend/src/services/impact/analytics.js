@@ -14,20 +14,18 @@ import { THEME_TO_SDG } from '../esg/taxonomy.js'
 
 const MONTH_LABELS = ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan']
 
-function getCorporateProjects(corporateTenantId) {
-  return db.select().from(csrProjects)
-    .where(eq(csrProjects.corporateTenantId, corporateTenantId))
-    .all()
+async function getCorporateProjects(corporateTenantId) {
+  return await db.select().from(csrProjects).where(eq(csrProjects.corporateTenantId, corporateTenantId)).all()
 }
 
-function getNgoProjects(ngoTenantId) {
-  return db.select().from(csrProjects)
-    .where(eq(csrProjects.ngoTenantId, ngoTenantId))
-    .all()
+async function getNgoProjects(ngoTenantId) {
+  return await db.select().from(csrProjects).where(eq(csrProjects.ngoTenantId, ngoTenantId)).all()
 }
 
-function latestBeneficiariesForProject(projectId) {
-  const log = db.select().from(projectBeneficiaryLogs)
+async function latestBeneficiariesForProject(projectId) {
+  const log = await db
+    .select()
+    .from(projectBeneficiaryLogs)
     .where(eq(projectBeneficiaryLogs.projectId, projectId))
     .orderBy(desc(projectBeneficiaryLogs.recordedAt))
     .limit(1)
@@ -36,10 +34,12 @@ function latestBeneficiariesForProject(projectId) {
   return { direct: log.directCount, indirect: log.indirectCount }
 }
 
-export function getLatestKpiValue(projectIds, metricKey) {
+export async function getLatestKpiValue(projectIds, metricKey) {
   let total = 0
   for (const pid of projectIds) {
-    const kpi = db.select().from(projectKpis)
+    const kpi = await db
+      .select()
+      .from(projectKpis)
       .where(eq(projectKpis.projectId, pid))
       .orderBy(desc(projectKpis.recordedAt))
       .all()
@@ -52,14 +52,16 @@ export function getLatestKpiValue(projectIds, metricKey) {
   return total
 }
 
-export function getBeneficiaryTimeSeries(corporateTenantId) {
+export async function getBeneficiaryTimeSeries(corporateTenantId) {
   const projects = getCorporateProjects(corporateTenantId)
   const projectIds = projects.map((p) => p.id)
   if (!projectIds.length) {
     return MONTH_LABELS.map((month) => ({ month, beneficiaries: 0, cumulative: 0 }))
   }
 
-  const logs = db.select().from(projectBeneficiaryLogs)
+  const logs = await db
+    .select()
+    .from(projectBeneficiaryLogs)
     .where(inArray(projectBeneficiaryLogs.projectId, projectIds))
     .orderBy(asc(projectBeneficiaryLogs.recordedAt))
     .all()
@@ -110,7 +112,7 @@ export function buildBudgetUtilization(projects, beneficiarySeries) {
     const maxCumulative = Math.max(...beneficiarySeries.map((b) => b.cumulative), 1)
     return beneficiarySeries.map((b) => ({
       month: b.month,
-      budget: Math.round(totalBudget * ((b.cumulative / maxCumulative) * 12) / 12),
+      budget: Math.round((totalBudget * ((b.cumulative / maxCumulative) * 12)) / 12),
       utilized: Math.round(totalSpent * (b.cumulative / maxCumulative)),
     }))
   }
@@ -122,12 +124,14 @@ export function buildBudgetUtilization(projects, beneficiarySeries) {
   }))
 }
 
-export function getDistrictImpact(corporateTenantId) {
+export async function getDistrictImpact(corporateTenantId) {
   const projects = getCorporateProjects(corporateTenantId)
   const districtMap = new Map()
 
   for (const p of projects) {
-    const geo = db.select().from(projectGeoUpdates)
+    const geo = await db
+      .select()
+      .from(projectGeoUpdates)
       .where(eq(projectGeoUpdates.projectId, p.id))
       .orderBy(desc(projectGeoUpdates.effectiveDate))
       .limit(1)
@@ -177,23 +181,23 @@ export function getSdgProgress(corporateTenantId) {
   return [...sdgMap.values()].sort((a, b) => a.sdg - b.sdg)
 }
 
-export function getMediaFeed(corporateTenantId, limit = 12) {
+export async function getMediaFeed(corporateTenantId, limit = 12) {
   const projects = getCorporateProjects(corporateTenantId)
   const items = []
 
   for (const p of projects) {
-    const updates = db.select().from(projectUpdates)
+    const updates = await db
+      .select()
+      .from(projectUpdates)
       .where(eq(projectUpdates.projectId, p.id))
       .orderBy(desc(projectUpdates.createdAt))
       .limit(5)
       .all()
 
     for (const u of updates) {
-      const links = db.select().from(projectUpdateFiles)
-        .where(eq(projectUpdateFiles.updateId, u.id))
-        .all()
+      const links = await db.select().from(projectUpdateFiles).where(eq(projectUpdateFiles.updateId, u.id)).all()
       for (const link of links) {
-        const f = db.select().from(files).where(eq(files.id, link.fileId)).get()
+        const f = await db.select().from(files).where(eq(files.id, link.fileId)).get()
         if (f) {
           items.push({
             id: f.id,
@@ -211,7 +215,9 @@ export function getMediaFeed(corporateTenantId, limit = 12) {
       }
     }
 
-    const evidence = db.select().from(files)
+    const evidence = await db
+      .select()
+      .from(files)
       .where(and(eq(files.entityType, 'project'), eq(files.entityId, p.id)))
       .all()
 
@@ -230,12 +236,10 @@ export function getMediaFeed(corporateTenantId, limit = 12) {
     }
   }
 
-  return items
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-    .slice(0, limit)
+  return items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, limit)
 }
 
-export function getNgoDashboardSummary(ngoTenantId) {
+export async function getNgoDashboardSummary(ngoTenantId) {
   const projects = getNgoProjects(ngoTenantId)
   const active = projects.filter((p) => p.status === 'active')
   let totalBeneficiaries = 0
@@ -249,14 +253,10 @@ export function getNgoDashboardSummary(ngoTenantId) {
   const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000
 
   for (const p of projects) {
-    const milestones = db.select().from(projectMilestones)
-      .where(eq(projectMilestones.projectId, p.id))
-      .all()
+    const milestones = await db.select().from(projectMilestones).where(eq(projectMilestones.projectId, p.id)).all()
     pendingMilestones += milestones.filter((m) => m.status !== 'completed').length
 
-    const updates = db.select().from(projectUpdates)
-      .where(eq(projectUpdates.projectId, p.id))
-      .all()
+    const updates = await db.select().from(projectUpdates).where(eq(projectUpdates.projectId, p.id)).all()
     recentUpdates += updates.filter((u) => {
       const t = u.createdAt instanceof Date ? u.createdAt.getTime() : new Date(u.createdAt).getTime()
       return t >= thirtyDaysAgo
@@ -265,18 +265,22 @@ export function getNgoDashboardSummary(ngoTenantId) {
 
   const mediaFeed = []
   for (const p of active.slice(0, 3)) {
-    const updates = db.select().from(projectUpdates)
+    const updates = await db
+      .select()
+      .from(projectUpdates)
       .where(eq(projectUpdates.projectId, p.id))
       .orderBy(desc(projectUpdates.createdAt))
       .limit(2)
       .all()
     for (const u of updates) {
-      const links = db.select().from(projectUpdateFiles)
+      const links = await db
+        .select()
+        .from(projectUpdateFiles)
         .where(eq(projectUpdateFiles.updateId, u.id))
         .limit(1)
         .all()
       if (links.length) {
-        const f = db.select().from(files).where(eq(files.id, links[0].fileId)).get()
+        const f = await db.select().from(files).where(eq(files.id, links[0].fileId)).get()
         if (f) {
           mediaFeed.push({
             id: f.id,

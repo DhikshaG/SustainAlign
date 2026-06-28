@@ -16,9 +16,9 @@ function assertProjectCrm(project) {
   if (!canUseCrm(project)) throw httpError('Partnership must be accepted before CRM actions', 400)
 }
 
-function shapeTask(row) {
+async function shapeTask(row) {
   const assignee = row.assigneeUserId
-    ? db.select().from(users).where(eq(users.id, row.assigneeUserId)).get()
+    ? await db.select().from(users).where(eq(users.id, row.assigneeUserId)).get()
     : null
   return {
     id: row.id,
@@ -36,14 +36,14 @@ function shapeTask(row) {
   }
 }
 
-export function createTask(projectId, data, createdBy, req) {
-  const project = db.select().from(csrProjects).where(eq(csrProjects.id, projectId)).get()
+export async function createTask(projectId, data, createdBy, req) {
+  const project = await db.select().from(csrProjects).where(eq(csrProjects.id, projectId)).get()
   if (!project) throw httpError('Project not found', 404)
   assertProjectCrm(project)
 
   const now = new Date()
   const id = newId()
-  db.insert(projectTasks).values({
+  await db.insert(projectTasks).values({
     id,
     projectId,
     title: data.title,
@@ -70,23 +70,23 @@ export function createTask(projectId, data, createdBy, req) {
     link: data.assigneeSide === 'ngo' ? `/ngo/projects/${projectId}` : `/dashboard/projects/${projectId}`,
   }).catch(() => {})
 
-  return shapeTask(db.select().from(projectTasks).where(eq(projectTasks.id, id)).get())
+  return shapeTask(await db.select().from(projectTasks).where(eq(projectTasks.id, id)).get())
 }
 
-export function listTasksForProject(projectId) {
-  return db.select().from(projectTasks)
+export async function listTasksForProject(projectId) {
+  return await db.select().from(projectTasks)
     .where(eq(projectTasks.projectId, projectId))
     .orderBy(desc(projectTasks.updatedAt))
     .all()
     .map(shapeTask)
 }
 
-export function listTasksForUser(userId, tenantId, side) {
+export async function listTasksForUser(userId, tenantId, side) {
   const projects = side === 'ngo'
-    ? db.select().from(csrProjects).where(eq(csrProjects.ngoTenantId, tenantId)).all()
-    : db.select().from(csrProjects).where(eq(csrProjects.corporateTenantId, tenantId)).all()
+    ? await db.select().from(csrProjects).where(eq(csrProjects.ngoTenantId, tenantId)).all()
+    : await db.select().from(csrProjects).where(eq(csrProjects.corporateTenantId, tenantId)).all()
   const projectIds = new Set(projects.map((p) => p.id))
-  const tasks = db.select().from(projectTasks)
+  const tasks = await db.select().from(projectTasks)
     .where(and(
       eq(projectTasks.assigneeSide, side),
     ))
@@ -97,11 +97,11 @@ export function listTasksForUser(userId, tenantId, side) {
     .map(shapeTask)
 }
 
-export function updateTaskStatus(taskId, patch, user, req) {
-  const task = db.select().from(projectTasks).where(eq(projectTasks.id, taskId)).get()
+export async function updateTaskStatus(taskId, patch, user, req) {
+  const task = await db.select().from(projectTasks).where(eq(projectTasks.id, taskId)).get()
   if (!task) throw httpError('Task not found', 404)
 
-  const project = db.select().from(csrProjects).where(eq(csrProjects.id, task.projectId)).get()
+  const project = await db.select().from(csrProjects).where(eq(csrProjects.id, task.projectId)).get()
   if (!project) throw httpError('Project not found', 404)
   if (user.tenantId !== project.corporateTenantId && user.tenantId !== project.ngoTenantId) {
     throw httpError('Task not found', 404)
@@ -115,7 +115,7 @@ export function updateTaskStatus(taskId, patch, user, req) {
   if (patch.status !== undefined) updates.status = patch.status
   if (patch.dueDate !== undefined) updates.dueDate = patch.dueDate
 
-  db.update(projectTasks).set(updates).where(eq(projectTasks.id, taskId)).run()
+  await db.update(projectTasks).set(updates).where(eq(projectTasks.id, taskId)).run()
 
   if (req) {
     logMutation({
@@ -127,5 +127,5 @@ export function updateTaskStatus(taskId, patch, user, req) {
     }).catch(() => {})
   }
 
-  return shapeTask(db.select().from(projectTasks).where(eq(projectTasks.id, taskId)).get())
+  return shapeTask(await db.select().from(projectTasks).where(eq(projectTasks.id, taskId)).get())
 }

@@ -12,13 +12,13 @@ function httpError(message, status) {
   return err
 }
 
-function resolveNgoTenant({ ngoTenantId, ngoSlug }) {
+async function resolveNgoTenant({ ngoTenantId, ngoSlug }) {
   if (ngoTenantId) {
-    const t = db.select().from(tenants).where(and(eq(tenants.id, ngoTenantId), eq(tenants.type, 'ngo'))).get()
+    const t = await db.select().from(tenants).where(and(eq(tenants.id, ngoTenantId), eq(tenants.type, 'ngo'))).get()
     if (t) return t
   }
   if (ngoSlug) {
-    const t = db.select().from(tenants).where(and(eq(tenants.slug, ngoSlug), eq(tenants.type, 'ngo'))).get()
+    const t = await db.select().from(tenants).where(and(eq(tenants.slug, ngoSlug), eq(tenants.type, 'ngo'))).get()
     if (t) return t
   }
   throw httpError('NGO not found', 404)
@@ -31,9 +31,9 @@ function assertThreadAccess(thread, user) {
   return { isCorporate, isNgo }
 }
 
-function shapeThread(row, preview) {
-  const ngo = db.select().from(tenants).where(eq(tenants.id, row.ngoTenantId)).get()
-  const corporate = db.select().from(tenants).where(eq(tenants.id, row.corporateTenantId)).get()
+async function shapeThread(row, preview) {
+  const ngo = await db.select().from(tenants).where(eq(tenants.id, row.ngoTenantId)).get()
+  const corporate = await db.select().from(tenants).where(eq(tenants.id, row.corporateTenantId)).get()
   return {
     id: row.id,
     subject: row.subject,
@@ -49,19 +49,19 @@ function shapeThread(row, preview) {
   }
 }
 
-function getLastMessage(threadId) {
-  return db.select().from(messages)
+async function getLastMessage(threadId) {
+  return await db.select().from(messages)
     .where(eq(messages.threadId, threadId))
     .orderBy(desc(messages.createdAt))
     .limit(1)
     .get()
 }
 
-export function createThread({ corporateTenantId, ngoTenantId, ngoSlug, projectId, subject, createdBy, message }, req) {
+export async function createThread({ corporateTenantId, ngoTenantId, ngoSlug, projectId, subject, createdBy, message }, req) {
   const ngo = resolveNgoTenant({ ngoTenantId, ngoSlug })
 
   if (projectId) {
-    const project = db.select().from(csrProjects).where(eq(csrProjects.id, projectId)).get()
+    const project = await db.select().from(csrProjects).where(eq(csrProjects.id, projectId)).get()
     if (!project || project.corporateTenantId !== corporateTenantId || project.ngoTenantId !== ngo.id) {
       throw httpError('Project not found', 404)
     }
@@ -70,7 +70,7 @@ export function createThread({ corporateTenantId, ngoTenantId, ngoSlug, projectI
 
   const now = new Date()
   const id = newId()
-  db.insert(messageThreads).values({
+  await db.insert(messageThreads).values({
     id,
     corporateTenantId,
     ngoTenantId: ngo.id,
@@ -82,7 +82,7 @@ export function createThread({ corporateTenantId, ngoTenantId, ngoSlug, projectI
   }).run()
 
   if (message) {
-    db.insert(messages).values({
+    await db.insert(messages).values({
       id: newId(),
       threadId: id,
       senderUserId: createdBy,
@@ -105,28 +105,28 @@ export function createThread({ corporateTenantId, ngoTenantId, ngoSlug, projectI
   return getThread(id, { sub: createdBy, tenantId: corporateTenantId, tenantType: 'corporate' })
 }
 
-export function listThreadsForCorporate(tenantId) {
-  const rows = db.select().from(messageThreads)
+export async function listThreadsForCorporate(tenantId) {
+  const rows = await db.select().from(messageThreads)
     .where(eq(messageThreads.corporateTenantId, tenantId))
     .orderBy(desc(messageThreads.lastMessageAt))
     .all()
   return rows.map((r) => shapeThread(r, getLastMessage(r.id)))
 }
 
-export function listThreadsForNgo(tenantId) {
-  const rows = db.select().from(messageThreads)
+export async function listThreadsForNgo(tenantId) {
+  const rows = await db.select().from(messageThreads)
     .where(eq(messageThreads.ngoTenantId, tenantId))
     .orderBy(desc(messageThreads.lastMessageAt))
     .all()
   return rows.map((r) => shapeThread(r, getLastMessage(r.id)))
 }
 
-export function getThread(threadId, user) {
-  const row = db.select().from(messageThreads).where(eq(messageThreads.id, threadId)).get()
+export async function getThread(threadId, user) {
+  const row = await db.select().from(messageThreads).where(eq(messageThreads.id, threadId)).get()
   if (!row) throw httpError('Thread not found', 404)
   assertThreadAccess(row, user)
 
-  const msgs = db.select({
+  const msgs = await db.select({
     id: messages.id,
     body: messages.body,
     createdAt: messages.createdAt,
@@ -151,19 +151,19 @@ export function getThread(threadId, user) {
   }
 }
 
-export function postMessage(threadId, userId, body, user, req) {
-  const row = db.select().from(messageThreads).where(eq(messageThreads.id, threadId)).get()
+export async function postMessage(threadId, userId, body, user, req) {
+  const row = await db.select().from(messageThreads).where(eq(messageThreads.id, threadId)).get()
   if (!row) throw httpError('Thread not found', 404)
   const { isCorporate, isNgo } = assertThreadAccess(row, user)
 
   if (row.projectId) {
-    const project = db.select().from(csrProjects).where(eq(csrProjects.id, row.projectId)).get()
+    const project = await db.select().from(csrProjects).where(eq(csrProjects.id, row.projectId)).get()
     if (project && !canUseCrm(project)) throw httpError('Partnership must be accepted before messaging', 400)
   }
 
   const now = new Date()
   const id = newId()
-  db.insert(messages).values({
+  await db.insert(messages).values({
     id,
     threadId,
     senderUserId: userId,
@@ -171,7 +171,7 @@ export function postMessage(threadId, userId, body, user, req) {
     createdAt: now,
   }).run()
 
-  db.update(messageThreads).set({ lastMessageAt: now }).where(eq(messageThreads.id, threadId)).run()
+  await db.update(messageThreads).set({ lastMessageAt: now }).where(eq(messageThreads.id, threadId)).run()
 
   if (req) {
     logMutation({ req, action: 'crm.message.post', entityType: 'message_thread', entityId: threadId, after: { messageId: id } }).catch(() => {})
@@ -194,15 +194,15 @@ export function postMessage(threadId, userId, body, user, req) {
   }
 }
 
-export function getOrCreateProjectThread(projectId, user, req) {
-  const project = db.select().from(csrProjects).where(eq(csrProjects.id, projectId)).get()
+export async function getOrCreateProjectThread(projectId, user, req) {
+  const project = await db.select().from(csrProjects).where(eq(csrProjects.id, projectId)).get()
   if (!project) throw httpError('Project not found', 404)
   if (user.tenantId !== project.corporateTenantId && user.tenantId !== project.ngoTenantId) {
     throw httpError('Project not found', 404)
   }
   if (!canUseCrm(project)) throw httpError('Partnership must be accepted before messaging', 400)
 
-  const existing = db.select().from(messageThreads)
+  const existing = await db.select().from(messageThreads)
     .where(and(eq(messageThreads.projectId, projectId)))
     .get()
   if (existing) return getThread(existing.id, user)

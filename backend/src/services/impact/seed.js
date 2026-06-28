@@ -8,7 +8,7 @@ const IMPACT_SEED = [
     projectId: 'proj-001',
     state: 'Maharashtra',
     kpis: [
-      { metricKey: 'co2_offset_tons', label: 'CO₂ Offset', value: '8400', unit: 'tons' },
+      { metricKey: 'co2_offset_tons', label: 'COÃƒÂ¢Ã¢â‚¬Å¡Ã¢â‚¬Å¡ Offset', value: '8400', unit: 'tons' },
       { metricKey: 'saplings_planted', label: 'Saplings Planted', value: '820000', unit: 'count' },
     ],
     beneficiaries: { directCount: 45000, indirectCount: 120000, note: 'Village communities in Pune & Nashik' },
@@ -17,9 +17,7 @@ const IMPACT_SEED = [
   {
     projectId: 'proj-002',
     state: 'Karnataka',
-    kpis: [
-      { metricKey: 'classrooms', label: 'Digital Classrooms', value: '12', unit: 'centers' },
-    ],
+    kpis: [{ metricKey: 'classrooms', label: 'Digital Classrooms', value: '12', unit: 'centers' }],
     beneficiaries: { directCount: 3200, indirectCount: 8500, note: 'Students in rural Karnataka' },
     geo: { state: 'Karnataka', district: 'Bengaluru Rural', lat: 12.9716, lng: 77.5946 },
   },
@@ -35,16 +33,20 @@ const IMPACT_SEED = [
   },
 ]
 
-export function seedImpact() {
+export async function seedImpact() {
   let seeded = 0
   for (const item of IMPACT_SEED) {
-    const project = db.select().from(csrProjects).where(eq(csrProjects.id, item.projectId)).get()
+    const project = await db.select().from(csrProjects).where(eq(csrProjects.id, item.projectId)).get()
     if (!project) continue
 
-    const existingKpi = db.select().from(projectKpis).where(eq(projectKpis.projectId, item.projectId)).get()
+    const existingKpi = await db.select().from(projectKpis).where(eq(projectKpis.projectId, item.projectId)).get()
     if (existingKpi) continue
 
-    db.update(csrProjects).set({ state: item.state, updatedAt: new Date() }).where(eq(csrProjects.id, item.projectId)).run()
+    await db
+      .update(csrProjects)
+      .set({ state: item.state, updatedAt: new Date() })
+      .where(eq(csrProjects.id, item.projectId))
+      .run()
 
     for (const kpi of item.kpis) {
       addKpi(item.projectId, kpi, { corporateTenantId: project.corporateTenantId })

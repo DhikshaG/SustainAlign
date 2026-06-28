@@ -60,8 +60,7 @@ export async function computeSpendBreakdown(tenantId) {
 
   const breakdown = [...byCategory.entries()].map(([category, amount]) => {
     const scheduleVii = projects.find((p) => p.theme === category)?.scheduleVii || category
-    const valid = SCHEDULE_VII_OPTIONS.some((s) =>
-      scheduleVii?.toLowerCase().includes(s.toLowerCase().slice(0, 10)))
+    const valid = SCHEDULE_VII_OPTIONS.some((s) => scheduleVii?.toLowerCase().includes(s.toLowerCase().slice(0, 10)))
     return { category, amount, scheduleVII: scheduleVii, valid }
   })
 
@@ -69,13 +68,14 @@ export async function computeSpendBreakdown(tenantId) {
 }
 
 export async function validateScheduleVii(tenantId, profile, spend) {
-  const projects = await db.select().from(csrProjects)
+  const projects = await db
+    .select()
+    .from(csrProjects)
     .where(eq(csrProjects.corporateTenantId, tenantId))
     .all()
     .filter((p) => p.status === 'active' || p.status === 'pending_approval')
 
-  const unmapped = projects.filter((p) =>
-    !SCHEDULE_VII_OPTIONS.some((s) => p.scheduleVii === s))
+  const unmapped = projects.filter((p) => !SCHEDULE_VII_OPTIONS.some((s) => p.scheduleVii === s))
 
   const adminPct = spend.totalSpent > 0 ? (spend.adminSpent / spend.totalSpent) * 100 : 0
   const adminOk = adminPct <= profile.adminCapPct
@@ -126,9 +126,10 @@ export async function validateScheduleVii(tenantId, profile, spend) {
     {
       item: 'Unspent CSR fund transfer plan',
       status: unspent > 5_000_000 ? 'fail' : 'pass',
-      note: unspent > 5_000_000
-        ? `${formatInrShort(unspent)} unspent requires transfer plan by Mar 31`
-        : 'Unspent CSR within acceptable limits',
+      note:
+        unspent > 5_000_000
+          ? `${formatInrShort(unspent)} unspent requires transfer plan by Mar 31`
+          : 'Unspent CSR within acceptable limits',
     },
   ]
 }

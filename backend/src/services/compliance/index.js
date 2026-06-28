@@ -1,11 +1,6 @@
 import { eq, and, isNull } from 'drizzle-orm'
 import { db } from '../../db/index.js'
-import {
-  csrProjects,
-  corporateCsrProfile,
-  complianceAlerts,
-  tenants,
-} from '../../db/schema.js'
+import { csrProjects, corporateCsrProfile, complianceAlerts, tenants } from '../../db/schema.js'
 import { newId } from '../../lib/ids.js'
 import { logMutation } from '../activity-log/index.js'
 import {
@@ -23,26 +18,31 @@ function httpError(message, status) {
 }
 
 export async function getOrCreateProfile(tenantId, fyLabel = 'FY 2025-26') {
-  let profile = await db.select().from(corporateCsrProfile)
+  let profile = await db
+    .select()
+    .from(corporateCsrProfile)
     .where(and(eq(corporateCsrProfile.tenantId, tenantId), eq(corporateCsrProfile.fyLabel, fyLabel)))
     .get()
   if (!profile) {
     const now = new Date()
     const id = newId()
-    await db.insert(corporateCsrProfile).values({
-      id,
-      tenantId,
-      fyLabel,
-      netProfitInr: 450000000,
-      turnoverInr: 12000000000,
-      netWorthInr: 8500000000,
-      adminCapPct: 5,
-      localAreaTargetPct: 70,
-      carryForwardInr: 5200000,
-      obligationThresholdInr: 50000000,
-      createdAt: now,
-      updatedAt: now,
-    }).run()
+    await db
+      .insert(corporateCsrProfile)
+      .values({
+        id,
+        tenantId,
+        fyLabel,
+        netProfitInr: 450000000,
+        turnoverInr: 12000000000,
+        netWorthInr: 8500000000,
+        adminCapPct: 5,
+        localAreaTargetPct: 70,
+        carryForwardInr: 5200000,
+        obligationThresholdInr: 50000000,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .run()
     profile = await db.select().from(corporateCsrProfile).where(eq(corporateCsrProfile.id, id)).get()
   }
   return profile
@@ -82,25 +82,32 @@ export async function syncAlerts(tenantId, profile, spend) {
   const candidates = evaluateAlerts(tenantId, profile, spend)
 
   for (const a of candidates) {
-    const exists = await db.select().from(complianceAlerts)
-      .where(and(
-        eq(complianceAlerts.tenantId, tenantId),
-        eq(complianceAlerts.ruleKey, a.ruleKey),
-        isNull(complianceAlerts.acknowledgedAt),
-      ))
+    const exists = await db
+      .select()
+      .from(complianceAlerts)
+      .where(
+        and(
+          eq(complianceAlerts.tenantId, tenantId),
+          eq(complianceAlerts.ruleKey, a.ruleKey),
+          isNull(complianceAlerts.acknowledgedAt),
+        ),
+      )
       .get()
     if (!exists) {
-      await db.insert(complianceAlerts).values({
-        id: newId(),
-        tenantId,
-        level: a.level,
-        ruleKey: a.ruleKey,
-        message: a.message,
-        dueDate: a.dueDate || null,
-        entityType: a.entityType || null,
-        entityId: a.entityId || null,
-        createdAt: new Date(),
-      }).run()
+      await db
+        .insert(complianceAlerts)
+        .values({
+          id: newId(),
+          tenantId,
+          level: a.level,
+          ruleKey: a.ruleKey,
+          message: a.message,
+          dueDate: a.dueDate || null,
+          entityType: a.entityType || null,
+          entityId: a.entityId || null,
+          createdAt: new Date(),
+        })
+        .run()
     }
   }
 }
@@ -121,7 +128,9 @@ export async function getComplianceSummary(tenantId, fyLabel = 'FY 2025-26') {
 
   syncAlerts(tenantId, profile, spendData)
 
-  const alerts = await db.select().from(complianceAlerts)
+  const alerts = await db
+    .select()
+    .from(complianceAlerts)
     .where(and(eq(complianceAlerts.tenantId, tenantId), isNull(complianceAlerts.acknowledgedAt)))
     .all()
     .map((a) => ({
@@ -170,7 +179,10 @@ export async function getComplianceSummary(tenantId, fyLabel = 'FY 2025-26') {
         { item: 'CSR policy updated', done: true },
         { item: 'Board resolution on CSR', done: true },
         { item: 'Utilization certificates collected', done: spendData.totalSpent > 0 },
-        { item: 'Impact assessments filed', done: !scheduleVIIValidation.some((v) => v.item.includes('Impact') && v.status !== 'pass') },
+        {
+          item: 'Impact assessments filed',
+          done: !scheduleVIIValidation.some((v) => v.item.includes('Impact') && v.status !== 'pass'),
+        },
         { item: 'MCA CSR-2 draft ready', done: true },
       ],
     },
@@ -197,7 +209,9 @@ export async function getComplianceSummary(tenantId, fyLabel = 'FY 2025-26') {
 export async function exportMcaCsr2(tenantId, fyLabel = 'FY 2025-26') {
   const summary = getComplianceSummary(tenantId, fyLabel)
   const tenant = await db.select().from(tenants).where(eq(tenants.id, tenantId)).get()
-  const projects = await db.select().from(csrProjects)
+  const projects = await db
+    .select()
+    .from(csrProjects)
     .where(eq(csrProjects.corporateTenantId, tenantId))
     .all()
     .filter((p) => p.status !== 'archived' && p.status !== 'rejected')
@@ -246,7 +260,9 @@ export async function exportMcaCsr2(tenantId, fyLabel = 'FY 2025-26') {
 export async function getFundAllocation(tenantId) {
   const profile = getOrCreateProfile(tenantId)
   const { csrObligation } = computeSection135(profile)
-  const projects = await db.select().from(csrProjects)
+  const projects = await db
+    .select()
+    .from(csrProjects)
     .where(eq(csrProjects.corporateTenantId, tenantId))
     .all()
     .filter((p) => p.status !== 'archived' && p.status !== 'rejected')
@@ -288,10 +304,7 @@ export async function getFundAllocation(tenantId) {
 export async function acknowledgeAlert(alertId, tenantId, req) {
   const alert = await db.select().from(complianceAlerts).where(eq(complianceAlerts.id, alertId)).get()
   if (!alert || alert.tenantId !== tenantId) throw httpError('Alert not found', 404)
-  await db.update(complianceAlerts)
-    .set({ acknowledgedAt: new Date() })
-    .where(eq(complianceAlerts.id, alertId))
-    .run()
+  await db.update(complianceAlerts).set({ acknowledgedAt: new Date() }).where(eq(complianceAlerts.id, alertId)).run()
   if (req) {
     logMutation({
       req,
