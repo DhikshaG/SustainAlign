@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url'
 import { env } from '../config/env.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const migrationsFolder = path.resolve(__dirname, '../../drizzle')
+const migrationsFolder = path.resolve(__dirname, '../../drizzle' + (env.DB_DIALECT === 'pg' ? '-pg' : ''))
 
 let db
 let sqlite = null
