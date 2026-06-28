@@ -33,8 +33,10 @@ function parseMetadata(row) {
   }
 }
 
-export function listReports(corporateTenantId) {
-  return db.select().from(reports)
+export async function listReports(corporateTenantId) {
+  return await db
+    .select()
+    .from(reports)
     .where(eq(reports.corporateTenantId, corporateTenantId))
     .orderBy(desc(reports.createdAt))
     .all()
@@ -103,20 +105,23 @@ export async function generateReport({
     sectionCount: document.sections.length,
   }
 
-  db.insert(reports).values({
-    id: reportId,
-    corporateTenantId,
-    type,
-    title,
-    periodStart,
-    periodEnd,
-    status: 'generated',
-    fileId: stored.id,
-    metadataJson: JSON.stringify(metadata),
-    createdBy: userId,
-    createdAt: now,
-    updatedAt: now,
-  }).run()
+  await db
+    .insert(reports)
+    .values({
+      id: reportId,
+      corporateTenantId,
+      type,
+      title,
+      periodStart,
+      periodEnd,
+      status: 'generated',
+      fileId: stored.id,
+      metadataJson: JSON.stringify(metadata),
+      createdBy: userId,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .run()
 
   if (req) {
     logMutation({
@@ -143,8 +148,8 @@ export async function generateReport({
   }
 }
 
-export function getReport(id, corporateTenantId) {
-  const row = db.select().from(reports).where(eq(reports.id, id)).get()
+export async function getReport(id, corporateTenantId) {
+  const row = await db.select().from(reports).where(eq(reports.id, id)).get()
   if (!row || row.corporateTenantId !== corporateTenantId) return null
   const meta = parseMetadata(row)
   return {
@@ -154,13 +159,10 @@ export function getReport(id, corporateTenantId) {
   }
 }
 
-export function submitReport(id, corporateTenantId, req) {
+export async function submitReport(id, corporateTenantId, req) {
   const row = getReport(id, corporateTenantId)
   if (!row) throw httpError('Report not found', 404)
-  db.update(reports)
-    .set({ status: 'submitted', updatedAt: new Date() })
-    .where(eq(reports.id, id))
-    .run()
+  await db.update(reports).set({ status: 'submitted', updatedAt: new Date() }).where(eq(reports.id, id)).run()
   if (req) {
     logMutation({
       req,

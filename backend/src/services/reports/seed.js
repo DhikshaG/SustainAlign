@@ -3,15 +3,11 @@ import { db } from '../../db/index.js'
 import { users, memberships, reports } from '../../db/schema.js'
 
 export async function seedReports() {
-  const acmeUser = db.select().from(users).where(eq(users.email, 'admin@acme.com')).get()
-  const acmeMem = acmeUser
-    ? db.select().from(memberships).where(eq(memberships.userId, acmeUser.id)).get()
-    : null
+  const acmeUser = await db.select().from(users).where(eq(users.email, 'admin@acme.com')).get()
+  const acmeMem = acmeUser ? await db.select().from(memberships).where(eq(memberships.userId, acmeUser.id)).get() : null
   if (!acmeMem) return
 
-  const existing = db.select().from(reports)
-    .where(eq(reports.corporateTenantId, acmeMem.tenantId))
-    .get()
+  const existing = await db.select().from(reports).where(eq(reports.corporateTenantId, acmeMem.tenantId)).get()
   if (existing) {
     console.log('  reports skip (already seeded)')
     return

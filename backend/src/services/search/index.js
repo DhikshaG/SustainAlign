@@ -31,7 +31,7 @@ function syncFts(doc) {
     .run(doc.id, doc.tenantId, doc.entityType, doc.entityId, doc.title, doc.body || '', doc.keywords || '')
 }
 
-export function indexDocument({ tenantId = null, entityType, entityId, title, body = '', keywords = [] }) {
+export async function indexDocument({ tenantId = null, entityType, entityId, title, body = '', keywords = [] }) {
   const id = `${entityType}:${entityId}`
   const now = new Date()
   const keywordsStr = Array.isArray(keywords) ? keywords.join(' ') : keywords
@@ -47,31 +47,31 @@ export function indexDocument({ tenantId = null, entityType, entityId, title, bo
     createdAt: now,
   }
 
-  const existing = db.select().from(searchDocuments).where(eq(searchDocuments.id, id)).get()
+  const existing = await db.select().from(searchDocuments).where(eq(searchDocuments.id, id)).get()
   if (existing) {
-    db.update(searchDocuments).set(row).where(eq(searchDocuments.id, id)).run()
+    await db.update(searchDocuments).set(row).where(eq(searchDocuments.id, id)).run()
   } else {
-    db.insert(searchDocuments).values(row).run()
+    await db.insert(searchDocuments).values(row).run()
   }
   syncFts(row)
   return row
 }
 
-export function removeFromIndex(entityType, entityId) {
+export async function removeFromIndex(entityType, entityId) {
   const id = `${entityType}:${entityId}`
-  db.delete(searchDocuments).where(eq(searchDocuments.id, id)).run()
+  await db.delete(searchDocuments).where(eq(searchDocuments.id, id)).run()
   if (!isPg) {
     sqlite.prepare('DELETE FROM search_documents_fts WHERE doc_id = ?').run(id)
   }
 }
 
-export function reindexAll(tenantId = null) {
-  db.delete(searchDocuments).run()
+export async function reindexAll(tenantId = null) {
+  await db.delete(searchDocuments).run()
   if (!isPg) {
     sqlite.prepare('DELETE FROM search_documents_fts').run()
   }
 
-  const dbTenants = db.select().from(tenants).where(eq(tenants.type, 'ngo')).all()
+  const dbTenants = await db.select().from(tenants).where(eq(tenants.type, 'ngo')).all()
   const regions = new Set()
   const sdgsIndexed = new Set()
 
@@ -103,7 +103,7 @@ export function reindexAll(tenantId = null) {
     }
   }
 
-  const dbProjects = db.select().from(csrProjects).all()
+  const dbProjects = await db.select().from(csrProjects).all()
   for (const p of dbProjects) {
     reindexProject(p.id)
   }

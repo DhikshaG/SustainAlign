@@ -22,10 +22,10 @@ function mockReq(user, extra = {}) {
   }
 }
 
-function lookupUser(email) {
-  const user = db.select().from(users).where(eq(users.email, email)).get()
+async function lookupUser(email) {
+  const user = await db.select().from(users).where(eq(users.email, email)).get()
   if (!user) return null
-  const mem = db.select().from(memberships).where(eq(memberships.userId, user.id)).get()
+  const mem = await db.select().from(memberships).where(eq(memberships.userId, user.id)).get()
   return mem ? { id: user.id, email, role: mem.role, tenantId: mem.tenantId } : null
 }
 
@@ -45,46 +45,54 @@ export async function seedE2e({ tenantByEmail }) {
   }
 
   // --- Partnership + CRM on proj-001 ---
-  db.update(csrProjects)
+  await db
+    .update(csrProjects)
     .set({ ngoPartnershipStatus: 'accepted', updatedAt: new Date() })
     .where(eq(csrProjects.id, 'proj-001'))
     .run()
   console.log('  proj-001 partnership accepted')
 
-  const existingPending = db.select().from(csrProjects).where(eq(csrProjects.id, 'proj-e2e-pending')).get()
+  const existingPending = await db.select().from(csrProjects).where(eq(csrProjects.id, 'proj-e2e-pending')).get()
   if (!existingPending) {
-    createProject({
-      id: 'proj-e2e-pending',
-      corporateTenantId: acmeTenantId,
-      ngoSlug: 'green-earth-foundation',
-      userId: acmeAdmin.id,
-      name: 'Community Water Conservation',
-      description: 'Rainwater harvesting and watershed restoration in drought-prone villages.',
-      scheduleVii: 'Ensuring environmental sustainability',
-      theme: 'Environment',
-      location: 'Maharashtra',
-      budgetInr: 1200000,
-      startDate: '2026-04-01',
-      endDate: '2027-03-31',
-      milestones: [{ title: 'Site survey', dueDate: '2026-05-31', status: 'pending' }],
-      skipWorkflow: true,
-      initialStatus: 'pending_ngo',
-    }, null)
-    db.update(csrProjects)
+    createProject(
+      {
+        id: 'proj-e2e-pending',
+        corporateTenantId: acmeTenantId,
+        ngoSlug: 'green-earth-foundation',
+        userId: acmeAdmin.id,
+        name: 'Community Water Conservation',
+        description: 'Rainwater harvesting and watershed restoration in drought-prone villages.',
+        scheduleVii: 'Ensuring environmental sustainability',
+        theme: 'Environment',
+        location: 'Maharashtra',
+        budgetInr: 1200000,
+        startDate: '2026-04-01',
+        endDate: '2027-03-31',
+        milestones: [{ title: 'Site survey', dueDate: '2026-05-31', status: 'pending' }],
+        skipWorkflow: true,
+        initialStatus: 'pending_ngo',
+      },
+      null,
+    )
+    await db
+      .update(csrProjects)
       .set({ ngoPartnershipStatus: 'pending', updatedAt: new Date() })
       .where(eq(csrProjects.id, 'proj-e2e-pending'))
       .run()
     console.log('  proj-e2e-pending created (NGO partnership inbox)')
   }
 
-  const thread = createThread({
-    corporateTenantId: acmeTenantId,
-    ngoTenantId: geAdmin.tenantId,
-    projectId: 'proj-001',
-    subject: 'Q4 plantation update',
-    createdBy: csrHead?.id || acmeAdmin.id,
-    message: 'Hi Priya — please share photos from the Nashik planting drive for our board pack.',
-  }, mockReq(csrHead || acmeAdmin))
+  const thread = createThread(
+    {
+      corporateTenantId: acmeTenantId,
+      ngoTenantId: geAdmin.tenantId,
+      projectId: 'proj-001',
+      subject: 'Q4 plantation update',
+      createdBy: csrHead?.id || acmeAdmin.id,
+      message: 'Hi Priya Ã¢â‚¬â€ please share photos from the Nashik planting drive for our board pack.',
+    },
+    mockReq(csrHead || acmeAdmin),
+  )
   postMessage(
     thread.id,
     geAdmin.id,
@@ -95,7 +103,7 @@ export async function seedE2e({ tenantByEmail }) {
   postMessage(
     thread.id,
     (csrHead || acmeAdmin).id,
-    'Excellent — we will include this in the compliance report.',
+    'Excellent Ã¢â‚¬â€ we will include this in the compliance report.',
     { sub: (csrHead || acmeAdmin).id, tenantId: acmeTenantId, tenantType: 'corporate' },
     null,
   )
@@ -116,14 +124,20 @@ export async function seedE2e({ tenantByEmail }) {
   updateTaskStatus(doneTask.id, { status: 'done' }, { sub: geAdmin.id, tenantId: geAdmin.tenantId }, null)
   console.log('  CRM tasks on proj-001 (1 open, 1 done)')
 
-  const milestone = db.select().from(projectMilestones)
+  const milestone = await db
+    .select()
+    .from(projectMilestones)
     .where(and(eq(projectMilestones.projectId, 'proj-001'), eq(projectMilestones.title, 'Plant 1M saplings')))
     .get()
   if (milestone && milestone.reviewStatus !== 'submitted') {
     submitMilestoneForReview(
       'proj-001',
       milestone.id,
-      { userId: geAdmin.id, ngoTenantId: geAdmin.tenantId, note: '1.02M saplings planted; awaiting corporate sign-off.' },
+      {
+        userId: geAdmin.id,
+        ngoTenantId: geAdmin.tenantId,
+        note: '1.02M saplings planted; awaiting corporate sign-off.',
+      },
       mockReq(geAdmin),
     )
     console.log('  milestone review submitted (approval inbox)')
@@ -132,13 +146,16 @@ export async function seedE2e({ tenantByEmail }) {
   // --- Discovery saves + inquiry ---
   saveNgo(acmeAdmin.id, 'green-earth-foundation', mockReq(acmeAdmin))
   saveNgo(acmeAdmin.id, 'pratham-education-foundation', mockReq(acmeAdmin))
-  createNgoInquiry({
-    userId: (csrHead || acmeAdmin).id,
-    corporateTenantId: acmeTenantId,
-    slug: 'sankara-eye-foundation',
-    subject: 'Mobile clinic partnership inquiry',
-    message: 'We are exploring healthcare CSR initiatives in Tamil Nadu for FY26.',
-  }, mockReq(csrHead || acmeAdmin))
+  createNgoInquiry(
+    {
+      userId: (csrHead || acmeAdmin).id,
+      corporateTenantId: acmeTenantId,
+      slug: 'sankara-eye-foundation',
+      subject: 'Mobile clinic partnership inquiry',
+      message: 'We are exploring healthcare CSR initiatives in Tamil Nadu for FY26.',
+    },
+    mockReq(csrHead || acmeAdmin),
+  )
   console.log('  discovery saves + inquiry')
 
   // --- Audit trail samples ---

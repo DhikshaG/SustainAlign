@@ -25,17 +25,18 @@ function inPeriod(dateVal, start, end) {
   return d >= start && d <= end
 }
 
-function loadProjectUpdates(projectId, periodStart, periodEnd) {
+async function loadProjectUpdates(projectId, periodStart, periodEnd) {
   const start = parsePeriodDate(periodStart)
   const end = parsePeriodDate(periodEnd)
   end.setHours(23, 59, 59, 999)
 
-  const rows = db.select({
-    id: projectUpdates.id,
-    body: projectUpdates.body,
-    createdAt: projectUpdates.createdAt,
-    authorName: users.fullName,
-  })
+  const rows = await db
+    .select({
+      id: projectUpdates.id,
+      body: projectUpdates.body,
+      createdAt: projectUpdates.createdAt,
+      authorName: users.fullName,
+    })
     .from(projectUpdates)
     .innerJoin(users, eq(users.id, projectUpdates.authorUserId))
     .where(eq(projectUpdates.projectId, projectId))
@@ -44,14 +45,14 @@ function loadProjectUpdates(projectId, periodStart, periodEnd) {
 
   return rows
     .filter((u) => inPeriod(u.createdAt, start, end))
-    .map((u) => {
-      const links = db.select().from(projectUpdateFiles)
-        .where(eq(projectUpdateFiles.updateId, u.id))
-        .all()
-      const images = links.map((l) => {
-        const f = db.select().from(files).where(eq(files.id, l.fileId)).get()
-        return f ? { id: f.id, name: f.originalName, mime: f.mime } : null
-      }).filter(Boolean)
+    .map(async (u) => {
+      const links = await db.select().from(projectUpdateFiles).where(eq(projectUpdateFiles.updateId, u.id)).all()
+      const images = links
+        .map(async (l) => {
+          const f = await db.select().from(files).where(eq(files.id, l.fileId)).get()
+          return f ? { id: f.id, name: f.originalName, mime: f.mime } : null
+        })
+        .filter(Boolean)
       return {
         id: u.id,
         body: u.body,
@@ -62,12 +63,14 @@ function loadProjectUpdates(projectId, periodStart, periodEnd) {
     })
 }
 
-function loadProjectKpis(projectId, periodStart, periodEnd) {
+async function loadProjectKpis(projectId, periodStart, periodEnd) {
   const start = parsePeriodDate(periodStart)
   const end = parsePeriodDate(periodEnd)
   end.setHours(23, 59, 59, 999)
 
-  const rows = db.select().from(projectKpis)
+  const rows = await db
+    .select()
+    .from(projectKpis)
     .where(eq(projectKpis.projectId, projectId))
     .orderBy(desc(projectKpis.recordedAt))
     .all()
@@ -97,17 +100,21 @@ function loadProjectKpis(projectId, periodStart, periodEnd) {
   }))
 }
 
-function loadBeneficiaryLogs(projectId, periodStart, periodEnd) {
+async function loadBeneficiaryLogs(projectId, periodStart, periodEnd) {
   const start = parsePeriodDate(periodStart)
   const end = parsePeriodDate(periodEnd)
   end.setHours(23, 59, 59, 999)
 
-  return db.select().from(projectBeneficiaryLogs)
-    .where(and(
-      eq(projectBeneficiaryLogs.projectId, projectId),
-      gte(projectBeneficiaryLogs.recordedAt, start),
-      lte(projectBeneficiaryLogs.recordedAt, end),
-    ))
+  return await db
+    .select()
+    .from(projectBeneficiaryLogs)
+    .where(
+      and(
+        eq(projectBeneficiaryLogs.projectId, projectId),
+        gte(projectBeneficiaryLogs.recordedAt, start),
+        lte(projectBeneficiaryLogs.recordedAt, end),
+      ),
+    )
     .orderBy(desc(projectBeneficiaryLogs.recordedAt))
     .all()
     .map((l) => ({
@@ -119,15 +126,13 @@ function loadBeneficiaryLogs(projectId, periodStart, periodEnd) {
     }))
 }
 
-function loadNgoImpactStories(ngoTenantIds) {
+async function loadNgoImpactStories(ngoTenantIds) {
   if (!ngoTenantIds.length) return []
   const unique = [...new Set(ngoTenantIds)]
   const stories = []
   for (const tid of unique) {
-    const ngo = db.select().from(tenants).where(eq(tenants.id, tid)).get()
-    const rows = db.select().from(ngoImpactStories)
-      .where(eq(ngoImpactStories.tenantId, tid))
-      .all()
+    const ngo = await db.select().from(tenants).where(eq(tenants.id, tid)).get()
+    const rows = await db.select().from(ngoImpactStories).where(eq(ngoImpactStories.tenantId, tid)).all()
     for (const s of rows) {
       stories.push({
         id: s.id,
@@ -141,18 +146,20 @@ function loadNgoImpactStories(ngoTenantIds) {
   return stories
 }
 
-export function buildReportContext(corporateTenantId, { periodStart, periodEnd }) {
-  const tenant = db.select().from(tenants).where(eq(tenants.id, corporateTenantId)).get()
+export async function buildReportContext(corporateTenantId, { periodStart, periodEnd }) {
+  const tenant = await db.select().from(tenants).where(eq(tenants.id, corporateTenantId)).get()
   const aggregate = aggregateForTenant(corporateTenantId)
   const compliance = getComplianceSummary(corporateTenantId)
   const projectList = listProjects({ corporateTenantId, audience: 'corporate' })
   const sdgProgress = getSdgProgress(corporateTenantId)
   const districtAnalytics = getDistrictImpact(corporateTenantId)
 
-  const ngoTenantIds = projectList.projects.map((p) => {
-    const row = db.select().from(csrProjects).where(eq(csrProjects.id, p.id)).get()
-    return row?.ngoTenantId
-  }).filter(Boolean)
+  const ngoTenantIds = projectList.projects
+    .map(async (p) => {
+      const row = await db.select().from(csrProjects).where(eq(csrProjects.id, p.id)).get()
+      return row?.ngoTenantId
+    })
+    .filter(Boolean)
 
   const projects = projectList.projects.map((p) => {
     const updates = loadProjectUpdates(p.id, periodStart, periodEnd)
@@ -175,9 +182,7 @@ export function buildReportContext(corporateTenantId, { periodStart, periodEnd }
   })
 
   const impactStories = loadNgoImpactStories(ngoTenantIds)
-  const allUpdates = projects.flatMap((p) =>
-    p.updates.map((u) => ({ ...u, projectName: p.name })),
-  )
+  const allUpdates = projects.flatMap((p) => p.updates.map((u) => ({ ...u, projectName: p.name })))
 
   return {
     tenantId: corporateTenantId,
