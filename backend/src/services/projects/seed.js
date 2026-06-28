@@ -13,7 +13,8 @@ const SEED_PROJECTS = [
     scheduleVii: 'Ensuring environmental sustainability',
     theme: 'Environment',
     location: 'Maharashtra',
-    description: 'Large-scale afforestation across 85 villages in Pune and Nashik districts with community participation.',
+    description:
+      'Large-scale afforestation across 85 villages in Pune and Nashik districts with community participation.',
     budgetInr: 4500000,
     spentInr: 3240000,
     startDate: '2025-04-01',
@@ -37,7 +38,8 @@ const SEED_PROJECTS = [
     scheduleVii: 'Promoting education',
     theme: 'Education',
     location: 'Pan-India',
-    description: 'Supporting Pratham\'s ASER household survey and foundational literacy interventions across 616+ districts.',
+    description:
+      "Supporting Pratham's ASER household survey and foundational literacy interventions across 616+ districts.",
     budgetInr: 2800000,
     spentInr: 1816000,
     startDate: '2025-06-01',
@@ -48,9 +50,7 @@ const SEED_PROJECTS = [
       { title: 'Literacy intervention in 500 schools', dueDate: '2026-02-28', status: 'in_progress', progress: 45 },
       { title: 'Final ASER report publication', dueDate: '2026-04-30', status: 'pending', progress: 0 },
     ],
-    updates: [
-      { body: 'ASER survey phase 1 complete. 420 districts surveyed.', authorEmail: 'info@pratham.org' },
-    ],
+    updates: [{ body: 'ASER survey phase 1 complete. 420 districts surveyed.', authorEmail: 'info@pratham.org' }],
   },
   {
     id: 'proj-003',
@@ -72,16 +72,17 @@ const SEED_PROJECTS = [
       { title: 'Impact assessment report', dueDate: '2026-03-31', status: 'pending', progress: 0 },
     ],
     updates: [
-      { body: '7,100 surgeries completed. Screening coverage expanded to 4 new blocks.', authorEmail: 'contact@giftofvision.org' },
+      {
+        body: '7,100 surgeries completed. Screening coverage expanded to 4 new blocks.',
+        authorEmail: 'contact@giftofvision.org',
+      },
     ],
   },
 ]
 
-export function seedProjects() {
-  const acmeUser = db.select().from(users).where(eq(users.email, 'admin@acme.com')).get()
-  const acmeMem = acmeUser
-    ? db.select().from(memberships).where(eq(memberships.userId, acmeUser.id)).get()
-    : null
+export async function seedProjects() {
+  const acmeUser = await db.select().from(users).where(eq(users.email, 'admin@acme.com')).get()
+  const acmeMem = acmeUser ? await db.select().from(memberships).where(eq(memberships.userId, acmeUser.id)).get() : null
   if (!acmeUser || !acmeMem) {
     console.log('  skip  projects (acme corp not seeded)')
     return { created: 0, skipped: 0 }
@@ -91,52 +92,63 @@ export function seedProjects() {
   let skipped = 0
 
   for (const spec of SEED_PROJECTS) {
-    const existing = db.select().from(csrProjects).where(eq(csrProjects.id, spec.id)).get()
+    const existing = await db.select().from(csrProjects).where(eq(csrProjects.id, spec.id)).get()
     if (existing) {
       skipped++
       continue
     }
 
-    const ngo = db.select().from(tenants).where(and(eq(tenants.slug, spec.ngoSlug), eq(tenants.type, 'ngo'))).get()
+    const ngo = await db
+      .select()
+      .from(tenants)
+      .where(and(eq(tenants.slug, spec.ngoSlug), eq(tenants.type, 'ngo')))
+      .get()
     if (!ngo) {
       console.log(`  skip  ${spec.id} (NGO ${spec.ngoSlug} not found)`)
       skipped++
       continue
     }
 
-    createProject({
-      id: spec.id,
-      corporateTenantId: acmeMem.tenantId,
-      ngoTenantId: ngo.id,
-      userId: acmeUser.id,
-      name: spec.name,
-      description: spec.description,
-      scheduleVii: spec.scheduleVii,
-      theme: spec.theme,
-      location: spec.location,
-      budgetInr: spec.budgetInr,
-      startDate: spec.startDate,
-      endDate: spec.endDate,
-      milestones: spec.milestones,
-      skipWorkflow: true,
-      initialStatus: spec.status,
-    }, null)
+    createProject(
+      {
+        id: spec.id,
+        corporateTenantId: acmeMem.tenantId,
+        ngoTenantId: ngo.id,
+        userId: acmeUser.id,
+        name: spec.name,
+        description: spec.description,
+        scheduleVii: spec.scheduleVii,
+        theme: spec.theme,
+        location: spec.location,
+        budgetInr: spec.budgetInr,
+        startDate: spec.startDate,
+        endDate: spec.endDate,
+        milestones: spec.milestones,
+        skipWorkflow: true,
+        initialStatus: spec.status,
+      },
+      null,
+    )
 
-    db.update(csrProjects)
+    await db
+      .update(csrProjects)
       .set({ spentInr: spec.spentInr, updatedAt: new Date() })
       .where(eq(csrProjects.id, spec.id))
       .run()
 
     for (const u of spec.updates) {
-      const author = db.select().from(users).where(eq(users.email, u.authorEmail)).get()
+      const author = await db.select().from(users).where(eq(users.email, u.authorEmail)).get()
       if (!author) continue
-      db.insert(projectUpdates).values({
-        id: newId(),
-        projectId: spec.id,
-        authorUserId: author.id,
-        body: u.body,
-        createdAt: new Date(),
-      }).run()
+      await db
+        .insert(projectUpdates)
+        .values({
+          id: newId(),
+          projectId: spec.id,
+          authorUserId: author.id,
+          body: u.body,
+          createdAt: new Date(),
+        })
+        .run()
     }
 
     created++

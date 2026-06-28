@@ -13,7 +13,14 @@ import {
   tags,
 } from '../../db/schema.js'
 import { newId } from '../../lib/ids.js'
-import { getEntityTags, setEntityTags, findEntitiesByTagGroups, resolveStateGeographySlug, resolveThemeSlug, resolveImpactSlug } from '../tags/index.js'
+import {
+  getEntityTags,
+  setEntityTags,
+  findEntitiesByTagGroups,
+  resolveStateGeographySlug,
+  resolveThemeSlug,
+  resolveImpactSlug,
+} from '../tags/index.js'
 import { logMutation } from '../activity-log/index.js'
 import { indexDocument, search } from '../search/index.js'
 import { storeFile, listFiles, getFileById } from '../files/index.js'
@@ -36,34 +43,28 @@ function formatBeneficiaries(count) {
   return String(count)
 }
 
-function loadChildRows(tenantId) {
+async function loadChildRows(tenantId) {
   return {
-    team: db.select().from(ngoTeamMembers)
+    team: await db
+      .select()
+      .from(ngoTeamMembers)
       .where(eq(ngoTeamMembers.tenantId, tenantId))
       .all()
       .sort((a, b) => a.sortOrder - b.sortOrder),
-    pastProjects: db.select().from(ngoPastProjects)
+    pastProjects: await db
+      .select()
+      .from(ngoPastProjects)
       .where(eq(ngoPastProjects.tenantId, tenantId))
       .all()
       .sort((a, b) => a.sortOrder - b.sortOrder),
-    impactMetrics: db.select().from(ngoImpactMetrics)
-      .where(eq(ngoImpactMetrics.tenantId, tenantId))
-      .all(),
-    impactStories: db.select().from(ngoImpactStories)
-      .where(eq(ngoImpactStories.tenantId, tenantId))
-      .all(),
-    certifications: db.select().from(ngoCertifications)
-      .where(eq(ngoCertifications.tenantId, tenantId))
-      .all(),
-    verificationDocs: db.select().from(ngoDocuments)
-      .where(eq(ngoDocuments.tenantId, tenantId))
-      .all(),
-    mediaFiles: db.select().from(files)
-      .where(and(
-        eq(files.tenantId, tenantId),
-        eq(files.entityType, 'ngo'),
-        eq(files.entityId, tenantId),
-      ))
+    impactMetrics: await db.select().from(ngoImpactMetrics).where(eq(ngoImpactMetrics.tenantId, tenantId)).all(),
+    impactStories: await db.select().from(ngoImpactStories).where(eq(ngoImpactStories.tenantId, tenantId)).all(),
+    certifications: await db.select().from(ngoCertifications).where(eq(ngoCertifications.tenantId, tenantId)).all(),
+    verificationDocs: await db.select().from(ngoDocuments).where(eq(ngoDocuments.tenantId, tenantId)).all(),
+    mediaFiles: await db
+      .select()
+      .from(files)
+      .where(and(eq(files.tenantId, tenantId), eq(files.entityType, 'ngo'), eq(files.entityId, tenantId)))
       .all(),
   }
 }
@@ -220,10 +221,10 @@ export function formatNgoDto({ tenant, profile, tagList, children, audience = 'c
   }
 }
 
-function loadFullProfile(tenantId, audience = 'corporate') {
-  const tenant = db.select().from(tenants).where(eq(tenants.id, tenantId)).get()
+async function loadFullProfile(tenantId, audience = 'corporate') {
+  const tenant = await db.select().from(tenants).where(eq(tenants.id, tenantId)).get()
   if (!tenant || tenant.type !== 'ngo') return null
-  const profile = db.select().from(ngoProfiles).where(eq(ngoProfiles.tenantId, tenantId)).get()
+  const profile = await db.select().from(ngoProfiles).where(eq(ngoProfiles.tenantId, tenantId)).get()
   if (!profile) return null
   const tagList = getEntityTags('ngo', tenantId)
   const children = loadChildRows(tenantId)
@@ -234,16 +235,20 @@ export function getProfileByTenantId(tenantId, audience = 'ngo_admin') {
   return loadFullProfile(tenantId, audience)
 }
 
-export function getProfileBySlug(slug, { audience = 'corporate', verifiedOnly = false } = {}) {
-  const tenant = db.select().from(tenants).where(and(eq(tenants.slug, slug), eq(tenants.type, 'ngo'))).get()
+export async function getProfileBySlug(slug, { audience = 'corporate', verifiedOnly = false } = {}) {
+  const tenant = await db
+    .select()
+    .from(tenants)
+    .where(and(eq(tenants.slug, slug), eq(tenants.type, 'ngo')))
+    .get()
   if (!tenant) return null
-  const profile = db.select().from(ngoProfiles).where(eq(ngoProfiles.tenantId, tenant.id)).get()
+  const profile = await db.select().from(ngoProfiles).where(eq(ngoProfiles.tenantId, tenant.id)).get()
   if (!profile) return null
   if (verifiedOnly && profile.verificationStatus !== 'verified') return null
   return loadFullProfile(tenant.id, audience)
 }
 
-export function listProfiles(filters = {}) {
+export async function listProfiles(filters = {}) {
   const {
     location,
     state,
@@ -261,9 +266,10 @@ export function listProfiles(filters = {}) {
     audience = 'corporate',
   } = filters
 
-  const stateFilter = state && state !== 'All' ? state : (location && location !== 'All' ? location : null)
+  const stateFilter = state && state !== 'All' ? state : location && location !== 'All' ? location : null
 
-  let tenantIds = db.select({ id: tenants.id })
+  let tenantIds = await db
+    .select({ id: tenants.id })
     .from(tenants)
     .innerJoin(ngoProfiles, eq(ngoProfiles.tenantId, tenants.id))
     .where(eq(tenants.type, 'ngo'))
@@ -271,13 +277,13 @@ export function listProfiles(filters = {}) {
     .map((r) => r.id)
 
   if (verifiedOnly || verified === 'true' || verified === true) {
-    tenantIds = tenantIds.filter((id) => {
-      const p = db.select().from(ngoProfiles).where(eq(ngoProfiles.tenantId, id)).get()
+    tenantIds = tenantIds.filter(async (id) => {
+      const p = await db.select().from(ngoProfiles).where(eq(ngoProfiles.tenantId, id)).get()
       return p?.verificationStatus === 'verified'
     })
   } else if (verified === 'false') {
-    tenantIds = tenantIds.filter((id) => {
-      const p = db.select().from(ngoProfiles).where(eq(ngoProfiles.tenantId, id)).get()
+    tenantIds = tenantIds.filter(async (id) => {
+      const p = await db.select().from(ngoProfiles).where(eq(ngoProfiles.tenantId, id)).get()
       return p?.verificationStatus !== 'verified'
     })
   }
@@ -288,9 +294,9 @@ export function listProfiles(filters = {}) {
     if (geoSlug) {
       geoMatched = findEntitiesByTagGroups('ngo', [[geoSlug]]) || []
     }
-    tenantIds = tenantIds.filter((id) => {
+    tenantIds = tenantIds.filter(async (id) => {
       if (geoMatched.includes(id)) return true
-      const p = db.select().from(ngoProfiles).where(eq(ngoProfiles.tenantId, id)).get()
+      const p = await db.select().from(ngoProfiles).where(eq(ngoProfiles.tenantId, id)).get()
       const region = p?.region || ''
       const states = parseJson(p?.statesServed)
       return region === stateFilter || states.includes(stateFilter)
@@ -298,15 +304,15 @@ export function listProfiles(filters = {}) {
   }
 
   if (budgetRange && budgetRange !== 'All') {
-    tenantIds = tenantIds.filter((id) => {
-      const p = db.select().from(ngoProfiles).where(eq(ngoProfiles.tenantId, id)).get()
+    tenantIds = tenantIds.filter(async (id) => {
+      const p = await db.select().from(ngoProfiles).where(eq(ngoProfiles.tenantId, id)).get()
       return p?.budgetRange === budgetRange
     })
   }
 
   if (orgSize && orgSize !== 'all') {
-    tenantIds = tenantIds.filter((id) => {
-      const p = db.select().from(ngoProfiles).where(eq(ngoProfiles.tenantId, id)).get()
+    tenantIds = tenantIds.filter(async (id) => {
+      const p = await db.select().from(ngoProfiles).where(eq(ngoProfiles.tenantId, id)).get()
       return p?.orgSize === orgSize
     })
   }
@@ -318,7 +324,10 @@ export function listProfiles(filters = {}) {
   const impactSlug = resolveImpactSlug(impact)
   if (impactSlug) tagGroups.push([impactSlug])
   if (tagFilter) {
-    const legacyTags = String(tagFilter).split(',').map((s) => s.trim()).filter(Boolean)
+    const legacyTags = String(tagFilter)
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
     if (legacyTags.length) tagGroups.push(legacyTags)
   }
   if (tagGroups.length) {
@@ -329,7 +338,8 @@ export function listProfiles(filters = {}) {
   if (q?.trim()) {
     const ftsHits = search({ q: q.trim(), types: ['ngo'], limit: 500 })
     const ftsSlugs = new Set(ftsHits.map((h) => h.entityId))
-    const ftsTenantIds = db.select({ id: tenants.id, slug: tenants.slug })
+    const ftsTenantIds = await db
+      .select({ id: tenants.id, slug: tenants.slug })
       .from(tenants)
       .where(and(eq(tenants.type, 'ngo'), inArray(tenants.slug, [...ftsSlugs])))
       .all()
@@ -340,14 +350,14 @@ export function listProfiles(filters = {}) {
       tenantIds = tenantIds.filter((id) => ftsSet.has(id))
     } else {
       const query = q.trim().toLowerCase()
-      tenantIds = tenantIds.filter((id) => {
-        const tenant = db.select().from(tenants).where(eq(tenants.id, id)).get()
-        const p = db.select().from(ngoProfiles).where(eq(ngoProfiles.tenantId, id)).get()
+      tenantIds = tenantIds.filter(async (id) => {
+        const tenant = await db.select().from(tenants).where(eq(tenants.id, id)).get()
+        const p = await db.select().from(ngoProfiles).where(eq(ngoProfiles.tenantId, id)).get()
         return (
-          tenant?.name?.toLowerCase().includes(query)
-          || p?.description?.toLowerCase().includes(query)
-          || p?.region?.toLowerCase().includes(query)
-          || p?.primarySector?.toLowerCase().includes(query)
+          tenant?.name?.toLowerCase().includes(query) ||
+          p?.description?.toLowerCase().includes(query) ||
+          p?.region?.toLowerCase().includes(query) ||
+          p?.primarySector?.toLowerCase().includes(query)
         )
       })
     }
@@ -376,7 +386,9 @@ export function reindexNgo(tenantId) {
       ...(dto.statesServed || []),
       ...(dto.districtsServed || []),
       dto.primarySector || dto.sector,
-    ].filter(Boolean).join(' '),
+    ]
+      .filter(Boolean)
+      .join(' '),
     keywords: [
       ...(dto.tags || []),
       dto.sector,
@@ -392,10 +404,29 @@ function profileScalarsFromInput(data) {
   const now = new Date()
   const out = { updatedAt: now }
   const scalarFields = [
-    'registrationNumber', 'contactPerson', 'pan', 'csr1Number', 'website', 'phone', 'email',
-    'description', 'settlementType', 'yearsActive', 'beneficiariesCount', 'annualFundingInr',
-    'teamSize', 'projectsCount', 'budgetRange', 'orgSize', 'primarySector', 'region',
-    'financialTransparencyScore', 'riskScore', 'rating', 'reviewCount', 'logoFileId',
+    'registrationNumber',
+    'contactPerson',
+    'pan',
+    'csr1Number',
+    'website',
+    'phone',
+    'email',
+    'description',
+    'settlementType',
+    'yearsActive',
+    'beneficiariesCount',
+    'annualFundingInr',
+    'teamSize',
+    'projectsCount',
+    'budgetRange',
+    'orgSize',
+    'primarySector',
+    'region',
+    'financialTransparencyScore',
+    'riskScore',
+    'rating',
+    'reviewCount',
+    'logoFileId',
   ]
   for (const key of scalarFields) {
     if (data[key] !== undefined) out[key] = data[key]
@@ -408,20 +439,20 @@ function profileScalarsFromInput(data) {
 }
 
 export async function updateProfile(tenantId, data, req) {
-  const profile = db.select().from(ngoProfiles).where(eq(ngoProfiles.tenantId, tenantId)).get()
+  const profile = await db.select().from(ngoProfiles).where(eq(ngoProfiles.tenantId, tenantId)).get()
   if (!profile) throw Object.assign(new Error('Profile not found'), { status: 404 })
 
   const before = loadFullProfile(tenantId, 'ngo_admin')
   const updates = profileScalarsFromInput(data)
 
   if (data.name) {
-    db.update(tenants).set({ name: data.name }).where(eq(tenants.id, tenantId)).run()
+    await db.update(tenants).set({ name: data.name }).where(eq(tenants.id, tenantId)).run()
   }
 
-  db.update(ngoProfiles).set(updates).where(eq(ngoProfiles.tenantId, tenantId)).run()
+  await db.update(ngoProfiles).set(updates).where(eq(ngoProfiles.tenantId, tenantId)).run()
 
   if (data.tagSlugs?.length) {
-    const tagRows = db.select().from(tags).where(inArray(tags.slug, data.tagSlugs)).all()
+    const tagRows = await db.select().from(tags).where(inArray(tags.slug, data.tagSlugs)).all()
     setEntityTags({
       req,
       entityType: 'ngo',
@@ -446,19 +477,21 @@ export async function updateProfile(tenantId, data, req) {
   return after
 }
 
-export function replaceTeam(tenantId, members, req) {
-  const before = db.select().from(ngoTeamMembers).where(eq(ngoTeamMembers.tenantId, tenantId)).all()
-  db.delete(ngoTeamMembers).where(eq(ngoTeamMembers.tenantId, tenantId)).run()
-  members.forEach((m, i) => {
-    db.insert(ngoTeamMembers).values({
-      id: newId(),
-      tenantId,
-      name: m.name,
-      role: m.role,
-      sortOrder: i,
-    }).run()
+export async function replaceTeam(tenantId, members, req) {
+  const before = await db.select().from(ngoTeamMembers).where(eq(ngoTeamMembers.tenantId, tenantId)).all()
+  await db.delete(ngoTeamMembers).where(eq(ngoTeamMembers.tenantId, tenantId)).run()
+  members.forEach(async (m, i) => {
+    await db
+      .insert(ngoTeamMembers)
+      .values({
+        id: newId(),
+        tenantId,
+        name: m.name,
+        role: m.role,
+      })
+      .run()
   })
-  const after = db.select().from(ngoTeamMembers).where(eq(ngoTeamMembers.tenantId, tenantId)).all()
+  const after = await db.select().from(ngoTeamMembers).where(eq(ngoTeamMembers.tenantId, tenantId)).all()
   if (req) {
     logMutation({
       req,
@@ -472,108 +505,136 @@ export function replaceTeam(tenantId, members, req) {
   return after.map((m) => ({ id: m.id, name: m.name, role: m.role }))
 }
 
-export function replacePastProjects(tenantId, projects, req) {
-  const before = db.select().from(ngoPastProjects).where(eq(ngoPastProjects.tenantId, tenantId)).all()
-  db.delete(ngoPastProjects).where(eq(ngoPastProjects.tenantId, tenantId)).run()
-  projects.forEach((p, i) => {
-    db.insert(ngoPastProjects).values({
-      id: newId(),
-      tenantId,
-      name: p.name,
-      budgetLabel: p.budget || p.budgetLabel,
-      outcome: p.outcome,
-      completedAt: p.completedAt || null,
-      sortOrder: i,
-    }).run()
+export async function replacePastProjects(tenantId, projects, req) {
+  const before = await db.select().from(ngoPastProjects).where(eq(ngoPastProjects.tenantId, tenantId)).all()
+  await db.delete(ngoPastProjects).where(eq(ngoPastProjects.tenantId, tenantId)).run()
+  projects.forEach(async (p, i) => {
+    await db
+      .insert(ngoPastProjects)
+      .values({
+        id: newId(),
+        tenantId,
+        name: p.name,
+        budgetLabel: p.budget || p.budgetLabel,
+        outcome: p.outcome,
+        completedAt: p.completedAt || null,
+        sortOrder: i,
+      })
+      .run()
   })
   reindexNgo(tenantId)
-  return db.select().from(ngoPastProjects).where(eq(ngoPastProjects.tenantId, tenantId)).all()
+  return await db.select().from(ngoPastProjects).where(eq(ngoPastProjects.tenantId, tenantId)).all()
 }
 
-export function replaceImpactMetrics(tenantId, metrics, req) {
-  db.delete(ngoImpactMetrics).where(eq(ngoImpactMetrics.tenantId, tenantId)).run()
+export async function replaceImpactMetrics(tenantId, metrics, req) {
+  await db.delete(ngoImpactMetrics).where(eq(ngoImpactMetrics.tenantId, tenantId)).run()
   for (const [key, val] of Object.entries(metrics)) {
-    db.insert(ngoImpactMetrics).values({
-      id: newId(),
-      tenantId,
-      metricKey: key,
-      label: val.label || key,
-      value: String(val.value ?? val),
-    }).run()
+    await db
+      .insert(ngoImpactMetrics)
+      .values({
+        id: newId(),
+        tenantId,
+        metricKey: key,
+        label: val.label || key,
+        value: String(val.value ?? val),
+      })
+      .run()
   }
   reindexNgo(tenantId)
-  return db.select().from(ngoImpactMetrics).where(eq(ngoImpactMetrics.tenantId, tenantId)).all()
+  return await db.select().from(ngoImpactMetrics).where(eq(ngoImpactMetrics.tenantId, tenantId)).all()
 }
 
-export function addImpactStory(tenantId, story) {
+export async function addImpactStory(tenantId, story) {
   const id = newId()
-  db.insert(ngoImpactStories).values({
-    id,
-    tenantId,
-    title: story.title,
-    excerpt: story.excerpt || null,
-    publishedAt: story.date || story.publishedAt || new Date().toISOString().slice(0, 10),
-    coverFileId: story.coverFileId || null,
-  }).run()
-  return db.select().from(ngoImpactStories).where(eq(ngoImpactStories.id, id)).get()
+  await db
+    .insert(ngoImpactStories)
+    .values({
+      id,
+      tenantId,
+      title: story.title,
+      excerpt: story.excerpt || null,
+      publishedAt: story.date || story.publishedAt || new Date().toISOString().slice(0, 10),
+      coverFileId: story.coverFileId || null,
+    })
+    .run()
+  return await db.select().from(ngoImpactStories).where(eq(ngoImpactStories.id, id)).get()
 }
 
-export function updateImpactStory(tenantId, storyId, story) {
-  const existing = db.select().from(ngoImpactStories)
+export async function updateImpactStory(tenantId, storyId, story) {
+  const existing = await db
+    .select()
+    .from(ngoImpactStories)
     .where(and(eq(ngoImpactStories.id, storyId), eq(ngoImpactStories.tenantId, tenantId)))
     .get()
   if (!existing) return null
-  db.update(ngoImpactStories).set({
-    title: story.title ?? existing.title,
-    excerpt: story.excerpt ?? existing.excerpt,
-    publishedAt: story.date ?? story.publishedAt ?? existing.publishedAt,
-    coverFileId: story.coverFileId ?? existing.coverFileId,
-  }).where(eq(ngoImpactStories.id, storyId)).run()
-  return db.select().from(ngoImpactStories).where(eq(ngoImpactStories.id, storyId)).get()
+  await db
+    .update(ngoImpactStories)
+    .set({
+      title: story.title ?? existing.title,
+      excerpt: story.excerpt ?? existing.excerpt,
+      publishedAt: story.date ?? story.publishedAt ?? existing.publishedAt,
+      coverFileId: story.coverFileId ?? existing.coverFileId,
+    })
+    .where(eq(ngoImpactStories.id, storyId))
+    .run()
+  return await db.select().from(ngoImpactStories).where(eq(ngoImpactStories.id, storyId)).get()
 }
 
-export function deleteImpactStory(tenantId, storyId) {
-  const existing = db.select().from(ngoImpactStories)
+export async function deleteImpactStory(tenantId, storyId) {
+  const existing = await db
+    .select()
+    .from(ngoImpactStories)
     .where(and(eq(ngoImpactStories.id, storyId), eq(ngoImpactStories.tenantId, tenantId)))
     .get()
   if (!existing) return false
-  db.delete(ngoImpactStories).where(eq(ngoImpactStories.id, storyId)).run()
+  await db.delete(ngoImpactStories).where(eq(ngoImpactStories.id, storyId)).run()
   return true
 }
 
-export function addCertification(tenantId, cert) {
+export async function addCertification(tenantId, cert) {
   const id = newId()
-  db.insert(ngoCertifications).values({
-    id,
-    tenantId,
-    name: cert.name,
-    issuedAt: cert.issued || cert.issuedAt || null,
-    expiresAt: cert.expires || cert.expiresAt || null,
-    status: cert.status || 'active',
-  }).run()
-  return db.select().from(ngoCertifications).where(eq(ngoCertifications.id, id)).get()
+  await db
+    .insert(ngoCertifications)
+    .values({
+      id,
+      tenantId,
+      name: cert.name,
+      issuedAt: cert.issued || cert.issuedAt || null,
+      expiresAt: cert.expires || cert.expiresAt || null,
+      status: cert.status || 'active',
+    })
+    .run()
+  return await db.select().from(ngoCertifications).where(eq(ngoCertifications.id, id)).get()
 }
 
-export function updateCertification(tenantId, certId, cert) {
-  const existing = db.select().from(ngoCertifications)
+export async function updateCertification(tenantId, certId, cert) {
+  const existing = await db
+    .select()
+    .from(ngoCertifications)
     .where(and(eq(ngoCertifications.id, certId), eq(ngoCertifications.tenantId, tenantId)))
     .get()
   if (!existing) return null
-  db.update(ngoCertifications).set({
-    name: cert.name ?? existing.name,
-    issuedAt: cert.issued ?? cert.issuedAt ?? existing.issuedAt,
-    expiresAt: cert.expires ?? cert.expiresAt ?? existing.expiresAt,
-    status: cert.status ?? existing.status,
-  }).where(eq(ngoCertifications.id, certId)).run()
-  return db.select().from(ngoCertifications).where(eq(ngoCertifications.id, certId)).get()
+  await db
+    .update(ngoCertifications)
+    .set({
+      name: cert.name ?? existing.name,
+      issuedAt: cert.issued ?? cert.issuedAt ?? existing.issuedAt,
+      expiresAt: cert.expires ?? cert.expiresAt ?? existing.expiresAt,
+      status: cert.status ?? existing.status,
+    })
+    .where(eq(ngoCertifications.id, certId))
+    .run()
+  return await db.select().from(ngoCertifications).where(eq(ngoCertifications.id, certId)).get()
 }
 
-export function deleteCertification(tenantId, certId) {
-  const existing = db.select().from(ngoCertifications)
+export async function deleteCertification(tenantId, certId) {
+  const existing = await db
+    .select()
+    .from(ngoCertifications)
     .where(and(eq(ngoCertifications.id, certId), eq(ngoCertifications.tenantId, tenantId)))
     .get()
   if (!existing) return false
-  db.delete(ngoCertifications).where(eq(ngoCertifications.id, certId)).run()
+  await db.delete(ngoCertifications).where(eq(ngoCertifications.id, certId)).run()
   return true
 }
 
@@ -594,25 +655,32 @@ export async function attachMedia({ req, tenantId, tenantType, uploadedBy, buffe
     entityId: tenantId,
   })
   if (category === 'logo') {
-    db.update(ngoProfiles).set({ logoFileId: file.id, updatedAt: new Date() })
-      .where(eq(ngoProfiles.tenantId, tenantId)).run()
+    await db
+      .update(ngoProfiles)
+      .set({ logoFileId: file.id, updatedAt: new Date() })
+      .where(eq(ngoProfiles.tenantId, tenantId))
+      .run()
   }
   reindexNgo(tenantId)
   return file
 }
 
 export function listMedia(tenantId) {
-  return listFiles({ tenantId, entityType: 'ngo', entityId: tenantId })
-    .filter((f) => MEDIA_CATEGORIES.includes(f.category))
+  return listFiles({ tenantId, entityType: 'ngo', entityId: tenantId }).filter((f) =>
+    MEDIA_CATEGORIES.includes(f.category),
+  )
 }
 
 export async function removeMedia(tenantId, fileId, req) {
   const file = getFileById(fileId, tenantId)
   if (!file || file.entityType !== 'ngo') return false
-  const profile = db.select().from(ngoProfiles).where(eq(ngoProfiles.tenantId, tenantId)).get()
+  const profile = await db.select().from(ngoProfiles).where(eq(ngoProfiles.tenantId, tenantId)).get()
   if (profile?.logoFileId === fileId) {
-    db.update(ngoProfiles).set({ logoFileId: null, updatedAt: new Date() })
-      .where(eq(ngoProfiles.tenantId, tenantId)).run()
+    await db
+      .update(ngoProfiles)
+      .set({ logoFileId: null, updatedAt: new Date() })
+      .where(eq(ngoProfiles.tenantId, tenantId))
+      .run()
   }
   if (req) {
     await logMutation({
@@ -625,7 +693,7 @@ export async function removeMedia(tenantId, fileId, req) {
   }
   const storage = getStorage()
   await storage.delete(file.storageKey)
-  db.delete(files).where(eq(files.id, fileId)).run()
+  await db.delete(files).where(eq(files.id, fileId)).run()
   reindexNgo(tenantId)
   return true
 }
@@ -635,14 +703,12 @@ export function listDocuments(tenantId) {
   return buildDocuments(children.verificationDocs, children.mediaFiles, children.certifications)
 }
 
-export function listVerificationQueue() {
-  const pending = db.select().from(ngoProfiles)
-    .where(eq(ngoProfiles.verificationStatus, 'pending'))
-    .all()
+export async function listVerificationQueue() {
+  const pending = await db.select().from(ngoProfiles).where(eq(ngoProfiles.verificationStatus, 'pending')).all()
 
-  return pending.map((p) => {
-    const tenant = db.select().from(tenants).where(eq(tenants.id, p.tenantId)).get()
-    const docCount = db.select().from(ngoDocuments).where(eq(ngoDocuments.tenantId, p.tenantId)).all().length
+  return pending.map(async (p) => {
+    const tenant = await db.select().from(tenants).where(eq(tenants.id, p.tenantId)).get()
+    const docCount = await db.select().from(ngoDocuments).where(eq(ngoDocuments.tenantId, p.tenantId)).all().length
     return {
       tenantId: p.tenantId,
       slug: tenant?.slug,
@@ -656,8 +722,8 @@ export function listVerificationQueue() {
   })
 }
 
-export function updatePlatformFields(tenantId, data, req) {
-  const profile = db.select().from(ngoProfiles).where(eq(ngoProfiles.tenantId, tenantId)).get()
+export async function updatePlatformFields(tenantId, data, req) {
+  const profile = await db.select().from(ngoProfiles).where(eq(ngoProfiles.tenantId, tenantId)).get()
   if (!profile) throw Object.assign(new Error('NGO not found'), { status: 404 })
 
   const before = {
@@ -670,13 +736,14 @@ export function updatePlatformFields(tenantId, data, req) {
 
   const updates = { updatedAt: new Date() }
   if (data.riskScore !== undefined) updates.riskScore = data.riskScore
-  if (data.financialTransparencyScore !== undefined) updates.financialTransparencyScore = data.financialTransparencyScore
+  if (data.financialTransparencyScore !== undefined)
+    updates.financialTransparencyScore = data.financialTransparencyScore
   if (data.financialTransparency !== undefined) updates.financialTransparencyScore = data.financialTransparency
   if (data.aiRecommended !== undefined) updates.aiRecommended = !!data.aiRecommended
   if (data.rating !== undefined) updates.rating = data.rating
   if (data.reviewCount !== undefined) updates.reviewCount = data.reviewCount
 
-  db.update(ngoProfiles).set(updates).where(eq(ngoProfiles.tenantId, tenantId)).run()
+  await db.update(ngoProfiles).set(updates).where(eq(ngoProfiles.tenantId, tenantId)).run()
 
   if (req) {
     logMutation({
@@ -692,9 +759,9 @@ export function updatePlatformFields(tenantId, data, req) {
   return loadFullProfile(tenantId, 'corporate')
 }
 
-export function upsertFullProfile(tenantId, data) {
+export async function upsertFullProfile(tenantId, data) {
   const now = new Date()
-  const existing = db.select().from(ngoProfiles).where(eq(ngoProfiles.tenantId, tenantId)).get()
+  const existing = await db.select().from(ngoProfiles).where(eq(ngoProfiles.tenantId, tenantId)).get()
 
   const profileData = {
     registrationNumber: data.registrationNumber || `NGO-${tenantId.slice(0, 8)}`,
@@ -728,9 +795,12 @@ export function upsertFullProfile(tenantId, data) {
   }
 
   if (existing) {
-    db.update(ngoProfiles).set(profileData).where(eq(ngoProfiles.tenantId, tenantId)).run()
+    await db.update(ngoProfiles).set(profileData).where(eq(ngoProfiles.tenantId, tenantId)).run()
   } else {
-    db.insert(ngoProfiles).values({ tenantId, ...profileData, createdAt: now }).run()
+    await db
+      .insert(ngoProfiles)
+      .values({ tenantId, ...profileData, createdAt: now })
+      .run()
   }
 
   if (data.team?.length) replaceTeam(tenantId, data.team)
@@ -738,17 +808,17 @@ export function upsertFullProfile(tenantId, data) {
   if (data.impactMetrics) replaceImpactMetrics(tenantId, data.impactMetrics)
 
   if (data.certifications?.length) {
-    db.delete(ngoCertifications).where(eq(ngoCertifications.tenantId, tenantId)).run()
+    await db.delete(ngoCertifications).where(eq(ngoCertifications.tenantId, tenantId)).run()
     for (const c of data.certifications) addCertification(tenantId, c)
   }
 
   if (data.impactStories?.length) {
-    db.delete(ngoImpactStories).where(eq(ngoImpactStories.tenantId, tenantId)).run()
+    await db.delete(ngoImpactStories).where(eq(ngoImpactStories.tenantId, tenantId)).run()
     for (const s of data.impactStories) addImpactStory(tenantId, s)
   }
 
   if (data.tagSlugs?.length) {
-    const tagRows = db.select().from(tags).where(inArray(tags.slug, data.tagSlugs)).all()
+    const tagRows = await db.select().from(tags).where(inArray(tags.slug, data.tagSlugs)).all()
     setEntityTags({
       entityType: 'ngo',
       entityId: tenantId,

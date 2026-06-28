@@ -1,25 +1,12 @@
 import { eq, and, desc, asc } from 'drizzle-orm'
 import { db } from '../../db/index.js'
-import {
-  csrProjects,
-  projectMilestones,
-  projectUpdates,
-  tenants,
-  ngoProfiles,
-  files,
-  users,
-} from '../../db/schema.js'
+import { csrProjects, projectMilestones, projectUpdates, tenants, ngoProfiles, files, users } from '../../db/schema.js'
 import { newId } from '../../lib/ids.js'
 import { logMutation } from '../activity-log/index.js'
 import { indexDocument } from '../search/index.js'
 import { createInstance } from '../workflow/index.js'
 import { onCorporateProjectApproved } from '../partnership/index.js'
-import {
-  getLatestBeneficiaries,
-  listKpis,
-  listGeoUpdates,
-  getUpdateFiles,
-} from '../impact/index.js'
+import { getLatestBeneficiaries, listKpis, listGeoUpdates, getUpdateFiles } from '../impact/index.js'
 
 function httpError(message, status) {
   const err = new Error(message)
@@ -46,41 +33,48 @@ function effectiveMilestoneStatus(m) {
   return m.status
 }
 
-function resolveNgoTenant({ ngoTenantId, ngoSlug }) {
+async function resolveNgoTenant({ ngoTenantId, ngoSlug }) {
   let tenant
   if (ngoTenantId) {
-    tenant = db.select().from(tenants)
+    tenant = await db
+      .select()
+      .from(tenants)
       .where(and(eq(tenants.id, ngoTenantId), eq(tenants.type, 'ngo')))
       .get()
   } else if (ngoSlug) {
-    tenant = db.select().from(tenants)
+    tenant = await db
+      .select()
+      .from(tenants)
       .where(and(eq(tenants.slug, ngoSlug), eq(tenants.type, 'ngo')))
       .get()
   }
   if (!tenant) throw httpError('NGO not found', 404)
 
-  const profile = db.select().from(ngoProfiles).where(eq(ngoProfiles.tenantId, tenant.id)).get()
+  const profile = await db.select().from(ngoProfiles).where(eq(ngoProfiles.tenantId, tenant.id)).get()
   if (!profile || profile.verificationStatus !== 'verified') {
     throw httpError('NGO must be verified to assign to a project', 400)
   }
   return tenant
 }
 
-function loadMilestones(projectId) {
-  return db.select().from(projectMilestones)
+async function loadMilestones(projectId) {
+  return await db
+    .select()
+    .from(projectMilestones)
     .where(eq(projectMilestones.projectId, projectId))
     .orderBy(asc(projectMilestones.sortOrder))
     .all()
 }
 
-function loadUpdates(projectId) {
-  return db.select({
-    id: projectUpdates.id,
-    body: projectUpdates.body,
-    createdAt: projectUpdates.createdAt,
-    authorUserId: projectUpdates.authorUserId,
-    authorName: users.fullName,
-  })
+async function loadUpdates(projectId) {
+  return await db
+    .select({
+      id: projectUpdates.id,
+      body: projectUpdates.body,
+      createdAt: projectUpdates.createdAt,
+      authorUserId: projectUpdates.authorUserId,
+      authorName: users.fullName,
+    })
     .from(projectUpdates)
     .innerJoin(users, eq(users.id, projectUpdates.authorUserId))
     .where(eq(projectUpdates.projectId, projectId))
@@ -88,15 +82,16 @@ function loadUpdates(projectId) {
     .all()
 }
 
-function loadProjectFiles(projectId) {
-  return db.select({
-    id: files.id,
-    originalName: files.originalName,
-    mime: files.mime,
-    sizeBytes: files.sizeBytes,
-    createdAt: files.createdAt,
-    category: files.category,
-  })
+async function loadProjectFiles(projectId) {
+  return await db
+    .select({
+      id: files.id,
+      originalName: files.originalName,
+      mime: files.mime,
+      sizeBytes: files.sizeBytes,
+      createdAt: files.createdAt,
+      category: files.category,
+    })
     .from(files)
     .where(and(eq(files.entityType, 'project'), eq(files.entityId, projectId)))
     .orderBy(desc(files.createdAt))
@@ -118,15 +113,15 @@ function shapeMilestone(m) {
   }
 }
 
-function getCorporateTenantName(tenantId) {
-  const t = db.select().from(tenants).where(eq(tenants.id, tenantId)).get()
+async function getCorporateTenantName(tenantId) {
+  const t = await db.select().from(tenants).where(eq(tenants.id, tenantId)).get()
   return t?.name ?? 'Corporate Partner'
 }
 
-export function reindexProject(projectId) {
-  const row = db.select().from(csrProjects).where(eq(csrProjects.id, projectId)).get()
+export async function reindexProject(projectId) {
+  const row = await db.select().from(csrProjects).where(eq(csrProjects.id, projectId)).get()
   if (!row) return
-  const ngo = db.select().from(tenants).where(eq(tenants.id, row.ngoTenantId)).get()
+  const ngo = await db.select().from(tenants).where(eq(tenants.id, row.ngoTenantId)).get()
   indexDocument({
     tenantId: row.corporateTenantId,
     entityType: 'project',
@@ -137,13 +132,10 @@ export function reindexProject(projectId) {
   })
 }
 
-function recomputeAndSaveProgress(projectId) {
+async function recomputeAndSaveProgress(projectId) {
   const milestones = loadMilestones(projectId)
   const progress = computeProjectProgress(milestones.map(shapeMilestone))
-  db.update(csrProjects)
-    .set({ progress, updatedAt: new Date() })
-    .where(eq(csrProjects.id, projectId))
-    .run()
+  await db.update(csrProjects).set({ progress, updatedAt: new Date() }).where(eq(csrProjects.id, projectId)).run()
   return progress
 }
 
@@ -156,9 +148,9 @@ function assertProjectAccess(project, { corporateTenantId, ngoTenantId }) {
   }
 }
 
-function toListDto(row, audience) {
-  const ngo = db.select().from(tenants).where(eq(tenants.id, row.ngoTenantId)).get()
-  const corporate = db.select().from(tenants).where(eq(tenants.id, row.corporateTenantId)).get()
+async function toListDto(row, audience) {
+  const ngo = await db.select().from(tenants).where(eq(tenants.id, row.ngoTenantId)).get()
+  const corporate = await db.select().from(tenants).where(eq(tenants.id, row.corporateTenantId)).get()
   return {
     id: row.id,
     name: row.name,
@@ -180,8 +172,8 @@ function toListDto(row, audience) {
   }
 }
 
-function toDetailDto(row, audience) {
-  const ngo = db.select().from(tenants).where(eq(tenants.id, row.ngoTenantId)).get()
+async function toDetailDto(row, audience) {
+  const ngo = await db.select().from(tenants).where(eq(tenants.id, row.ngoTenantId)).get()
   const milestones = loadMilestones(row.id).map(shapeMilestone)
   const updates = loadUpdates(row.id).map((u) => ({
     id: u.id,
@@ -219,8 +211,8 @@ function toDetailDto(row, audience) {
   }
 }
 
-export function listProjects({ corporateTenantId, ngoTenantId, status, audience = 'corporate' } = {}) {
-  let rows = db.select().from(csrProjects).all()
+export async function listProjects({ corporateTenantId, ngoTenantId, status, audience = 'corporate' } = {}) {
+  let rows = await db.select().from(csrProjects).all()
 
   if (corporateTenantId) {
     rows = rows.filter((r) => r.corporateTenantId === corporateTenantId)
@@ -236,68 +228,77 @@ export function listProjects({ corporateTenantId, ngoTenantId, status, audience 
   return { projects: rows.map((r) => toListDto(r, audience)) }
 }
 
-export function getProject(id, { corporateTenantId, ngoTenantId, audience = 'corporate' } = {}) {
-  const row = db.select().from(csrProjects).where(eq(csrProjects.id, id)).get()
+export async function getProject(id, { corporateTenantId, ngoTenantId, audience = 'corporate' } = {}) {
+  const row = await db.select().from(csrProjects).where(eq(csrProjects.id, id)).get()
   if (!row) return null
   assertProjectAccess(row, { corporateTenantId, ngoTenantId })
   return toDetailDto(row, audience)
 }
 
-export function createProject({
-  corporateTenantId,
-  ngoTenantId,
-  ngoSlug,
-  userId,
-  name,
-  description,
-  scheduleVii,
-  theme,
-  location,
-  budgetInr,
-  startDate,
-  endDate,
-  milestones = [],
-  skipWorkflow = false,
-  initialStatus,
-  id: fixedId,
-}, req) {
+export async function createProject(
+  {
+    corporateTenantId,
+    ngoTenantId,
+    ngoSlug,
+    userId,
+    name,
+    description,
+    scheduleVii,
+    theme,
+    location,
+    budgetInr,
+    startDate,
+    endDate,
+    milestones = [],
+    skipWorkflow = false,
+    initialStatus,
+    id: fixedId,
+  },
+  req,
+) {
   const ngo = resolveNgoTenant({ ngoTenantId, ngoSlug })
   const now = new Date()
   const id = fixedId || newId()
   const status = initialStatus || 'pending_approval'
 
-  db.insert(csrProjects).values({
-    id,
-    corporateTenantId,
-    ngoTenantId: ngo.id,
-    name,
-    description: description || null,
-    scheduleVii,
-    theme: theme || null,
-    location,
-    status,
-    budgetInr,
-    spentInr: 0,
-    startDate,
-    endDate,
-    progress: 0,
-    createdBy: userId,
-    createdAt: now,
-    updatedAt: now,
-  }).run()
+  await db
+    .insert(csrProjects)
+    .values({
+      id,
+      corporateTenantId,
+      ngoTenantId: ngo.id,
+      name,
+      description: description || null,
+      scheduleVii,
+      theme: theme || null,
+      location,
+      status,
+      budgetInr,
+      spentInr: 0,
+      startDate,
+      endDate,
+      progress: 0,
+      createdBy: userId,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .run()
 
   if (milestones.length) {
-    milestones.forEach((m, i) => {
-      db.insert(projectMilestones).values({
-        id: newId(),
-        projectId: id,
-        title: m.title,
-        dueDate: m.dueDate,
-        status: m.status || 'pending',
-        progress: m.progress ?? 0,
-        sortOrder: i,
-        completedAt: m.status === 'completed' ? now : null,
-      }).run()
+    milestones.forEach(async (m, i) => {
+      await db
+        .insert(projectMilestones)
+        .values({
+          id: newId(),
+          projectId: id,
+          title: m.title,
+          description: m.description || null,
+          dueDate: m.dueDate || null,
+          reviewStatus: 'pending',
+          createdAt: now,
+          updatedAt: now,
+        })
+        .run()
     })
     recomputeAndSaveProgress(id)
   }
@@ -329,8 +330,8 @@ export function createProject({
   return getProject(id, { corporateTenantId, audience: 'corporate' })
 }
 
-export function updateProject(id, patch, { corporateTenantId, req } = {}) {
-  const row = db.select().from(csrProjects).where(eq(csrProjects.id, id)).get()
+export async function updateProject(id, patch, { corporateTenantId, req } = {}) {
+  const row = await db.select().from(csrProjects).where(eq(csrProjects.id, id)).get()
   if (!row) throw httpError('Project not found', 404)
   assertProjectAccess(row, { corporateTenantId })
 
@@ -354,7 +355,7 @@ export function updateProject(id, patch, { corporateTenantId, req } = {}) {
     updates.ngoTenantId = ngo.id
   }
 
-  db.update(csrProjects).set(updates).where(eq(csrProjects.id, id)).run()
+  await db.update(csrProjects).set(updates).where(eq(csrProjects.id, id)).run()
   reindexProject(id)
 
   if (req) {
@@ -374,15 +375,12 @@ export function archiveProject(id, { corporateTenantId, req } = {}) {
   return updateProject(id, { status: 'archived' }, { corporateTenantId, req })
 }
 
-export function updateProjectSpent(id, spentInr, { corporateTenantId, req } = {}) {
-  const row = db.select().from(csrProjects).where(eq(csrProjects.id, id)).get()
+export async function updateProjectSpent(id, spentInr, { corporateTenantId, req } = {}) {
+  const row = await db.select().from(csrProjects).where(eq(csrProjects.id, id)).get()
   if (!row) throw httpError('Project not found', 404)
   assertProjectAccess(row, { corporateTenantId })
 
-  db.update(csrProjects)
-    .set({ spentInr, updatedAt: new Date() })
-    .where(eq(csrProjects.id, id))
-    .run()
+  await db.update(csrProjects).set({ spentInr, updatedAt: new Date() }).where(eq(csrProjects.id, id)).run()
 
   if (req) {
     logMutation({
@@ -398,8 +396,8 @@ export function updateProjectSpent(id, spentInr, { corporateTenantId, req } = {}
   return getProject(id, { corporateTenantId, audience: 'corporate' })
 }
 
-export function setProjectStatusFromWorkflow(projectId, workflowStatus) {
-  const row = db.select().from(csrProjects).where(eq(csrProjects.id, projectId)).get()
+export async function setProjectStatusFromWorkflow(projectId, workflowStatus) {
+  const row = await db.select().from(csrProjects).where(eq(csrProjects.id, projectId)).get()
   if (!row) return
 
   if (workflowStatus === 'approved') {
@@ -413,16 +411,13 @@ export function setProjectStatusFromWorkflow(projectId, workflowStatus) {
   else if (workflowStatus === 'needs_revision') status = 'pending_approval'
 
   if (status !== row.status) {
-    db.update(csrProjects)
-      .set({ status, updatedAt: new Date() })
-      .where(eq(csrProjects.id, projectId))
-      .run()
+    await db.update(csrProjects).set({ status, updatedAt: new Date() }).where(eq(csrProjects.id, projectId)).run()
     reindexProject(projectId)
   }
 }
 
-export function setMilestoneReviewFromWorkflow(milestoneId, workflowStatus) {
-  const milestone = db.select().from(projectMilestones).where(eq(projectMilestones.id, milestoneId)).get()
+export async function setMilestoneReviewFromWorkflow(milestoneId, workflowStatus) {
+  const milestone = await db.select().from(projectMilestones).where(eq(projectMilestones.id, milestoneId)).get()
   if (!milestone) return
 
   let reviewStatus = milestone.reviewStatus
@@ -430,15 +425,17 @@ export function setMilestoneReviewFromWorkflow(milestoneId, workflowStatus) {
   else if (workflowStatus === 'rejected') reviewStatus = 'rejected'
   else if (workflowStatus === 'needs_revision') reviewStatus = 'none'
 
-  db.update(projectMilestones).set({ reviewStatus }).where(eq(projectMilestones.id, milestoneId)).run()
+  await db.update(projectMilestones).set({ reviewStatus }).where(eq(projectMilestones.id, milestoneId)).run()
 }
 
-export function submitMilestoneForReview(projectId, milestoneId, { userId, ngoTenantId, note }, req) {
-  const row = db.select().from(csrProjects).where(eq(csrProjects.id, projectId)).get()
+export async function submitMilestoneForReview(projectId, milestoneId, { userId, ngoTenantId, note }, req) {
+  const row = await db.select().from(csrProjects).where(eq(csrProjects.id, projectId)).get()
   if (!row) throw httpError('Project not found', 404)
   assertProjectAccess(row, { ngoTenantId })
 
-  const milestone = db.select().from(projectMilestones)
+  const milestone = await db
+    .select()
+    .from(projectMilestones)
     .where(and(eq(projectMilestones.id, milestoneId), eq(projectMilestones.projectId, projectId)))
     .get()
   if (!milestone) throw httpError('Milestone not found', 404)
@@ -449,7 +446,11 @@ export function submitMilestoneForReview(projectId, milestoneId, { userId, ngoTe
     throw httpError('Complete or progress the milestone before submitting for review', 400)
   }
 
-  db.update(projectMilestones).set({ reviewStatus: 'submitted' }).where(eq(projectMilestones.id, milestoneId)).run()
+  await db
+    .update(projectMilestones)
+    .set({ reviewStatus: 'submitted' })
+    .where(eq(projectMilestones.id, milestoneId))
+    .run()
 
   createInstance({
     req,
@@ -471,11 +472,11 @@ export function submitMilestoneForReview(projectId, milestoneId, { userId, ngoTe
     }).catch(() => {})
   }
 
-  return shapeMilestone(db.select().from(projectMilestones).where(eq(projectMilestones.id, milestoneId)).get())
+  return shapeMilestone(await db.select().from(projectMilestones).where(eq(projectMilestones.id, milestoneId)).get())
 }
 
-export function addMilestone(projectId, data, { corporateTenantId, ngoTenantId, req } = {}) {
-  const row = db.select().from(csrProjects).where(eq(csrProjects.id, projectId)).get()
+export async function addMilestone(projectId, data, { corporateTenantId, ngoTenantId, req } = {}) {
+  const row = await db.select().from(csrProjects).where(eq(csrProjects.id, projectId)).get()
   if (!row) throw httpError('Project not found', 404)
   assertProjectAccess(row, { corporateTenantId, ngoTenantId })
 
@@ -484,16 +485,19 @@ export function addMilestone(projectId, data, { corporateTenantId, ngoTenantId, 
   const id = newId()
   const status = data.status || 'pending'
 
-  db.insert(projectMilestones).values({
-    id,
-    projectId,
-    title: data.title,
-    dueDate: data.dueDate,
-    status,
-    progress: data.progress ?? (status === 'completed' ? 100 : 0),
-    sortOrder: existing.length,
-    completedAt: status === 'completed' ? now : null,
-  }).run()
+  await db
+    .insert(projectMilestones)
+    .values({
+      id,
+      projectId,
+      title: data.title,
+      dueDate: data.dueDate,
+      status,
+      progress: data.progress ?? (status === 'completed' ? 100 : 0),
+      sortOrder: existing.length,
+      completedAt: status === 'completed' ? now : null,
+    })
+    .run()
 
   recomputeAndSaveProgress(projectId)
 
@@ -507,20 +511,22 @@ export function addMilestone(projectId, data, { corporateTenantId, ngoTenantId, 
     }).catch(() => {})
   }
 
-  return shapeMilestone(db.select().from(projectMilestones).where(eq(projectMilestones.id, id)).get())
+  return shapeMilestone(await db.select().from(projectMilestones).where(eq(projectMilestones.id, id)).get())
 }
 
-export function updateMilestone(projectId, milestoneId, patch, { corporateTenantId, ngoTenantId, req } = {}) {
-  const row = db.select().from(csrProjects).where(eq(csrProjects.id, projectId)).get()
+export async function updateMilestone(projectId, milestoneId, patch, { corporateTenantId, ngoTenantId, req } = {}) {
+  const row = await db.select().from(csrProjects).where(eq(csrProjects.id, projectId)).get()
   if (!row) throw httpError('Project not found', 404)
   assertProjectAccess(row, { corporateTenantId, ngoTenantId })
 
-  const milestone = db.select().from(projectMilestones)
+  const milestone = await db
+    .select()
+    .from(projectMilestones)
     .where(and(eq(projectMilestones.id, milestoneId), eq(projectMilestones.projectId, projectId)))
     .get()
   if (!milestone) throw httpError('Milestone not found', 404)
   if (milestone.reviewStatus === 'submitted' && corporateTenantId) {
-    throw httpError('Milestone is pending review — use approvals workflow', 400)
+    throw httpError('Milestone is pending review ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â use approvals workflow', 400)
   }
 
   const now = new Date()
@@ -536,9 +542,7 @@ export function updateMilestone(projectId, milestoneId, patch, { corporateTenant
   }
   if (patch.progress !== undefined) updates.progress = patch.progress
 
-  db.update(projectMilestones).set(updates)
-    .where(eq(projectMilestones.id, milestoneId))
-    .run()
+  await db.update(projectMilestones).set(updates).where(eq(projectMilestones.id, milestoneId)).run()
 
   recomputeAndSaveProgress(projectId)
 
@@ -552,16 +556,17 @@ export function updateMilestone(projectId, milestoneId, patch, { corporateTenant
     }).catch(() => {})
   }
 
-  const updated = db.select().from(projectMilestones).where(eq(projectMilestones.id, milestoneId)).get()
+  const updated = await db.select().from(projectMilestones).where(eq(projectMilestones.id, milestoneId)).get()
   return shapeMilestone(updated)
 }
 
-export function deleteMilestone(projectId, milestoneId, { corporateTenantId, req } = {}) {
-  const row = db.select().from(csrProjects).where(eq(csrProjects.id, projectId)).get()
+export async function deleteMilestone(projectId, milestoneId, { corporateTenantId, req } = {}) {
+  const row = await db.select().from(csrProjects).where(eq(csrProjects.id, projectId)).get()
   if (!row) throw httpError('Project not found', 404)
   assertProjectAccess(row, { corporateTenantId })
 
-  db.delete(projectMilestones)
+  await db
+    .delete(projectMilestones)
     .where(and(eq(projectMilestones.id, milestoneId), eq(projectMilestones.projectId, projectId)))
     .run()
 
@@ -580,25 +585,25 @@ export function deleteMilestone(projectId, milestoneId, { corporateTenantId, req
   return { deleted: true, milestoneId }
 }
 
-export function addProjectUpdate(projectId, { userId, body }, { corporateTenantId, ngoTenantId, req } = {}) {
-  const row = db.select().from(csrProjects).where(eq(csrProjects.id, projectId)).get()
+export async function addProjectUpdate(projectId, { userId, body }, { corporateTenantId, ngoTenantId, req } = {}) {
+  const row = await db.select().from(csrProjects).where(eq(csrProjects.id, projectId)).get()
   if (!row) throw httpError('Project not found', 404)
   assertProjectAccess(row, { corporateTenantId, ngoTenantId })
 
   const id = newId()
   const now = new Date()
-  db.insert(projectUpdates).values({
-    id,
-    projectId,
-    authorUserId: userId,
-    body,
-    createdAt: now,
-  }).run()
-
-  db.update(csrProjects)
-    .set({ updatedAt: now })
-    .where(eq(csrProjects.id, projectId))
+  await db
+    .insert(projectUpdates)
+    .values({
+      id,
+      projectId,
+      authorUserId: userId,
+      body,
+      createdAt: now,
+    })
     .run()
+
+  await db.update(csrProjects).set({ updatedAt: now }).where(eq(csrProjects.id, projectId)).run()
 
   if (req) {
     logMutation({
@@ -610,7 +615,7 @@ export function addProjectUpdate(projectId, { userId, body }, { corporateTenantI
     }).catch(() => {})
   }
 
-  const author = db.select().from(users).where(eq(users.id, userId)).get()
+  const author = await db.select().from(users).where(eq(users.id, userId)).get()
   return {
     id,
     date: now.toISOString().slice(0, 10),
