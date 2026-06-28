@@ -3,13 +3,13 @@ import { db } from '../../db/index.js'
 import { csrProjects, projectMilestones } from '../../db/schema.js'
 import { SCHEDULE_VII_OPTIONS } from '../../schemas/projects.js'
 
-const NET_WORTH_THRESHOLD = 50_000_000_000 // ₹500 Cr
-const TURNOVER_THRESHOLD = 100_000_000_000 // ₹1000 Cr
+const NET_WORTH_THRESHOLD = 50_000_000_000 // ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¹500 Cr
+const TURNOVER_THRESHOLD = 100_000_000_000 // ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¹1000 Cr
 
 export function formatInrShort(amount) {
-  if (amount >= 10_000_000) return `₹${(amount / 10_000_000).toFixed(2)} Cr`
-  if (amount >= 100_000) return `₹${(amount / 100_000).toFixed(2)} L`
-  return `₹${amount.toLocaleString('en-IN')}`
+  if (amount >= 10_000_000) return `ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¹${(amount / 10_000_000).toFixed(2)} Cr`
+  if (amount >= 100_000) return `ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¹${(amount / 100_000).toFixed(2)} L`
+  return `ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¹${amount.toLocaleString('en-IN')}`
 }
 
 export function computeSection135(profile) {
@@ -33,8 +33,8 @@ export function computeSection135(profile) {
     criteria: { netWorthMet, turnoverMet, netProfitMet },
     obligationBreakdown: {
       formula: eligible
-        ? `2% × ${formatInrShort(averageNetProfit)} average net profit`
-        : 'Not applicable — Section 135 thresholds not met',
+        ? `2% ÃƒÆ’Ã¢â‚¬â€ ${formatInrShort(averageNetProfit)} average net profit`
+        : 'Not applicable ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Section 135 thresholds not met',
       averageNetProfit,
       ratePct: 2,
       result: csrObligation,
@@ -42,8 +42,8 @@ export function computeSection135(profile) {
   }
 }
 
-export function computeSpendBreakdown(tenantId) {
-  const projects = db.select().from(csrProjects).where(eq(csrProjects.corporateTenantId, tenantId)).all()
+export async function computeSpendBreakdown(tenantId) {
+  const projects = await db.select().from(csrProjects).where(eq(csrProjects.corporateTenantId, tenantId)).all()
   const byCategory = new Map()
   let totalSpent = 0
   let adminSpent = 0
@@ -68,8 +68,8 @@ export function computeSpendBreakdown(tenantId) {
   return { totalSpent, adminSpent, breakdown }
 }
 
-export function validateScheduleVii(tenantId, profile, spend) {
-  const projects = db.select().from(csrProjects)
+export async function validateScheduleVii(tenantId, profile, spend) {
+  const projects = await db.select().from(csrProjects)
     .where(eq(csrProjects.corporateTenantId, tenantId))
     .all()
     .filter((p) => p.status === 'active' || p.status === 'pending_approval')
@@ -145,7 +145,7 @@ export function getComplianceDueDates(fyLabel = 'FY 2025-26') {
   ]
 }
 
-export function evaluateAlerts(tenantId, profile, spend) {
+export async function evaluateAlerts(tenantId, profile, spend) {
   const { csrObligation } = computeSection135(profile)
   const unspent = Math.max(csrObligation - spend.totalSpent, 0) + profile.carryForwardInr
   const alerts = []
@@ -159,10 +159,10 @@ export function evaluateAlerts(tenantId, profile, spend) {
     })
   }
 
-  const projects = db.select().from(csrProjects).where(eq(csrProjects.corporateTenantId, tenantId)).all()
+  const projects = await db.select().from(csrProjects).where(eq(csrProjects.corporateTenantId, tenantId)).all()
   const today = new Date().toISOString().slice(0, 10)
   for (const p of projects) {
-    const milestones = db.select().from(projectMilestones).where(eq(projectMilestones.projectId, p.id)).all()
+    const milestones = await db.select().from(projectMilestones).where(eq(projectMilestones.projectId, p.id)).all()
     for (const m of milestones) {
       if (m.status !== 'completed' && m.dueDate && m.dueDate < today) {
         alerts.push({

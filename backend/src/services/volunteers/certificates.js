@@ -21,12 +21,12 @@ function httpError(message, status) {
 }
 
 export async function issueCertificate(corporateTenantId, signupId, userId, req) {
-  const signup = db.select().from(volunteerSignups)
+  const signup = await db
+    .select()
+    .from(volunteerSignups)
     .innerJoin(volunteerEvents, eq(volunteerSignups.eventId, volunteerEvents.id))
-    .where(and(
-      eq(volunteerSignups.id, signupId),
-      eq(volunteerEvents.corporateTenantId, corporateTenantId),
-    )).get()
+    .where(and(eq(volunteerSignups.id, signupId), eq(volunteerEvents.corporateTenantId, corporateTenantId)))
+    .get()
   if (!signup) throw httpError('Signup not found', 404)
 
   const { volunteer_signups: s, volunteer_events: event } = signup
@@ -39,20 +39,23 @@ export async function issueCertificate(corporateTenantId, signupId, userId, req)
     throw httpError('Certificate requires recorded attendance', 400)
   }
 
-  const existing = db.select().from(volunteerCertificates)
-    .where(eq(volunteerCertificates.signupId, signupId)).get()
+  const existing = await db
+    .select()
+    .from(volunteerCertificates)
+    .where(eq(volunteerCertificates.signupId, signupId))
+    .get()
   if (existing) return getCertificate(corporateTenantId, existing.id)
 
-  const attendance = db.select().from(volunteerAttendance)
-    .where(eq(volunteerAttendance.signupId, signupId)).get()
+  const attendance = await db.select().from(volunteerAttendance).where(eq(volunteerAttendance.signupId, signupId)).get()
   if (!attendance) throw httpError('No attendance record found', 400)
 
-  const employee = db.select().from(users).where(eq(users.id, s.userId)).get()
-  const company = db.select().from(tenants).where(eq(tenants.id, corporateTenantId)).get()
+  const employee = await db.select().from(users).where(eq(users.id, s.userId)).get()
+  const company = await db.select().from(tenants).where(eq(tenants.id, corporateTenantId)).get()
 
-  const eventDate = event.startsAt instanceof Date
-    ? event.startsAt.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
-    : String(event.startsAt).slice(0, 10)
+  const eventDate =
+    event.startsAt instanceof Date
+      ? event.startsAt.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
+      : String(event.startsAt).slice(0, 10)
 
   const pdfBuffer = await generateVolunteerCertificatePdf({
     employeeName: employee?.fullName || employee?.email || 'Volunteer',
@@ -79,33 +82,39 @@ export async function issueCertificate(corporateTenantId, signupId, userId, req)
 
   const certId = newId()
   const now = new Date()
-  db.insert(volunteerCertificates).values({
-    id: certId,
-    signupId,
-    fileId: stored.id,
-    issuedAt: now,
-    hoursCredited: event.hoursCredit,
-  }).run()
+  await db
+    .insert(volunteerCertificates)
+    .values({
+      id: certId,
+      signupId,
+      fileId: stored.id,
+      issuedAt: now,
+      hoursCredited: event.hoursCredit,
+    })
+    .run()
 
   if (event.status !== 'completed') {
-    db.update(volunteerEvents).set({ status: 'completed', updatedAt: now })
-      .where(eq(volunteerEvents.id, event.id)).run()
+    await db
+      .update(volunteerEvents)
+      .set({ status: 'completed', updatedAt: now })
+      .where(eq(volunteerEvents.id, event.id))
+      .run()
   }
 
   return getCertificate(corporateTenantId, certId)
 }
 
-export function getCertificate(corporateTenantId, certificateId) {
-  const row = db.select().from(volunteerCertificates)
+export async function getCertificate(corporateTenantId, certificateId) {
+  const row = await db
+    .select()
+    .from(volunteerCertificates)
     .innerJoin(volunteerSignups, eq(volunteerCertificates.signupId, volunteerSignups.id))
     .innerJoin(volunteerEvents, eq(volunteerSignups.eventId, volunteerEvents.id))
-    .where(and(
-      eq(volunteerCertificates.id, certificateId),
-      eq(volunteerEvents.corporateTenantId, corporateTenantId),
-    )).get()
+    .where(and(eq(volunteerCertificates.id, certificateId), eq(volunteerEvents.corporateTenantId, corporateTenantId)))
+    .get()
   if (!row) throw httpError('Certificate not found', 404)
 
-  const file = db.select().from(files).where(eq(files.id, row.volunteer_certificates.fileId)).get()
+  const file = await db.select().from(files).where(eq(files.id, row.volunteer_certificates.fileId)).get()
   return {
     id: row.volunteer_certificates.id,
     signupId: row.volunteer_certificates.signupId,
@@ -119,7 +128,7 @@ export function getCertificate(corporateTenantId, certificateId) {
 
 export async function getCertificateFile(corporateTenantId, certificateId) {
   const cert = getCertificate(corporateTenantId, certificateId)
-  const file = db.select().from(files).where(eq(files.id, cert.fileId)).get()
+  const file = await db.select().from(files).where(eq(files.id, cert.fileId)).get()
   if (!file) throw httpError('Certificate file not found', 404)
   const storage = getStorage()
   const buffer = await storage.download(file.storageKey)

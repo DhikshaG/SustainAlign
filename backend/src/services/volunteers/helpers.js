@@ -8,28 +8,32 @@ export function httpError(message, status) {
   return err
 }
 
-export function countEnrolled(eventId) {
-  const row = db.select({ count: sql`count(*)` })
+export async function countEnrolled(eventId) {
+  const row = await db
+    .select({ count: sql`count(*)` })
     .from(volunteerSignups)
-    .where(and(
-      eq(volunteerSignups.eventId, eventId),
-      inArray(volunteerSignups.status, ['registered', 'attended']),
-    ))
+    .where(and(eq(volunteerSignups.eventId, eventId), inArray(volunteerSignups.status, ['registered', 'attended'])))
     .get()
   return Number(row?.count ?? 0)
 }
 
-export function refreshEventStatus(event) {
+export async function refreshEventStatus(event) {
   if (['completed', 'cancelled', 'draft'].includes(event.status)) return event.status
   const enrolled = countEnrolled(event.id)
   if (enrolled >= event.slots) {
-    db.update(volunteerEvents).set({ status: 'full', updatedAt: new Date() })
-      .where(eq(volunteerEvents.id, event.id)).run()
+    await db
+      .update(volunteerEvents)
+      .set({ status: 'full', updatedAt: new Date() })
+      .where(eq(volunteerEvents.id, event.id))
+      .run()
     return 'full'
   }
   if (event.status === 'full' && enrolled < event.slots) {
-    db.update(volunteerEvents).set({ status: 'open', updatedAt: new Date() })
-      .where(eq(volunteerEvents.id, event.id)).run()
+    await db
+      .update(volunteerEvents)
+      .set({ status: 'open', updatedAt: new Date() })
+      .where(eq(volunteerEvents.id, event.id))
+      .run()
     return 'open'
   }
   return event.status

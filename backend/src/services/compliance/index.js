@@ -22,14 +22,14 @@ function httpError(message, status) {
   return err
 }
 
-export function getOrCreateProfile(tenantId, fyLabel = 'FY 2025-26') {
-  let profile = db.select().from(corporateCsrProfile)
+export async function getOrCreateProfile(tenantId, fyLabel = 'FY 2025-26') {
+  let profile = await db.select().from(corporateCsrProfile)
     .where(and(eq(corporateCsrProfile.tenantId, tenantId), eq(corporateCsrProfile.fyLabel, fyLabel)))
     .get()
   if (!profile) {
     const now = new Date()
     const id = newId()
-    db.insert(corporateCsrProfile).values({
+    await db.insert(corporateCsrProfile).values({
       id,
       tenantId,
       fyLabel,
@@ -43,12 +43,12 @@ export function getOrCreateProfile(tenantId, fyLabel = 'FY 2025-26') {
       createdAt: now,
       updatedAt: now,
     }).run()
-    profile = db.select().from(corporateCsrProfile).where(eq(corporateCsrProfile.id, id)).get()
+    profile = await db.select().from(corporateCsrProfile).where(eq(corporateCsrProfile.id, id)).get()
   }
   return profile
 }
 
-export function updateProfile(tenantId, patch, fyLabel = 'FY 2025-26', req) {
+export async function updateProfile(tenantId, patch, fyLabel = 'FY 2025-26', req) {
   const profile = getOrCreateProfile(tenantId, fyLabel)
   const before = {
     netProfitInr: profile.netProfitInr,
@@ -64,7 +64,7 @@ export function updateProfile(tenantId, patch, fyLabel = 'FY 2025-26', req) {
   if (patch.adminCapPct !== undefined) updates.adminCapPct = patch.adminCapPct
   if (patch.localAreaTargetPct !== undefined) updates.localAreaTargetPct = patch.localAreaTargetPct
   if (patch.carryForwardInr !== undefined) updates.carryForwardInr = patch.carryForwardInr
-  db.update(corporateCsrProfile).set(updates).where(eq(corporateCsrProfile.id, profile.id)).run()
+  await db.update(corporateCsrProfile).set(updates).where(eq(corporateCsrProfile.id, profile.id)).run()
   if (req) {
     logMutation({
       req,
@@ -78,11 +78,11 @@ export function updateProfile(tenantId, patch, fyLabel = 'FY 2025-26', req) {
   return getOrCreateProfile(tenantId, patch.fyLabel || fyLabel)
 }
 
-export function syncAlerts(tenantId, profile, spend) {
+export async function syncAlerts(tenantId, profile, spend) {
   const candidates = evaluateAlerts(tenantId, profile, spend)
 
   for (const a of candidates) {
-    const exists = db.select().from(complianceAlerts)
+    const exists = await db.select().from(complianceAlerts)
       .where(and(
         eq(complianceAlerts.tenantId, tenantId),
         eq(complianceAlerts.ruleKey, a.ruleKey),
@@ -90,7 +90,7 @@ export function syncAlerts(tenantId, profile, spend) {
       ))
       .get()
     if (!exists) {
-      db.insert(complianceAlerts).values({
+      await db.insert(complianceAlerts).values({
         id: newId(),
         tenantId,
         level: a.level,
@@ -112,7 +112,7 @@ export function syncComplianceForTenant(tenantId, fyLabel = 'FY 2025-26') {
   return { tenantId, synced: true }
 }
 
-export function getComplianceSummary(tenantId, fyLabel = 'FY 2025-26') {
+export async function getComplianceSummary(tenantId, fyLabel = 'FY 2025-26') {
   const profile = getOrCreateProfile(tenantId, fyLabel)
   const section135 = computeSection135(profile)
   const spendData = computeSpendBreakdown(tenantId)
@@ -121,7 +121,7 @@ export function getComplianceSummary(tenantId, fyLabel = 'FY 2025-26') {
 
   syncAlerts(tenantId, profile, spendData)
 
-  const alerts = db.select().from(complianceAlerts)
+  const alerts = await db.select().from(complianceAlerts)
     .where(and(eq(complianceAlerts.tenantId, tenantId), isNull(complianceAlerts.acknowledgedAt)))
     .all()
     .map((a) => ({
@@ -137,8 +137,8 @@ export function getComplianceSummary(tenantId, fyLabel = 'FY 2025-26') {
   const passCount = scheduleVIIValidation.filter((v) => v.status === 'pass').length
   const auditScore = Math.round((passCount / scheduleVIIValidation.length) * 100)
 
-  const tenant = db.select().from(tenants).where(eq(tenants.id, tenantId)).get()
-  const projects = db.select().from(csrProjects).where(eq(csrProjects.corporateTenantId, tenantId)).all()
+  const tenant = await db.select().from(tenants).where(eq(tenants.id, tenantId)).get()
+  const projects = await db.select().from(csrProjects).where(eq(csrProjects.corporateTenantId, tenantId)).all()
   const dueDates = getComplianceDueDates(profile.fyLabel)
 
   return {
@@ -194,10 +194,10 @@ export function getComplianceSummary(tenantId, fyLabel = 'FY 2025-26') {
   }
 }
 
-export function exportMcaCsr2(tenantId, fyLabel = 'FY 2025-26') {
+export async function exportMcaCsr2(tenantId, fyLabel = 'FY 2025-26') {
   const summary = getComplianceSummary(tenantId, fyLabel)
-  const tenant = db.select().from(tenants).where(eq(tenants.id, tenantId)).get()
-  const projects = db.select().from(csrProjects)
+  const tenant = await db.select().from(tenants).where(eq(tenants.id, tenantId)).get()
+  const projects = await db.select().from(csrProjects)
     .where(eq(csrProjects.corporateTenantId, tenantId))
     .all()
     .filter((p) => p.status !== 'archived' && p.status !== 'rejected')
@@ -224,8 +224,8 @@ export function exportMcaCsr2(tenantId, fyLabel = 'FY 2025-26') {
     },
     scheduleViiBreakdown: summary.spend.breakdown,
     validation: summary.scheduleVIIValidation,
-    projects: projects.map((p) => {
-      const ngo = db.select().from(tenants).where(eq(tenants.id, p.ngoTenantId)).get()
+    projects: projects.map(async (p) => {
+      const ngo = await db.select().from(tenants).where(eq(tenants.id, p.ngoTenantId)).get()
       return {
         name: p.name,
         ngo: ngo?.name,
@@ -243,10 +243,10 @@ export function exportMcaCsr2(tenantId, fyLabel = 'FY 2025-26') {
   }
 }
 
-export function getFundAllocation(tenantId) {
+export async function getFundAllocation(tenantId) {
   const profile = getOrCreateProfile(tenantId)
   const { csrObligation } = computeSection135(profile)
-  const projects = db.select().from(csrProjects)
+  const projects = await db.select().from(csrProjects)
     .where(eq(csrProjects.corporateTenantId, tenantId))
     .all()
     .filter((p) => p.status !== 'archived' && p.status !== 'rejected')
@@ -270,8 +270,8 @@ export function getFundAllocation(tenantId) {
     totalSpent: spent,
     unallocated: Math.max(csrObligation - allocated, 0),
     categories: [...byTheme.values()],
-    projects: projects.map((p) => {
-      const ngo = db.select().from(tenants).where(eq(tenants.id, p.ngoTenantId)).get()
+    projects: projects.map(async (p) => {
+      const ngo = await db.select().from(tenants).where(eq(tenants.id, p.ngoTenantId)).get()
       return {
         id: p.id,
         name: p.name,
@@ -285,10 +285,10 @@ export function getFundAllocation(tenantId) {
   }
 }
 
-export function acknowledgeAlert(alertId, tenantId, req) {
-  const alert = db.select().from(complianceAlerts).where(eq(complianceAlerts.id, alertId)).get()
+export async function acknowledgeAlert(alertId, tenantId, req) {
+  const alert = await db.select().from(complianceAlerts).where(eq(complianceAlerts.id, alertId)).get()
   if (!alert || alert.tenantId !== tenantId) throw httpError('Alert not found', 404)
-  db.update(complianceAlerts)
+  await db.update(complianceAlerts)
     .set({ acknowledgedAt: new Date() })
     .where(eq(complianceAlerts.id, alertId))
     .run()

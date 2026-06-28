@@ -1,11 +1,6 @@
 import { eq, and, desc } from 'drizzle-orm'
 import { db } from '../../db/index.js'
-import {
-  workflowDefinitions,
-  workflowInstances,
-  workflowEvents,
-  memberships,
-} from '../../db/schema.js'
+import { workflowDefinitions, workflowInstances, workflowEvents, memberships } from '../../db/schema.js'
 import { newId } from '../../lib/ids.js'
 import { logMutation } from '../activity-log/index.js'
 import { createNotification, notifyRole } from '../notifications/index.js'
@@ -15,7 +10,7 @@ import { csrProjects, projectMilestones } from '../../db/schema.js'
 
 const TERMINAL = new Set(['approved', 'rejected'])
 
-export function seedWorkflowDefinitions() {
+export async function seedWorkflowDefinitions() {
   const defs = [
     {
       slug: 'ngo_report_approval',
@@ -37,61 +32,66 @@ export function seedWorkflowDefinitions() {
     {
       slug: 'milestone_approval',
       name: 'Milestone Approval',
-      steps: [
-        { role: 'csr_head', permission: 'workflow:review', label: 'Milestone review' },
-      ],
+      steps: [{ role: 'csr_head', permission: 'workflow:review', label: 'Milestone review' }],
     },
   ]
 
   for (const def of defs) {
-    const existing = db.select().from(workflowDefinitions)
-      .where(eq(workflowDefinitions.slug, def.slug))
-      .get()
+    const existing = await db.select().from(workflowDefinitions).where(eq(workflowDefinitions.slug, def.slug)).get()
     if (existing) continue
-    db.insert(workflowDefinitions).values({
-      id: newId(),
-      slug: def.slug,
-      name: def.name,
-      steps: JSON.stringify(def.steps),
-    }).run()
+    await db
+      .insert(workflowDefinitions)
+      .values({
+        id: newId(),
+        slug: def.slug,
+        name: def.name,
+        steps: JSON.stringify(def.steps),
+      })
+      .run()
   }
 }
 
-export function getDefinition(slug) {
-  const row = db.select().from(workflowDefinitions).where(eq(workflowDefinitions.slug, slug)).get()
+export async function getDefinition(slug) {
+  const row = await db.select().from(workflowDefinitions).where(eq(workflowDefinitions.slug, slug)).get()
   if (!row) return null
   return { ...row, steps: JSON.parse(row.steps) }
 }
 
-export function createInstance({ req, definitionSlug, tenantId, entityType, entityId, submittedBy, title }) {
+export async function createInstance({ req, definitionSlug, tenantId, entityType, entityId, submittedBy, title }) {
   const def = getDefinition(definitionSlug)
   if (!def) throw Object.assign(new Error('Workflow definition not found'), { status: 404 })
 
   const now = new Date()
   const id = newId()
-  db.insert(workflowInstances).values({
-    id,
-    definitionId: def.id,
-    tenantId,
-    entityType,
-    entityId,
-    status: 'pending',
-    currentStepIndex: 0,
-    submittedBy,
-    createdAt: now,
-    updatedAt: now,
-  }).run()
+  await db
+    .insert(workflowInstances)
+    .values({
+      id,
+      definitionId: def.id,
+      tenantId,
+      entityType,
+      entityId,
+      status: 'pending',
+      currentStepIndex: 0,
+      submittedBy,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .run()
 
-  db.insert(workflowEvents).values({
-    id: newId(),
-    instanceId: id,
-    fromStatus: null,
-    toStatus: 'pending',
-    stepIndex: 0,
-    actorUserId: submittedBy,
-    comment: 'Submitted',
-    createdAt: now,
-  }).run()
+  await db
+    .insert(workflowEvents)
+    .values({
+      id: newId(),
+      instanceId: id,
+      fromStatus: null,
+      toStatus: 'pending',
+      stepIndex: 0,
+      actorUserId: submittedBy,
+      comment: 'Submitted',
+      createdAt: now,
+    })
+    .run()
 
   logMutation({
     req,
@@ -112,11 +112,12 @@ export function createInstance({ req, definitionSlug, tenantId, entityType, enti
   })
 
   const firstStep = def.steps[0]
-  const notifyTitle = entityType === 'project'
-    ? 'Project pending your review'
-    : entityType === 'milestone'
-      ? 'Milestone pending your review'
-      : 'Report pending your review'
+  const notifyTitle =
+    entityType === 'project'
+      ? 'Project pending your review'
+      : entityType === 'milestone'
+        ? 'Milestone pending your review'
+        : 'Report pending your review'
   notifyRole(tenantId, firstStep.role, {
     type: 'report.pending',
     title: notifyTitle,
@@ -127,16 +128,16 @@ export function createInstance({ req, definitionSlug, tenantId, entityType, enti
   return getInstance(id)
 }
 
-function enrichInstance(inst) {
+async function enrichInstance(inst) {
   if (!inst) return inst
   let entityTitle = inst.entityId
   let projectId = null
   if (inst.entityType === 'project') {
-    const p = db.select().from(csrProjects).where(eq(csrProjects.id, inst.entityId)).get()
+    const p = await db.select().from(csrProjects).where(eq(csrProjects.id, inst.entityId)).get()
     entityTitle = p?.name || entityTitle
     projectId = inst.entityId
   } else if (inst.entityType === 'milestone') {
-    const m = db.select().from(projectMilestones).where(eq(projectMilestones.id, inst.entityId)).get()
+    const m = await db.select().from(projectMilestones).where(eq(projectMilestones.id, inst.entityId)).get()
     if (m) {
       entityTitle = m.title
       projectId = m.projectId
@@ -145,11 +146,13 @@ function enrichInstance(inst) {
   return { ...inst, entityTitle, projectId }
 }
 
-export function getInstance(id) {
-  const row = db.select().from(workflowInstances).where(eq(workflowInstances.id, id)).get()
+export async function getInstance(id) {
+  const row = await db.select().from(workflowInstances).where(eq(workflowInstances.id, id)).get()
   if (!row) return null
-  const def = db.select().from(workflowDefinitions).where(eq(workflowDefinitions.id, row.definitionId)).get()
-  const events = db.select().from(workflowEvents)
+  const def = await db.select().from(workflowDefinitions).where(eq(workflowDefinitions.id, row.definitionId)).get()
+  const events = await db
+    .select()
+    .from(workflowEvents)
     .where(eq(workflowEvents.instanceId, id))
     .orderBy(desc(workflowEvents.createdAt))
     .all()
@@ -160,26 +163,29 @@ export function getInstance(id) {
   })
 }
 
-export function listPendingForUser(userId, role, tenantId) {
-  const instances = db.select().from(workflowInstances)
-    .where(and(
-      eq(workflowInstances.tenantId, tenantId),
-      eq(workflowInstances.status, 'pending'),
-    ))
+export async function listPendingForUser(userId, role, tenantId) {
+  const instances = await db
+    .select()
+    .from(workflowInstances)
+    .where(and(eq(workflowInstances.tenantId, tenantId), eq(workflowInstances.status, 'pending')))
     .all()
 
-  return instances.filter((inst) => {
-    const def = db.select().from(workflowDefinitions).where(eq(workflowDefinitions.id, inst.definitionId)).get()
-    if (!def) return false
-    const steps = JSON.parse(def.steps)
-    const step = steps[inst.currentStepIndex]
-    return step?.role === role
-  }).map((i) => getInstance(i.id))
+  return instances
+    .filter(async (inst) => {
+      const def = await db.select().from(workflowDefinitions).where(eq(workflowDefinitions.id, inst.definitionId)).get()
+      if (!def) return false
+      const steps = JSON.parse(def.steps)
+      const step = steps[inst.currentStepIndex]
+      return step?.role === role
+    })
+    .map((i) => getInstance(i.id))
 }
 
-export function listInboxForUser(userId, role, tenantId) {
+export async function listInboxForUser(userId, role, tenantId) {
   if (role === 'ngo_admin' || role === 'field_officer') {
-    return db.select().from(workflowInstances)
+    return await db
+      .select()
+      .from(workflowInstances)
       .where(eq(workflowInstances.submittedBy, userId))
       .orderBy(desc(workflowInstances.updatedAt))
       .all()
@@ -189,13 +195,13 @@ export function listInboxForUser(userId, role, tenantId) {
 }
 
 export async function transition({ req, instanceId, action, comment }) {
-  const inst = db.select().from(workflowInstances).where(eq(workflowInstances.id, instanceId)).get()
+  const inst = await db.select().from(workflowInstances).where(eq(workflowInstances.id, instanceId)).get()
   if (!inst) throw Object.assign(new Error('Workflow not found'), { status: 404 })
   if (TERMINAL.has(inst.status)) {
     throw Object.assign(new Error('Workflow already completed'), { status: 400 })
   }
 
-  const def = db.select().from(workflowDefinitions).where(eq(workflowDefinitions.id, inst.definitionId)).get()
+  const def = await db.select().from(workflowDefinitions).where(eq(workflowDefinitions.id, inst.definitionId)).get()
   const steps = JSON.parse(def.steps)
   const currentStep = steps[inst.currentStepIndex]
   const actorRole = req.user.role
@@ -224,22 +230,29 @@ export async function transition({ req, instanceId, action, comment }) {
     throw Object.assign(new Error('Invalid action'), { status: 400 })
   }
 
-  db.update(workflowInstances).set({
-    status: newStatus,
-    currentStepIndex: newStepIndex,
-    updatedAt: now,
-  }).where(eq(workflowInstances.id, instanceId)).run()
+  await db
+    .update(workflowInstances)
+    .set({
+      status: newStatus,
+      currentStepIndex: newStepIndex,
+      updatedAt: now,
+    })
+    .where(eq(workflowInstances.id, instanceId))
+    .run()
 
-  db.insert(workflowEvents).values({
-    id: newId(),
-    instanceId,
-    fromStatus: previousStatus,
-    toStatus: newStatus,
-    stepIndex: inst.currentStepIndex,
-    actorUserId: req.user.sub,
-    comment: comment || null,
-    createdAt: now,
-  }).run()
+  await db
+    .insert(workflowEvents)
+    .values({
+      id: newId(),
+      instanceId,
+      fromStatus: previousStatus,
+      toStatus: newStatus,
+      stepIndex: inst.currentStepIndex,
+      actorUserId: req.user.sub,
+      comment: comment || null,
+      createdAt: now,
+    })
+    .run()
 
   const enriched = enrichInstance(inst)
 
@@ -280,7 +293,7 @@ export async function transition({ req, instanceId, action, comment }) {
     if (inst.entityType === 'project') {
       link = `/dashboard/projects/${inst.entityId}`
     } else if (inst.entityType === 'milestone') {
-      const m = db.select().from(projectMilestones).where(eq(projectMilestones.id, inst.entityId)).get()
+      const m = await db.select().from(projectMilestones).where(eq(projectMilestones.id, inst.entityId)).get()
       link = m ? `/ngo/projects/${m.projectId}` : '/ngo/submissions'
     } else if (inst.entityType === 'report') {
       link = '/ngo/finance'

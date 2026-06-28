@@ -4,8 +4,8 @@ import { tenants } from '../../db/schema.js'
 import { logger } from '../../lib/logger.js'
 import { syncComplianceForTenant } from './index.js'
 
-export function syncAllCorporateTenants() {
-  const corporateTenants = db.select().from(tenants).where(eq(tenants.type, 'corporate')).all()
+export async function syncAllCorporateTenants() {
+  const corporateTenants = await db.select().from(tenants).where(eq(tenants.type, 'corporate')).all()
   let synced = 0
   for (const t of corporateTenants) {
     try {
