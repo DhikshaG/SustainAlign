@@ -331,8 +331,8 @@ Every variable is documented in those files. **Production requires** real values
 
 This codebase has been hardened across seven phases per the [Production Readiness Plan](./production_plan.md). Current status:
 
-- ✅ Phase 1 — Foundation (docs, env, repo hygiene, error handling)
-- ✅ Phase 2 — Security hardening (rate limits, CSP, upload validation, OTP crypto, header injection fix)
+- ✅ Phase 1 — CI/CD Pipeline (GitHub Actions CI/CD, husky pre-commit, commitlint, deploy scripts, Docker Compose prod, Vitest, Makefile)
+- ✅ Phase 2 — Test Foundation (backend unit + integration tests with Vitest + Supertest, frontend component + page smoke tests, CI coverage gates)
 - ✅ Phase 3 — Operational resilience (health checks, graceful shutdown, request IDs, CORS caching)
 - ✅ Phase 4 — Frontend perf (lazy loading, code splitting, meta tags, noscript)
 - ✅ Phase 5 — Deployment (Docker, docker-compose, nginx)
