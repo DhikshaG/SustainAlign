@@ -40,7 +40,7 @@ export async function logActivity({
   }
 
   try {
-    db.insert(activityLogs).values(row).run()
+    await db.insert(activityLogs).values(row).run()
   } catch (err) {
     logger.error({ err }, 'activity_log insert failed')
   }
@@ -69,7 +69,7 @@ function parseRow(row) {
   }
 }
 
-export function listActivity({
+export async function listActivity({
   tenantId,
   entityType,
   entityId,
@@ -96,7 +96,7 @@ export function listActivity({
   if (dateFrom) conditions.push(gte(activityLogs.createdAt, new Date(dateFrom)))
   if (dateTo) conditions.push(lte(activityLogs.createdAt, new Date(dateTo)))
 
-  let query = db.select().from(activityLogs).orderBy(desc(activityLogs.createdAt)).limit(limit).offset(offset)
+  let query = await db.select().from(activityLogs).orderBy(desc(activityLogs.createdAt)).limit(limit).offset(offset)
   if (conditions.length === 1) {
     query = query.where(conditions[0])
   } else if (conditions.length > 1) {

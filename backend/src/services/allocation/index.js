@@ -53,15 +53,11 @@ function amountToBudgetRange(amount) {
   return '1Cr+'
 }
 
-function collectPartnerDistricts(corporateTenantId) {
-  const projects = db.select().from(csrProjects)
-    .where(eq(csrProjects.corporateTenantId, corporateTenantId))
-    .all()
+async function collectPartnerDistricts(corporateTenantId) {
+  const projects = await db.select().from(csrProjects).where(eq(csrProjects.corporateTenantId, corporateTenantId)).all()
   const districts = new Map()
   for (const p of projects) {
-    const profile = db.select().from(ngoProfiles)
-      .where(eq(ngoProfiles.tenantId, p.ngoTenantId))
-      .get()
+    const profile = await db.select().from(ngoProfiles).where(eq(ngoProfiles.tenantId, p.ngoTenantId)).get()
     const served = parseJson(profile?.districtsServed)
     for (const d of served) {
       const key = String(d).trim()
@@ -117,30 +113,30 @@ export function scoreDistrictNeeds(context, { sdgFocus = [] } = {}) {
     }
   }
 
-  const sdgThemes = sdgFocus.length
-    ? context.sdgProgress.filter((s) => sdgFocus.includes(s.sdg))
-    : context.sdgProgress
+  const sdgThemes = sdgFocus.length ? context.sdgProgress.filter((s) => sdgFocus.includes(s.sdg)) : context.sdgProgress
 
-  const scored = [...districtMap.values()].map((d) => {
-    const spendGap = 1 - (d.spend / maxSpend)
-    const benGap = 1 - (d.beneficiaries / maxBen)
-    const ngoBoost = Math.min(d.ngoPresence / 3, 1) * 0.15
-    const needScore = Math.round((spendGap * 0.45 + benGap * 0.35 + ngoBoost) * 100)
+  const scored = [...districtMap.values()]
+    .map((d) => {
+      const spendGap = 1 - d.spend / maxSpend
+      const benGap = 1 - d.beneficiaries / maxBen
+      const ngoBoost = Math.min(d.ngoPresence / 3, 1) * 0.15
+      const needScore = Math.round((spendGap * 0.45 + benGap * 0.35 + ngoBoost) * 100)
 
-    const topSdg = sdgThemes[0]
-    const sdgGap = topSdg ? `SDG ${topSdg.sdg}: ${topSdg.label}` : 'SDG 4: Quality Education'
+      const topSdg = sdgThemes[0]
+      const sdgGap = topSdg ? `SDG ${topSdg.sdg}: ${topSdg.label}` : 'SDG 4: Quality Education'
 
-    return {
-      district: d.district,
-      state: d.state,
-      needScore,
-      currentSpend: d.spend,
-      beneficiaries: d.beneficiaries,
-      projects: d.projects,
-      ngoPresence: d.ngoPresence,
-      sdgGap,
-    }
-  }).sort((a, b) => b.needScore - a.needScore)
+      return {
+        district: d.district,
+        state: d.state,
+        needScore,
+        currentSpend: d.spend,
+        beneficiaries: d.beneficiaries,
+        projects: d.projects,
+        ngoPresence: d.ngoPresence,
+        sdgGap,
+      }
+    })
+    .sort((a, b) => b.needScore - a.needScore)
 
   return scored.map((d, i) => {
     const priority = d.needScore >= 70 ? 'high' : d.needScore >= 45 ? 'medium' : 'low'
@@ -152,16 +148,18 @@ export function recommendThemeSplit(context, { budgetToAllocate, scenario = 'bal
   const budget = budgetToAllocate ?? context.unallocated
   if (budget <= 0) return []
 
-  const weights = { ...SCENARIO_WEIGHTS[scenario] || SCENARIO_WEIGHTS.balanced }
+  const weights = { ...(SCENARIO_WEIGHTS[scenario] || SCENARIO_WEIGHTS.balanced) }
   const currentByTheme = new Map((context.categories || []).map((c) => [c.theme, c.allocated || 0]))
 
   const themesInUse = new Set([
     ...Object.keys(weights),
     ...(context.categories || []).map((c) => c.theme),
-    ...context.sdgProgress.map((s) => {
-      const entry = Object.entries(THEME_TO_SDG).find(([, v]) => v.sdg === s.sdg)
-      return entry?.[0]
-    }).filter(Boolean),
+    ...context.sdgProgress
+      .map((s) => {
+        const entry = Object.entries(THEME_TO_SDG).find(([, v]) => v.sdg === s.sdg)
+        return entry?.[0]
+      })
+      .filter(Boolean),
   ])
   themesInUse.delete('Other')
 
@@ -211,13 +209,17 @@ export function recommendNgos(context, { districtPlan, themePlan, limit = 10 }) 
         500_000,
       )
       const state = district.state?.split(',')[0]?.trim() || district.state
-      const match = runNgoMatchSync(context.tenantId, {
-        csrFocus: `${theme.theme} programs in ${district.district}`,
-        theme: theme.theme.toLowerCase().replace(/\s+/g, '-'),
-        state,
-        district: district.district,
-        budgetRange: amountToBudgetRange(sliceAmount),
-      }, { limit: 3 })
+      const match = runNgoMatchSync(
+        context.tenantId,
+        {
+          csrFocus: `${theme.theme} programs in ${district.district}`,
+          theme: theme.theme.toLowerCase().replace(/\s+/g, '-'),
+          state,
+          district: district.district,
+          budgetRange: amountToBudgetRange(sliceAmount),
+        },
+        { limit: 3 },
+      )
 
       for (const m of match.matches) {
         if (seen.has(m.slug)) continue
@@ -238,19 +240,11 @@ export function recommendNgos(context, { districtPlan, themePlan, limit = 10 }) 
     }
   }
 
-  return results
-    .sort((a, b) => b.matchPercent - a.matchPercent)
-    .slice(0, limit)
+  return results.sort((a, b) => b.matchPercent - a.matchPercent).slice(0, limit)
 }
 
 export async function runAllocationIntelligence(tenantId, options = {}) {
-  const {
-    budgetToAllocate,
-    scenario = 'balanced',
-    sdgFocus = [],
-    includeAi = true,
-    limit = 10,
-  } = options
+  const { budgetToAllocate, scenario = 'balanced', sdgFocus = [], includeAi = true, limit = 10 } = options
 
   const context = buildAllocationContext(tenantId)
   const budget = budgetToAllocate ?? context.unallocated

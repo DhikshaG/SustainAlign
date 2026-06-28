@@ -12,7 +12,14 @@ const ACTION_TYPE_PREFIXES = {
   upload: ['file.upload', 'file.version.create'],
   approval: ['workflow.approve', 'workflow.reject', 'workflow.request_revision', 'workflow.submit'],
   payment: ['finance.disbursement.record'],
-  edit: ['compliance.profile.update', 'compliance.alert.acknowledge', 'project.update', 'report.generate', 'report.submit', 'ngo.profile.update'],
+  edit: [
+    'compliance.profile.update',
+    'compliance.alert.acknowledge',
+    'project.update',
+    'report.generate',
+    'report.submit',
+    'ngo.profile.update',
+  ],
 }
 
 const ACTION_LABELS = {
@@ -85,14 +92,14 @@ function categorizeAction(action) {
   return 'edit'
 }
 
-export function getAuditFolderTree(tenantId, { fiscalYear, projectId } = {}) {
+export async function getAuditFolderTree(tenantId, { fiscalYear, projectId } = {}) {
   const conditions = [eq(files.tenantId, tenantId)]
   if (fiscalYear) conditions.push(eq(files.fiscalYear, fiscalYear))
   if (projectId) {
     conditions.push(and(eq(files.entityType, 'project'), eq(files.entityId, projectId)))
   }
 
-  let query = db.select().from(files).orderBy(desc(files.createdAt))
+  let query = await db.select().from(files).orderBy(desc(files.createdAt))
   if (conditions.length === 1) query = query.where(conditions[0])
   else query = query.where(and(...conditions))
 
@@ -134,8 +141,8 @@ export function getAuditFolderTree(tenantId, { fiscalYear, projectId } = {}) {
   }))
 }
 
-export function getComplianceAuditSummary(tenantId) {
-  const allFiles = db.select().from(files).where(eq(files.tenantId, tenantId)).all()
+export async function getComplianceAuditSummary(tenantId) {
+  const allFiles = await db.select().from(files).where(eq(files.tenantId, tenantId)).all()
   const uploads = allFiles.length
   const byCategory = {}
   for (const f of allFiles) {
@@ -146,16 +153,24 @@ export function getComplianceAuditSummary(tenantId) {
   const approvals = activity.filter((a) => a.action.startsWith('workflow.')).length
   const disbursements = activity.filter((a) => a.action === 'finance.disbursement.record').length
 
-  const projects = db.select().from(csrProjects).where(eq(csrProjects.corporateTenantId, tenantId)).all()
-  const missingEvidence = projects.filter((p) => {
-    const evidence = allFiles.filter((f) => f.entityType === 'project' && f.entityId === p.id && f.category === 'project_evidence')
-    return p.status === 'active' && evidence.length === 0
-  }).map((p) => ({ id: p.id, name: p.name }))
+  const projects = await db.select().from(csrProjects).where(eq(csrProjects.corporateTenantId, tenantId)).all()
+  const missingEvidence = projects
+    .filter((p) => {
+      const evidence = allFiles.filter(
+        (f) => f.entityType === 'project' && f.entityId === p.id && f.category === 'project_evidence',
+      )
+      return p.status === 'active' && evidence.length === 0
+    })
+    .map((p) => ({ id: p.id, name: p.name }))
 
-  const missingCompliance = projects.filter((p) => {
-    const ucs = allFiles.filter((f) => f.entityType === 'project' && f.entityId === p.id && f.category === 'compliance')
-    return p.status === 'active' && ucs.length === 0
-  }).map((p) => ({ id: p.id, name: p.name }))
+  const missingCompliance = projects
+    .filter((p) => {
+      const ucs = allFiles.filter(
+        (f) => f.entityType === 'project' && f.entityId === p.id && f.category === 'compliance',
+      )
+      return p.status === 'active' && ucs.length === 0
+    })
+    .map((p) => ({ id: p.id, name: p.name }))
 
   return {
     uploads,
@@ -167,12 +182,12 @@ export function getComplianceAuditSummary(tenantId) {
   }
 }
 
-function collectFilesForExport(tenantId, { projectId, fiscalYear } = {}) {
+async function collectFilesForExport(tenantId, { projectId, fiscalYear } = {}) {
   const conditions = [eq(files.tenantId, tenantId)]
   if (fiscalYear) conditions.push(eq(files.fiscalYear, fiscalYear))
   if (projectId) conditions.push(and(eq(files.entityType, 'project'), eq(files.entityId, projectId)))
 
-  let query = db.select().from(files)
+  let query = await db.select().from(files)
   if (conditions.length === 1) query = query.where(conditions[0])
   else query = query.where(and(...conditions))
   return query.all()
@@ -226,9 +241,14 @@ export async function buildAuditPackage(tenantId, scope = {}, req) {
   const zipPath = path.join(tmpDir, 'audit-package.zip')
   const isWin = process.platform === 'win32'
   if (isWin) {
-    execSync(`powershell -NoProfile -Command "Compress-Archive -Path '${path.join(tmpDir, 'documents')}', '${path.join(tmpDir, 'manifest.json')}', '${path.join(tmpDir, 'activity-export.json')}' -DestinationPath '${zipPath}' -Force"`, { stdio: 'pipe' })
+    execSync(
+      `powershell -NoProfile -Command "Compress-Archive -Path '${path.join(tmpDir, 'documents')}', '${path.join(tmpDir, 'manifest.json')}', '${path.join(tmpDir, 'activity-export.json')}' -DestinationPath '${zipPath}' -Force"`,
+      { stdio: 'pipe' },
+    )
   } else {
-    execSync(`cd "${tmpDir}" && zip -r audit-package.zip documents manifest.json activity-export.json`, { stdio: 'pipe' })
+    execSync(`cd "${tmpDir}" && zip -r audit-package.zip documents manifest.json activity-export.json`, {
+      stdio: 'pipe',
+    })
   }
 
   const buffer = fs.readFileSync(zipPath)
@@ -236,11 +256,11 @@ export async function buildAuditPackage(tenantId, scope = {}, req) {
   return { buffer, fileName: `audit-package-${Date.now()}.zip` }
 }
 
-export function testImmutabilityTrigger() {
-  const row = db.select().from(activityLogs).limit(1).get()
+export async function testImmutabilityTrigger() {
+  const row = await db.select().from(activityLogs).limit(1).get()
   if (!row) return { blocked: false, reason: 'no rows to test' }
   try {
-    db.delete(activityLogs).where(eq(activityLogs.id, row.id)).run()
+    await db.delete(activityLogs).where(eq(activityLogs.id, row.id)).run()
     return { blocked: false }
   } catch (err) {
     return { blocked: true, message: err.message }

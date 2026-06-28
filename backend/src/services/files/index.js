@@ -36,20 +36,22 @@ export function deriveFiscalYear(date = new Date()) {
 }
 
 function sanitizeSegment(name) {
-  return (name || 'General')
-    .replace(/[/\\?%*:|"<>]/g, '-')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, 80) || 'General'
+  return (
+    (name || 'General')
+      .replace(/[/\\?%*:|"<>]/g, '-')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 80) || 'General'
+  )
 }
 
-export function deriveAuditPath({ category, entityType, entityId, originalName, fiscalYear }) {
+export async function deriveAuditPath({ category, entityType, entityId, originalName, fiscalYear }) {
   const fy = fiscalYear || deriveFiscalYear()
   const categoryLabel = CATEGORY_LABELS[category] || category
   let projectSegment = 'General'
 
   if (entityType === 'project' && entityId) {
-    const project = db.select().from(csrProjects).where(eq(csrProjects.id, entityId)).get()
+    const project = await db.select().from(csrProjects).where(eq(csrProjects.id, entityId)).get()
     if (project?.name) projectSegment = sanitizeSegment(project.name)
   }
 
@@ -57,9 +59,9 @@ export function deriveAuditPath({ category, entityType, entityId, originalName, 
   return `${fy}/${projectSegment}/${categoryLabel}/${fileName}`
 }
 
-function resolveFiscalYearForFile({ entityType, entityId }) {
+async function resolveFiscalYearForFile({ entityType, entityId }) {
   if (entityType === 'project' && entityId) {
-    const project = db.select().from(csrProjects).where(eq(csrProjects.id, entityId)).get()
+    const project = await db.select().from(csrProjects).where(eq(csrProjects.id, entityId)).get()
     if (project?.startDate) return deriveFiscalYear(new Date(project.startDate))
   }
   return deriveFiscalYear()
@@ -103,35 +105,41 @@ export async function storeFile({
   const now = new Date()
   const id = newId()
 
-  db.insert(files).values({
-    id,
-    tenantId,
-    uploadedBy,
-    category,
-    entityType,
-    entityId,
-    storageKey: stored.key,
-    originalName,
-    mime,
-    sizeBytes: stored.size,
-    checksum,
-    auditPath,
-    fiscalYear,
-    version: 1,
-    createdAt: now,
-  }).run()
+  await db
+    .insert(files)
+    .values({
+      id,
+      tenantId,
+      uploadedBy,
+      category,
+      entityType,
+      entityId,
+      storageKey: stored.key,
+      originalName,
+      mime,
+      sizeBytes: stored.size,
+      checksum,
+      auditPath,
+      fiscalYear,
+      version: 1,
+      createdAt: now,
+    })
+    .run()
 
-  db.insert(fileVersions).values({
-    id: newId(),
-    fileId: id,
-    version: 1,
-    storageKey: stored.key,
-    checksum,
-    uploadedBy,
-    sizeBytes: stored.size,
-    changeNote: null,
-    createdAt: now,
-  }).run()
+  await db
+    .insert(fileVersions)
+    .values({
+      id: newId(),
+      fileId: id,
+      version: 1,
+      storageKey: stored.key,
+      checksum,
+      uploadedBy,
+      sizeBytes: stored.size,
+      changeNote: null,
+      createdAt: now,
+    })
+    .run()
 
   await logActivity({
     req,
@@ -159,7 +167,7 @@ export async function storeFile({
 }
 
 export async function createFileVersion(fileId, { buffer, uploadedBy, tenantId, tenantType, changeNote, req }) {
-  const row = db.select().from(files).where(eq(files.id, fileId)).get()
+  const row = await db.select().from(files).where(eq(files.id, fileId)).get()
   if (!row || row.tenantId !== tenantId) throw httpError('File not found', 404)
 
   const nextVersion = (row.version || 1) + 1
@@ -174,24 +182,31 @@ export async function createFileVersion(fileId, { buffer, uploadedBy, tenantId, 
   const now = new Date()
   const versionId = newId()
 
-  db.insert(fileVersions).values({
-    id: versionId,
-    fileId,
-    version: nextVersion,
-    storageKey: stored.key,
-    checksum,
-    uploadedBy,
-    sizeBytes: stored.size,
-    changeNote: changeNote || null,
-    createdAt: now,
-  }).run()
+  await db
+    .insert(fileVersions)
+    .values({
+      id: versionId,
+      fileId,
+      version: nextVersion,
+      storageKey: stored.key,
+      checksum,
+      uploadedBy,
+      sizeBytes: stored.size,
+      changeNote: changeNote || null,
+      createdAt: now,
+    })
+    .run()
 
-  db.update(files).set({
-    storageKey: stored.key,
-    checksum,
-    sizeBytes: stored.size,
-    version: nextVersion,
-  }).where(eq(files.id, fileId)).run()
+  await db
+    .update(files)
+    .set({
+      storageKey: stored.key,
+      checksum,
+      sizeBytes: stored.size,
+      version: nextVersion,
+    })
+    .where(eq(files.id, fileId))
+    .run()
 
   await logActivity({
     req,
@@ -205,17 +220,19 @@ export async function createFileVersion(fileId, { buffer, uploadedBy, tenantId, 
   return getFileById(fileId, tenantId)
 }
 
-export function listFileVersions(fileId, tenantId) {
-  const row = db.select().from(files).where(eq(files.id, fileId)).get()
+export async function listFileVersions(fileId, tenantId) {
+  const row = await db.select().from(files).where(eq(files.id, fileId)).get()
   if (!row || row.tenantId !== tenantId) return []
-  return db.select().from(fileVersions)
+  return await db
+    .select()
+    .from(fileVersions)
     .where(eq(fileVersions.fileId, fileId))
     .orderBy(desc(fileVersions.version))
     .all()
 }
 
 export async function logFileDownload(fileId, req) {
-  const row = db.select().from(files).where(eq(files.id, fileId)).get()
+  const row = await db.select().from(files).where(eq(files.id, fileId)).get()
   if (!row) return
   await logActivity({
     req,
@@ -226,20 +243,20 @@ export async function logFileDownload(fileId, req) {
   })
 }
 
-export function getFileById(id, tenantId) {
-  const row = db.select().from(files).where(eq(files.id, id)).get()
+export async function getFileById(id, tenantId) {
+  const row = await db.select().from(files).where(eq(files.id, id)).get()
   if (!row || row.tenantId !== tenantId) return null
   return shapeFile(row)
 }
 
-export function listFiles({ tenantId, category, entityType, entityId, fiscalYear, limit = 50 }) {
+export async function listFiles({ tenantId, category, entityType, entityId, fiscalYear, limit = 50 }) {
   const conditions = [eq(files.tenantId, tenantId)]
   if (category) conditions.push(eq(files.category, category))
   if (entityType) conditions.push(eq(files.entityType, entityType))
   if (entityId) conditions.push(eq(files.entityId, entityId))
   if (fiscalYear) conditions.push(eq(files.fiscalYear, fiscalYear))
 
-  let query = db.select().from(files).orderBy(desc(files.createdAt)).limit(limit)
+  let query = await db.select().from(files).orderBy(desc(files.createdAt)).limit(limit)
   if (conditions.length === 1) {
     query = query.where(conditions[0])
   } else {
