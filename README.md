@@ -329,7 +329,7 @@ Every variable is documented in those files. **Production requires** real values
 
 ### Production readiness
 
-This codebase is being hardened in phases. Current status:
+This codebase has been hardened across seven phases per the [Production Readiness Plan](./production_plan.md). Current status:
 
 - ✅ Phase 1 — Foundation (docs, env, repo hygiene, error handling)
 - ✅ Phase 2 — Security hardening (rate limits, CSP, upload validation, OTP crypto, header injection fix)
