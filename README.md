@@ -335,9 +335,9 @@ This codebase has been hardened across seven phases per the [Production Readines
 - ✅ Phase 2 — Test Foundation (backend unit + integration tests with Vitest + Supertest, frontend component + page smoke tests, CI coverage gates)
 - ✅ Phase 3 — Observability & Monitoring (Pino structured logging, Sentry error tracking, enhanced health endpoint, Prometheus metrics, Grafana dashboards, Loki log aggregation)
 - ✅ Phase 4 — Deployability & Infrastructure (one-command deploy, Ansible provisioning, Terraform DO modules, hardened Nginx, Let's Encrypt SSL, automated encrypted backups, API versioning, feature flags)
-- ✅ Phase 5 — Deployment (Docker, docker-compose, nginx)
-- ✅ Phase 6 — Test foundation + OpenAPI documentation (Vitest smoke tests + Swagger UI)
-- ⏳ Phase 7 — Launch polish (API versioning, runbook, CI/CD)
+- ✅ Phase 5 — Postgres Migration (Drizzle Postgres driver, dual-dialect schema, env toggle, blue-green deploy, migration script)
+- ✅ Phase 6 — API Documentation (OpenAPI 3.0 spec from Zod schemas, Swagger UI, Postman collection, API changelog)
+- ✅ Phase 7 — Security Hardening (Dependabot + npm audit, Gitleaks + GitGuardian secret scanning, Trivy container scanning, rate limit audit, OWASP pen test plan)
 
 **Database:** SQLite (WAL mode) is used. For an early-pilot launch this is sufficient with automated backups and a single-instance deploy. A Postgres migration is documented as a future milestone for horizontal scaling.
 
