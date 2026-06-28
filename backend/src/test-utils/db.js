@@ -7,6 +7,7 @@ import { migrate as migratePg } from 'drizzle-orm/node-postgres/migrator'
 import path from 'node:path'
 import fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
+import { enhanceDbForPg } from '../lib/db-driver.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const migrationsFolder = path.resolve(__dirname, '../../drizzle')
@@ -26,7 +27,7 @@ export async function createTestDb() {
     if (fs.existsSync(migrationsFolder)) {
       await migratePg(db, { migrationsFolder })
     }
-    return { sqlite: null, db, pool, schema }
+    return { sqlite: null, db: enhanceDbForPg(db), pool, schema }
   } else {
     const schema = await import('../db/schema.js')
     const sqlite = new Database(':memory:')

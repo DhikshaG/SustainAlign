@@ -8,6 +8,7 @@ import path from 'node:path'
 import fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { env } from '../config/env.js'
+import { enhanceDbForPg } from '../lib/db-driver.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const migrationsFolder = path.resolve(__dirname, '../../drizzle' + (env.DB_DIALECT === 'pg' ? '-pg' : ''))
@@ -20,6 +21,7 @@ if (env.DB_DIALECT === 'pg') {
   const schema = await import('./schema-pg.js')
   pool = new Pool({ connectionString: env.DATABASE_URL })
   db = drizzlePg(pool, { schema: schema })
+  db = enhanceDbForPg(db)
 
   if (fs.existsSync(migrationsFolder)) {
     await migratePg(db, { migrationsFolder })
