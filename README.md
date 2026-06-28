@@ -379,6 +379,10 @@ cp backend/.env.example backend/.env  # edit with production secrets
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
 ```
 
+**Postgres with PgBouncer (connection pooling):**
+
+For production Postgres deployments, PgBouncer is included in `docker-compose.prod.yml`. It uses session pooling mode (compatible with Drizzle prepared statements) and exposes port `6432`. Set `DATABASE_URL=postgres://user:pass@pgbouncer:6432/sustainalign` and `DB_DIALECT=pg`.
+
 **Manual:**
 
 - Frontend: `npm run build` → serve `frontend/dist/` behind a static host with SPA fallback.
