@@ -333,8 +333,8 @@ This codebase has been hardened across seven phases per the [Production Readines
 
 - ✅ Phase 1 — CI/CD Pipeline (GitHub Actions CI/CD, husky pre-commit, commitlint, deploy scripts, Docker Compose prod, Vitest, Makefile)
 - ✅ Phase 2 — Test Foundation (backend unit + integration tests with Vitest + Supertest, frontend component + page smoke tests, CI coverage gates)
-- ✅ Phase 3 — Operational resilience (health checks, graceful shutdown, request IDs, CORS caching)
-- ✅ Phase 4 — Frontend perf (lazy loading, code splitting, meta tags, noscript)
+- ✅ Phase 3 — Observability & Monitoring (Pino structured logging, Sentry error tracking, enhanced health endpoint, Prometheus metrics, Grafana dashboards, Loki log aggregation)
+- ✅ Phase 4 — Deployability & Infrastructure (one-command deploy, Ansible provisioning, Terraform DO modules, hardened Nginx, Let's Encrypt SSL, automated encrypted backups, API versioning, feature flags)
 - ✅ Phase 5 — Deployment (Docker, docker-compose, nginx)
 - ✅ Phase 6 — Test foundation + OpenAPI documentation (Vitest smoke tests + Swagger UI)
 - ⏳ Phase 7 — Launch polish (API versioning, runbook, CI/CD)
