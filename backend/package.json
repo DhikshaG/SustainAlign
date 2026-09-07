@@ -37,7 +37,7 @@
     "@asteasolutions/zod-to-openapi": "^7.3.4",
     "@node-rs/argon2": "^2.0.2",
     "@sentry/node": "^10.61.0",
-    "better-sqlite3": "^12.10.0",
+    "better-sqlite3": "^13.0.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "docx": "^9.6.1",
