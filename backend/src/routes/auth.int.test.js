@@ -3,12 +3,20 @@ import path from 'node:path'
 import fs from 'node:fs'
 import os from 'node:os'
 
-const testDbPath = path.join(os.tmpdir(), `sustainalign-auth-int-${Date.now()}.db`)
+const dialect = process.env.DB_DIALECT || 'sqlite'
+const testDbPath =
+  dialect === 'pg'
+    ? `postgresql://postgres:postgres@localhost:5432/sustainalign_int_test_${Date.now()}`
+    : path.join(os.tmpdir(), `sustainalign-auth-int-${Date.now()}.db`)
 
 let request
 
 beforeAll(async () => {
-  process.env.DATABASE_PATH = testDbPath
+  if (dialect === 'pg') {
+    process.env.DATABASE_URL = testDbPath
+  } else {
+    process.env.DATABASE_PATH = testDbPath
+  }
   process.env.JWT_SECRET = 'int-test-jwt-secret-at-least-32-characters!!'
   process.env.JWT_REFRESH_SECRET = 'int-test-refresh-secret-at-least-32-chars!'
   process.env.NODE_ENV = 'test'
@@ -20,10 +28,25 @@ beforeAll(async () => {
   request = supertest.default(createApp())
 })
 
-afterAll(() => {
-  try { if (fs.existsSync(testDbPath)) fs.unlinkSync(testDbPath) } catch {}
-  try { const w = testDbPath + '-wal'; if (fs.existsSync(w)) fs.unlinkSync(w) } catch {}
-  try { const s = testDbPath + '-shm'; if (fs.existsSync(s)) fs.unlinkSync(s) } catch {}
+afterAll(async () => {
+  if (dialect === 'pg') {
+    try {
+      const { pool, closeDb } = await import('../db/index.js')
+      if (closeDb) await closeDb()
+    } catch {}
+  } else {
+    try {
+      if (fs.existsSync(testDbPath)) fs.unlinkSync(testDbPath)
+    } catch {}
+    try {
+      const w = testDbPath + '-wal'
+      if (fs.existsSync(w)) fs.unlinkSync(w)
+    } catch {}
+    try {
+      const s = testDbPath + '-shm'
+      if (fs.existsSync(s)) fs.unlinkSync(s)
+    } catch {}
+  }
 })
 
 describe('POST /api/auth/corporate/signup', () => {
@@ -51,9 +74,7 @@ describe('POST /api/auth/corporate/signup', () => {
   })
 
   it('rejects invalid payload with 400', async () => {
-    const res = await request
-      .post('/api/auth/corporate/signup')
-      .send({ email: 'not-an-email' })
+    const res = await request.post('/api/auth/corporate/signup').send({ email: 'not-an-email' })
     expect(res.status).toBe(400)
   })
 })
@@ -68,18 +89,14 @@ describe('POST /api/auth/corporate/login', () => {
   })
 
   it('logs in with valid credentials', async () => {
-    const res = await request
-      .post('/api/auth/corporate/login')
-      .send({ email, password: 'StrongPass1!' })
+    const res = await request.post('/api/auth/corporate/login').send({ email, password: 'StrongPass1!' })
     expect(res.status).toBe(200)
     expect(res.body.data.access_token).toBeTruthy()
     expect(res.body.data.refresh_token).toBeTruthy()
   })
 
   it('rejects invalid password with 401', async () => {
-    const res = await request
-      .post('/api/auth/corporate/login')
-      .send({ email, password: 'wrongpass' })
+    const res = await request.post('/api/auth/corporate/login').send({ email, password: 'wrongpass' })
     expect(res.status).toBe(401)
   })
 })
@@ -90,14 +107,17 @@ describe('POST /api/auth/refresh', () => {
   beforeAll(async () => {
     const res = await request
       .post('/api/auth/corporate/signup')
-      .send({ email: `int-refresh-${Date.now()}@test.com`, password: 'StrongPass1!', companyName: 'Refresh Corp', acceptTerms: true })
+      .send({
+        email: `int-refresh-${Date.now()}@test.com`,
+        password: 'StrongPass1!',
+        companyName: 'Refresh Corp',
+        acceptTerms: true,
+      })
     refreshToken = res.body.data.refresh_token
   })
 
   it('refreshes tokens', async () => {
-    const res = await request
-      .post('/api/auth/refresh')
-      .send({ refresh_token: refreshToken })
+    const res = await request.post('/api/auth/refresh').send({ refresh_token: refreshToken })
     expect(res.status).toBe(200)
     expect(res.body.data.access_token).toBeTruthy()
     expect(res.body.data.refresh_token).toBeTruthy()
@@ -115,14 +135,17 @@ describe('POST /api/auth/logout', () => {
   beforeAll(async () => {
     const res = await request
       .post('/api/auth/corporate/signup')
-      .send({ email: `int-logout-${Date.now()}@test.com`, password: 'StrongPass1!', companyName: 'Logout Corp', acceptTerms: true })
+      .send({
+        email: `int-logout-${Date.now()}@test.com`,
+        password: 'StrongPass1!',
+        companyName: 'Logout Corp',
+        acceptTerms: true,
+      })
     refreshToken = res.body.data.refresh_token
   })
 
   it('logs out successfully', async () => {
-    const res = await request
-      .post('/api/auth/logout')
-      .send({ refresh_token: refreshToken })
+    const res = await request.post('/api/auth/logout').send({ refresh_token: refreshToken })
     expect(res.status).toBe(200)
     expect(res.body.ok).toBe(true)
   })
@@ -134,14 +157,17 @@ describe('GET /api/auth/me', () => {
   beforeAll(async () => {
     const res = await request
       .post('/api/auth/corporate/signup')
-      .send({ email: `int-me-${Date.now()}@test.com`, password: 'StrongPass1!', companyName: 'Me Corp', acceptTerms: true })
+      .send({
+        email: `int-me-${Date.now()}@test.com`,
+        password: 'StrongPass1!',
+        companyName: 'Me Corp',
+        acceptTerms: true,
+      })
     accessToken = res.body.data.access_token
   })
 
   it('returns user profile', async () => {
-    const res = await request
-      .get('/api/auth/me')
-      .set('Authorization', `Bearer ${accessToken}`)
+    const res = await request.get('/api/auth/me').set('Authorization', `Bearer ${accessToken}`)
     expect(res.status).toBe(200)
     expect(res.body.data.email).toBeTruthy()
   })
@@ -158,16 +184,12 @@ describe('POST /api/auth/corporate/forgot-password', () => {
     await request
       .post('/api/auth/corporate/signup')
       .send({ email, password: 'StrongPass1!', companyName: 'Forgot Corp', acceptTerms: true })
-    const res = await request
-      .post('/api/auth/corporate/forgot-password')
-      .send({ email })
+    const res = await request.post('/api/auth/corporate/forgot-password').send({ email })
     expect(res.status).toBe(200)
   })
 
   it('returns ok even for unknown email (no leak)', async () => {
-    const res = await request
-      .post('/api/auth/corporate/forgot-password')
-      .send({ email: 'nobody@test.com' })
+    const res = await request.post('/api/auth/corporate/forgot-password').send({ email: 'nobody@test.com' })
     expect(res.status).toBe(200)
   })
 })

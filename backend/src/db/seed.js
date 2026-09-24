@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { db } from './index.js'
-import { users, tenants, memberships, ngoProfiles, notifications } from './schema.js'
+import { users, tenants, memberships, ngoProfiles, notifications } from './index.js'
 import { hashPassword } from '../lib/password.js'
 import { newId } from '../lib/ids.js'
 import { createNotification } from '../services/notifications/index.js'

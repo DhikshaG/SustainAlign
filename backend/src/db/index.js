@@ -16,18 +16,19 @@ const migrationsFolder = path.resolve(__dirname, '../../drizzle' + (env.DB_DIALE
 let db
 let sqlite = null
 let pool = null
+let schema
 
 if (env.DB_DIALECT === 'pg') {
-  const schema = await import('./schema-pg.js')
+  schema = await import('./schema-pg.js')
   pool = new Pool({ connectionString: env.DATABASE_URL })
-  db = drizzlePg(pool, { schema: schema })
+  db = drizzlePg(pool, { schema })
   db = enhanceDbForPg(db)
 
   if (fs.existsSync(migrationsFolder)) {
     await migratePg(db, { migrationsFolder })
   }
 } else {
-  const schema = await import('./schema.js')
+  schema = await import('./schema.js')
   const dbPath = path.resolve(env.DATABASE_PATH)
   const dbDir = path.dirname(dbPath)
 
@@ -45,7 +46,107 @@ if (env.DB_DIALECT === 'pg') {
   }
 }
 
-export { db, sqlite, pool }
+const {
+  users,
+  tenants,
+  memberships,
+  refreshTokens,
+  passwordResetTokens,
+  mfaChallenges,
+  invitations,
+  ngoProfiles,
+  ngoTeamMembers,
+  ngoPastProjects,
+  ngoImpactMetrics,
+  ngoImpactStories,
+  ngoCertifications,
+  ngoDocuments,
+  files,
+  fileVersions,
+  notifications,
+  activityLogs,
+  searchDocuments,
+  tagCategories,
+  tags,
+  entityTags,
+  workflowDefinitions,
+  workflowInstances,
+  workflowEvents,
+  corporateNgoSaves,
+  corporateNgoInquiries,
+  csrProjects,
+  projectMilestones,
+  messageThreads,
+  messages,
+  projectTasks,
+  projectUpdates,
+  projectKpis,
+  projectBeneficiaryLogs,
+  projectGeoUpdates,
+  projectUpdateFiles,
+  reports,
+  corporateCsrProfile,
+  complianceAlerts,
+  volunteerEvents,
+  volunteerSignups,
+  volunteerAttendance,
+  volunteerQrTokens,
+  volunteerCertificates,
+  vectorDocuments,
+} = schema
+
+export {
+  db,
+  sqlite,
+  pool,
+  schema,
+  users,
+  tenants,
+  memberships,
+  refreshTokens,
+  passwordResetTokens,
+  mfaChallenges,
+  invitations,
+  ngoProfiles,
+  ngoTeamMembers,
+  ngoPastProjects,
+  ngoImpactMetrics,
+  ngoImpactStories,
+  ngoCertifications,
+  ngoDocuments,
+  files,
+  fileVersions,
+  notifications,
+  activityLogs,
+  searchDocuments,
+  tagCategories,
+  tags,
+  entityTags,
+  workflowDefinitions,
+  workflowInstances,
+  workflowEvents,
+  corporateNgoSaves,
+  corporateNgoInquiries,
+  csrProjects,
+  projectMilestones,
+  messageThreads,
+  messages,
+  projectTasks,
+  projectUpdates,
+  projectKpis,
+  projectBeneficiaryLogs,
+  projectGeoUpdates,
+  projectUpdateFiles,
+  reports,
+  corporateCsrProfile,
+  complianceAlerts,
+  volunteerEvents,
+  volunteerSignups,
+  volunteerAttendance,
+  volunteerQrTokens,
+  volunteerCertificates,
+  vectorDocuments,
+}
 
 export async function closeDb() {
   if (sqlite) {
