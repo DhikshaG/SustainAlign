@@ -8,6 +8,7 @@ import path from 'node:path'
 import fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { enhanceDbForPg } from '../lib/db-driver.js'
+import { ensurePgDatabaseExists } from '../db/pg-setup.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -22,9 +23,10 @@ export async function createTestDb() {
 
   if (dialect === 'pg') {
     const schema = await import('../db/schema-pg.js')
-    const pool = new Pool({
-      connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/sustainalign_test',
-    })
+    const connectionString =
+      process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/sustainalign_test'
+    await ensurePgDatabaseExists(connectionString)
+    const pool = new Pool({ connectionString })
     const db = drizzlePg(pool, { schema })
     if (fs.existsSync(migrationsFolder)) {
       await migratePg(db, { migrationsFolder })
