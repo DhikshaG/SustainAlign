@@ -47,7 +47,7 @@ import { auditQuerySchema, auditExportSchema, fileVersionSchema } from '../../sc
 import { createUpload } from '../../middleware/upload.js'
 import { env } from '../../config/env.js'
 import { db } from '../../db/index.js'
-import { tenants } from '../../db/schema.js'
+import { tenants } from '../../db/index.js'
 import { eq } from 'drizzle-orm'
 import { getDashboardSummary, getReportingOverview } from '../../services/dashboard/index.js'
 import {

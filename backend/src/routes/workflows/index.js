@@ -7,7 +7,7 @@ import { ok, fail } from '../../lib/response.js'
 import { PERMISSIONS } from '../../lib/permissions.js'
 import { createInstance, getInstance, listInboxForUser, transition } from '../../services/workflow/index.js'
 import { db } from '../../db/index.js'
-import { tenants } from '../../db/schema.js'
+import { tenants } from '../../db/index.js'
 import { eq } from 'drizzle-orm'
 import { newId } from '../../lib/ids.js'
 

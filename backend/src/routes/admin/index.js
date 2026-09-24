@@ -11,7 +11,7 @@ import { createNotification } from '../../services/notifications/index.js'
 import { listVerificationQueue, updatePlatformFields } from '../../services/ngo/index.js'
 import { platformFieldsSchema } from '../../schemas/ngo.js'
 import { db } from '../../db/index.js'
-import { ngoProfiles, memberships } from '../../db/schema.js'
+import { ngoProfiles, memberships } from '../../db/index.js'
 import { eq, and } from 'drizzle-orm'
 import {
   overview,

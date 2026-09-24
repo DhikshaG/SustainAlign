@@ -1,6 +1,6 @@
 import { eq, and, isNull, desc } from 'drizzle-orm'
 import { db } from '../../db/index.js'
-import { tenants, ngoProfiles, csrProjects, complianceAlerts, workflowInstances } from '../../db/schema.js'
+import { tenants, ngoProfiles, csrProjects, complianceAlerts, workflowInstances } from '../../db/index.js'
 import { aggregateForTenant } from '../impact/index.js'
 import { getDistrictImpact, getSdgProgress } from '../impact/analytics.js'
 import { getComplianceSummary } from '../compliance/index.js'

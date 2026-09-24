@@ -11,7 +11,7 @@ import { safeFilename } from '../../lib/sanitize.js'
 import { getFileById, listFiles, storeFile, logFileDownload } from '../../services/files/index.js'
 import { z } from 'zod'
 import { db } from '../../db/index.js'
-import { tenants } from '../../db/schema.js'
+import { tenants } from '../../db/index.js'
 import { eq } from 'drizzle-orm'
 
 const listSchema = z.object({
