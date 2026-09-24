@@ -11,7 +11,7 @@ import {
   ngoDocuments,
   files,
   tags,
-} from '../../db/schema.js'
+} from '../../db/index.js'
 import { newId } from '../../lib/ids.js'
 import {
   getEntityTags,

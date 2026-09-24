@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { db } from '../../db/index.js'
-import { csrProjects, projectMilestones, tenants } from '../../db/schema.js'
+import { csrProjects, projectMilestones, tenants } from '../../db/index.js'
 import { listProfiles } from '../ngo/index.js'
 import { listProjects } from '../projects/index.js'
 import { chatWithSystem, isAiEnabled, checkOllamaHealth, isOllamaModelAvailable } from '../ai/ollama.js'

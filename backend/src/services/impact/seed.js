@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { db } from '../../db/index.js'
-import { csrProjects, projectKpis } from '../../db/schema.js'
+import { csrProjects, projectKpis } from '../../db/index.js'
 import { addKpi, addBeneficiaryLog, addGeoUpdate } from './index.js'
 
 const IMPACT_SEED = [
