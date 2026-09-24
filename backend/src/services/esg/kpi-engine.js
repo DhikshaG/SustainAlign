@@ -1,6 +1,6 @@
 import { eq, desc, inArray } from 'drizzle-orm'
 import { db } from '../../db/index.js'
-import { csrProjects, projectKpis } from '../../db/schema.js'
+import { csrProjects, projectKpis } from '../../db/index.js'
 import { KPI_CATALOG, mapKpi } from './taxonomy.js'
 
 async function getCorporateProjectIds(tenantId) {

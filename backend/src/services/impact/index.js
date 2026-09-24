@@ -13,7 +13,7 @@ import {
   entityTags,
   tags,
   tagCategories,
-} from '../../db/schema.js'
+} from '../../db/index.js'
 import { newId } from '../../lib/ids.js'
 import { logMutation } from '../activity-log/index.js'
 import {

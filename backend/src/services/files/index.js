@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { eq, and, desc } from 'drizzle-orm'
 import { db } from '../../db/index.js'
-import { files, fileVersions, csrProjects } from '../../db/schema.js'
+import { files, fileVersions, csrProjects } from '../../db/index.js'
 import { newId } from '../../lib/ids.js'
 import { getStorage, isAllowedMime } from '../../lib/storage/index.js'
 import { logActivity } from '../activity-log/index.js'

@@ -9,7 +9,7 @@ import {
   projectUpdates,
   projectMilestones,
   files,
-} from '../../db/schema.js'
+} from '../../db/index.js'
 import { THEME_TO_SDG } from '../esg/taxonomy.js'
 
 const MONTH_LABELS = ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan']
