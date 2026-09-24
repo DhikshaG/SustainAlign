@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { db } from '../../db/index.js'
-import { csrProjects, projectMilestones } from '../../db/schema.js'
+import { csrProjects, projectMilestones } from '../../db/index.js'
 import { SCHEDULE_VII_OPTIONS } from '../../schemas/projects.js'
 
 const NET_WORTH_THRESHOLD = 50_000_000_000 // ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¹500 Cr

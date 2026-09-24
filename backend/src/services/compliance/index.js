@@ -1,6 +1,6 @@
 import { eq, and, isNull } from 'drizzle-orm'
 import { db } from '../../db/index.js'
-import { csrProjects, corporateCsrProfile, complianceAlerts, tenants } from '../../db/schema.js'
+import { csrProjects, corporateCsrProfile, complianceAlerts, tenants } from '../../db/index.js'
 import { newId } from '../../lib/ids.js'
 import { logMutation } from '../activity-log/index.js'
 import {

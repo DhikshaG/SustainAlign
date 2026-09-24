@@ -10,7 +10,7 @@ import {
   invitations,
   ngoProfiles,
   ngoDocuments,
-} from '../../db/schema.js'
+} from '../../db/index.js'
 import { env } from '../../config/env.js'
 import { hashPassword, verifyPassword } from '../../lib/password.js'
 import {

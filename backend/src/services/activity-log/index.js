@@ -1,6 +1,6 @@
 import { eq, and, desc, gte, lte, inArray } from 'drizzle-orm'
 import { db } from '../../db/index.js'
-import { activityLogs, users } from '../../db/schema.js'
+import { activityLogs, users } from '../../db/index.js'
 import { newId } from '../../lib/ids.js'
 import { authLog } from '../../lib/auth-log.js'
 import { logger } from '../../lib/logger.js'

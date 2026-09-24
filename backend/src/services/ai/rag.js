@@ -1,6 +1,6 @@
 import { eq, and } from 'drizzle-orm'
 import { db } from '../../db/index.js'
-import { vectorDocuments, tenants } from '../../db/schema.js'
+import { vectorDocuments, tenants } from '../../db/index.js'
 import { newId } from '../../lib/ids.js'
 import { getProfileByTenantId, listProfiles } from '../ngo/index.js'
 import { runNgoMatch } from '../matching/index.js'

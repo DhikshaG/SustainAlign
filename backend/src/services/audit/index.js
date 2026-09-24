@@ -4,7 +4,7 @@ import os from 'node:os'
 import { execSync } from 'node:child_process'
 import { eq, and, desc } from 'drizzle-orm'
 import { db } from '../../db/index.js'
-import { files, csrProjects, activityLogs } from '../../db/schema.js'
+import { files, csrProjects, activityLogs } from '../../db/index.js'
 import { listActivity, formatActivityForExport } from '../activity-log/index.js'
 import { getStorage } from '../../lib/storage/index.js'
 

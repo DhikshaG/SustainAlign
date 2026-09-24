@@ -9,12 +9,20 @@ vi.mock('../../lib/tokens.js', async (importOriginal) => {
   return { ...actual, generateOtp: () => '000000' }
 })
 
-const testDbPath = path.join(os.tmpdir(), `sustainalign-auth-${Date.now()}.db`)
+const dialect = process.env.DB_DIALECT || 'sqlite'
+const testDbPath =
+  dialect === 'pg'
+    ? `postgresql://postgres:postgres@localhost:5432/sustainalign_test_${Date.now()}`
+    : path.join(os.tmpdir(), `sustainalign-auth-${Date.now()}.db`)
 
 let auth, db, schema, newId, hashPassword, hashToken, generateResetToken, createRefreshToken
 
 beforeAll(async () => {
-  process.env.DATABASE_PATH = testDbPath
+  if (dialect === 'pg') {
+    process.env.DATABASE_URL = testDbPath
+  } else {
+    process.env.DATABASE_PATH = testDbPath
+  }
   process.env.JWT_SECRET = 'test-jwt-secret-at-least-32-characters-long!!'
   process.env.JWT_REFRESH_SECRET = 'test-refresh-secret-at-least-32-chars!!!!'
   process.env.NODE_ENV = 'test'
@@ -25,8 +33,7 @@ beforeAll(async () => {
   auth = authMod
   const dbMod = await import('../../db/index.js')
   db = dbMod.db
-  const schemaMod = await import('../../db/schema.js')
-  schema = schemaMod
+  schema = dbMod.schema
   const idsMod = await import('../../lib/ids.js')
   newId = idsMod.newId
   const pwdMod = await import('../../lib/password.js')
@@ -37,18 +44,25 @@ beforeAll(async () => {
   createRefreshToken = tokMod.createRefreshToken
 })
 
-afterAll(() => {
-  try {
-    if (fs.existsSync(testDbPath)) fs.unlinkSync(testDbPath)
-  } catch {}
-  try {
-    const w = testDbPath + '-wal'
-    if (fs.existsSync(w)) fs.unlinkSync(w)
-  } catch {}
-  try {
-    const s = testDbPath + '-shm'
-    if (fs.existsSync(s)) fs.unlinkSync(s)
-  } catch {}
+afterAll(async () => {
+  if (dialect === 'pg') {
+    try {
+      const { pool } = await import('../../db/index.js')
+      if (pool) await pool.end()
+    } catch {}
+  } else {
+    try {
+      if (fs.existsSync(testDbPath)) fs.unlinkSync(testDbPath)
+    } catch {}
+    try {
+      const w = testDbPath + '-wal'
+      if (fs.existsSync(w)) fs.unlinkSync(w)
+    } catch {}
+    try {
+      const s = testDbPath + '-shm'
+      if (fs.existsSync(s)) fs.unlinkSync(s)
+    } catch {}
+  }
 })
 
 async function seedUser(overrides = {}) {

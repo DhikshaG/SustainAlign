@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { db } from '../../db/index.js'
-import { csrProjects, ngoProfiles, tenants } from '../../db/schema.js'
+import { csrProjects, ngoProfiles, tenants } from '../../db/index.js'
 import { getFundAllocation, getComplianceSummary } from '../compliance/index.js'
 import { getDistrictImpact, getSdgProgress } from '../impact/analytics.js'
 import { aggregateForTenant } from '../impact/index.js'
