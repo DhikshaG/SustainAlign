@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { db } from '../../db/index.js'
-import { csrProjects } from '../../db/schema.js'
+import { csrProjects } from '../../db/index.js'
 import { getComplianceSummary, getFundAllocation } from '../compliance/index.js'
 import { getSdgProgress } from '../impact/analytics.js'
 import { BRSR_PRINCIPLES, mapProject, mapThemeToPillar, THEME_TO_SDG } from './taxonomy.js'

@@ -1,6 +1,6 @@
 import { eq, and } from 'drizzle-orm'
 import { db } from '../../db/index.js'
-import { tenants, corporateNgoSaves, corporateNgoInquiries } from '../../db/schema.js'
+import { tenants, corporateNgoSaves, corporateNgoInquiries } from '../../db/index.js'
 import { newId } from '../../lib/ids.js'
 import { getProfileByTenantId } from '../ngo/index.js'
 import { logMutation } from '../activity-log/index.js'

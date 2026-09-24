@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { db } from '../../db/index.js'
-import { tenants } from '../../db/schema.js'
+import { tenants } from '../../db/index.js'
 import { logger } from '../../lib/logger.js'
 import { syncComplianceForTenant } from './index.js'
 

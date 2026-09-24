@@ -10,7 +10,7 @@ import {
   projectMilestones,
   csrProjects,
   users,
-} from '../../db/schema.js'
+} from '../../db/index.js'
 
 export async function getProjectTimeline(projectId) {
   const project = await db.select().from(csrProjects).where(eq(csrProjects.id, projectId)).get()
