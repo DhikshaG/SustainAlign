@@ -1,6 +1,6 @@
 import { eq, desc } from 'drizzle-orm'
 import { db } from '../../db/index.js'
-import { reports } from '../../db/schema.js'
+import { reports } from '../../db/index.js'
 import { newId } from '../../lib/ids.js'
 import { logMutation } from '../activity-log/index.js'
 import { storeFile } from '../files/index.js'

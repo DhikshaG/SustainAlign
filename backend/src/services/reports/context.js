@@ -10,7 +10,7 @@ import {
   tenants,
   files,
   users,
-} from '../../db/schema.js'
+} from '../../db/index.js'
 import { aggregateForTenant } from '../impact/index.js'
 import { getDistrictImpact, getSdgProgress } from '../impact/analytics.js'
 import { getComplianceSummary } from '../compliance/index.js'

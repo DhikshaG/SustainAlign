@@ -1,6 +1,6 @@
 import { eq, and, inArray } from 'drizzle-orm'
 import { db } from '../../db/index.js'
-import { tagCategories, tags, entityTags, tenants } from '../../db/schema.js'
+import { tagCategories, tags, entityTags, tenants } from '../../db/index.js'
 import { newId } from '../../lib/ids.js'
 import { logMutation } from '../activity-log/index.js'
 import { indexDocument } from '../search/index.js'

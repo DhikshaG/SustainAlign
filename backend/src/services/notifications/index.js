@@ -1,6 +1,6 @@
 import { eq, and, isNull, desc } from 'drizzle-orm'
 import { db } from '../../db/index.js'
-import { notifications, memberships, users } from '../../db/schema.js'
+import { notifications, memberships, users } from '../../db/index.js'
 import { newId } from '../../lib/ids.js'
 import { sendEmail } from '../../lib/email.js'
 import { env } from '../../config/env.js'

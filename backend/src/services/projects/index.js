@@ -1,6 +1,6 @@
 import { eq, and, desc, asc } from 'drizzle-orm'
 import { db } from '../../db/index.js'
-import { csrProjects, projectMilestones, projectUpdates, tenants, ngoProfiles, files, users } from '../../db/schema.js'
+import { csrProjects, projectMilestones, projectUpdates, tenants, ngoProfiles, files, users } from '../../db/index.js'
 import { newId } from '../../lib/ids.js'
 import { logMutation } from '../activity-log/index.js'
 import { indexDocument } from '../search/index.js'

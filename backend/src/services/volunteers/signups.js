@@ -1,6 +1,6 @@
 import { eq, and, inArray } from 'drizzle-orm'
 import { db } from '../../db/index.js'
-import { volunteerEvents, volunteerSignups } from '../../db/schema.js'
+import { volunteerEvents, volunteerSignups } from '../../db/index.js'
 import { newId } from '../../lib/ids.js'
 import { httpError, shapeEvent } from './helpers.js'
 

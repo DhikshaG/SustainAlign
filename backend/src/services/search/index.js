@@ -1,6 +1,6 @@
 import { eq, like, or } from 'drizzle-orm'
 import { db, sqlite } from '../../db/index.js'
-import { searchDocuments, tenants, csrProjects } from '../../db/schema.js'
+import { searchDocuments, tenants, csrProjects } from '../../db/index.js'
 import { reindexNgo, getProfileByTenantId } from '../ngo/index.js'
 import { reindexProject } from '../projects/index.js'
 import { env } from '../../config/env.js'

@@ -1,12 +1,12 @@
 import { eq, and, desc } from 'drizzle-orm'
 import { db } from '../../db/index.js'
-import { workflowDefinitions, workflowInstances, workflowEvents, memberships } from '../../db/schema.js'
+import { workflowDefinitions, workflowInstances, workflowEvents, memberships } from '../../db/index.js'
 import { newId } from '../../lib/ids.js'
 import { logMutation } from '../activity-log/index.js'
 import { createNotification, notifyRole } from '../notifications/index.js'
 import { indexDocument } from '../search/index.js'
 import { setProjectStatusFromWorkflow, setMilestoneReviewFromWorkflow } from '../projects/index.js'
-import { csrProjects, projectMilestones } from '../../db/schema.js'
+import { csrProjects, projectMilestones } from '../../db/index.js'
 
 const TERMINAL = new Set(['approved', 'rejected'])
 

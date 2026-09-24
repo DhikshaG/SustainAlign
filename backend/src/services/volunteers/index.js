@@ -7,7 +7,7 @@ import {
   volunteerCertificates,
   users,
   memberships,
-} from '../../db/schema.js'
+} from '../../db/index.js'
 import { newId } from '../../lib/ids.js'
 import { httpError, shapeEvent } from './helpers.js'
 

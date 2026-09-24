@@ -1,6 +1,6 @@
 import { eq, and, sql, inArray } from 'drizzle-orm'
 import { db } from '../../db/index.js'
-import { volunteerEvents, volunteerSignups } from '../../db/schema.js'
+import { volunteerEvents, volunteerSignups } from '../../db/index.js'
 
 export function httpError(message, status) {
   const err = new Error(message)

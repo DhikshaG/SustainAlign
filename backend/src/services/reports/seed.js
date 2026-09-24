@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { db } from '../../db/index.js'
-import { users, memberships, reports } from '../../db/schema.js'
+import { users, memberships, reports } from '../../db/index.js'
 
 export async function seedReports() {
   const acmeUser = await db.select().from(users).where(eq(users.email, 'admin@acme.com')).get()

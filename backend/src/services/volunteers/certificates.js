@@ -8,7 +8,7 @@ import {
   users,
   tenants,
   files,
-} from '../../db/schema.js'
+} from '../../db/index.js'
 import { newId } from '../../lib/ids.js'
 import { storeFile } from '../files/index.js'
 import { getStorage } from '../../lib/storage/index.js'

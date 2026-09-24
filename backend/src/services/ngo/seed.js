@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { db } from '../../db/index.js'
-import { tenants } from '../../db/schema.js'
+import { tenants } from '../../db/index.js'
 import { newId } from '../../lib/ids.js'
 import { upsertFullProfile } from './index.js'
 import { NGO_SEED_RECORDS } from '../../data/ngo-seed.js'

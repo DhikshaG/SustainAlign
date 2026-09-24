@@ -1,6 +1,6 @@
 import { eq, and } from 'drizzle-orm'
 import { db } from '../../db/index.js'
-import { csrProjects, projectMilestones, users, memberships } from '../../db/schema.js'
+import { csrProjects, projectMilestones, users, memberships } from '../../db/index.js'
 import { createProject, submitMilestoneForReview, updateProjectSpent } from '../projects/index.js'
 import { createThread, postMessage } from '../messaging/index.js'
 import { createTask, updateTaskStatus } from '../tasks/index.js'

@@ -1,6 +1,6 @@
 import { eq, and, desc } from 'drizzle-orm'
 import { db } from '../../db/index.js'
-import { csrProjects, projectTasks, users } from '../../db/schema.js'
+import { csrProjects, projectTasks, users } from '../../db/index.js'
 import { newId } from '../../lib/ids.js'
 import { logMutation } from '../activity-log/index.js'
 import { createNotification, notifyRole } from '../notifications/index.js'

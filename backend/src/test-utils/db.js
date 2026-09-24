@@ -10,7 +10,6 @@ import { fileURLToPath } from 'node:url'
 import { enhanceDbForPg } from '../lib/db-driver.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const migrationsFolder = path.resolve(__dirname, '../../drizzle')
 
 const dialect = process.env.DB_DIALECT || 'sqlite'
 
@@ -18,6 +17,9 @@ let dbCounter = 0
 
 export async function createTestDb() {
   dbCounter++
+  const suffix = dialect === 'pg' ? '-pg' : ''
+  const migrationsFolder = path.resolve(__dirname, '../../drizzle' + suffix)
+
   if (dialect === 'pg') {
     const schema = await import('../db/schema-pg.js')
     const pool = new Pool({
